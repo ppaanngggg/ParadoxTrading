@@ -3,6 +3,7 @@ from redis import StrictRedis
 from pymongo import MongoClient
 import pymongo
 import pandas as pd
+from .DataStruct import DataStruct
 import pickle
 import gzip
 
@@ -148,7 +149,7 @@ class Fetch:
     def fetchIntraDayData(
             _product: str, _tradingday: str,
             _instrument=None, _sub_dominant=False,
-            _index='HappenTime') -> pd.DataFrame:
+            _index='HappenTime') -> DataStruct:
         """
         fetch each tick data of product(dominant) or instrument from begin date to end date
 
@@ -159,7 +160,7 @@ class Fetch:
             _sub_dominant (bool): if True and _product is not None, using sub dominant of _product
 
         Returns:
-            pd.DataFrame:
+            DataStruct:
         """
         # set inst to real instrument name
         inst = _instrument
@@ -202,13 +203,12 @@ class Fetch:
             datas = list(cur.fetchall())
             con.close()
             # turn into dataframe
-            dataframe = pd.DataFrame(
-                datas, columns=columns).set_index(_index.lower())
+            datastruct = DataStruct(columns, _index.lower(), datas)
             # cache into redis
-            r = StrictRedis(host=Fetch.redis_host)
-            r.set(key, gzip.compress(pickle.dumps(dataframe)))
+            # r = StrictRedis(host=Fetch.redis_host)
+            # r.set(key, gzip.compress(pickle.dumps(dataframe)))
 
-            return dataframe
+            return datastruct
         except psycopg2.DatabaseError as e:
             print('Error:', e)
             if con:
@@ -223,5 +223,3 @@ if __name__ == '__main__':
     # start_time = time.time()
     # Fetch.fetchIntraDayData('rb', '20170104')
     # print(time.time() - start_time)
-
-    print(Fetch.productNextTradingDay('rb', '20161230'))
