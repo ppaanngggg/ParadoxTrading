@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
-
-import pandas as pd
+from DataStruct import DataStruct
 
 
 class SplitIntoMinute():
@@ -23,36 +22,50 @@ class SplitIntoMinute():
         end_datetime = begin_datetime + timedelta(minutes=self.skip_m)
         return begin_datetime, end_datetime
 
-    def _create_new_bar(self, _data: pd.Series, _cur_time: datetime):
-        self.cur_bar = pd.DataFrame(
-            _data, columns=_data.index, index=[_data.name])
+    def _create_new_bar(self, _data: DataStruct, _cur_time: datetime):
+        self.cur_bar = _data
         self.cur_bar_begin_time, self.cur_bar_end_time = \
             self._get_begin_end_time(_cur_time)
         self.bar_list.append(self.cur_bar)
         self.bar_begin_time_list.append(self.cur_bar_begin_time)
         self.bar_end_time_list.append(self.cur_bar_end_time)
 
-    def addOne(self, _data: pd.Series):
-        assert isinstance(_data, pd.Series)
-        cur_time = _data.name.to_pydatetime()
+    def addOne(self, _data: DataStruct) -> bool:
+        """
+        add one tick data into spliter
+
+        Args:
+            _data (DataStruct): one tick
+
+        Returns:
+            bool : whether created a new bar
+        """
+
+        assert len(_data) == 1
+        cur_time = _data.index()[0]
         if self.cur_bar is None:
             self._create_new_bar(_data, cur_time)
+            return True
         else:
             if cur_time < self.cur_bar_end_time:
-                self.cur_bar.append(_data)
+                self.cur_bar.add(_data)
+                return False
             else:
                 self._create_new_bar(_data, cur_time)
-        print(self.cur_bar)
-        print(self.cur_bar_begin_time)
-        print(self.cur_bar_end_time)
-        input()
+                return True
 
-    def addMany(self, _data: pd.DataFrame):
-        for _, d in _data.iterrows():
+    def addMany(self, _data: DataStruct):
+        """
+        add continue data into spliter
+
+        Args:
+            _data (DataStruct): continute data
+        """
+        for d in _data.iterrows():
             self.addOne(d)
 
 if __name__ == '__main__':
     from Fetch import Fetch
     tmp = Fetch.fetchIntraDayData('rb', '20170105')
-    spliter = SplitIntoMinute(5)
+    spliter = SplitIntoMinute(1)
     spliter.addMany(tmp)

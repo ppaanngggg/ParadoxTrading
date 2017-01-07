@@ -61,7 +61,7 @@ class DataStruct():
         return self.data[self.index_name]
 
     def iterrows(self):
-        for i in range(len(self.index)):
+        for i in range(len(self.index())):
             yield self.iloc[i]
 
 
@@ -105,5 +105,6 @@ if __name__ == '__main__':
 
     from ParadoxTrading.Utils import Fetch
     data = Fetch.fetchIntraDayData('rb', '20170104')
-    tmp = data.iloc[100]
-    print(tmp.index())
+    for d in data.iterrows():
+        print(d.index())
+        input()
