@@ -2,8 +2,7 @@ import psycopg2
 from redis import StrictRedis
 from pymongo import MongoClient
 import pymongo
-import pandas as pd
-from .DataStruct import DataStruct
+from DataStruct import DataStruct
 import pickle
 import gzip
 
@@ -202,11 +201,11 @@ class Fetch:
             )
             datas = list(cur.fetchall())
             con.close()
-            # turn into dataframe
+            # turn into datastruct
             datastruct = DataStruct(columns, _index.lower(), datas)
             # cache into redis
-            # r = StrictRedis(host=Fetch.redis_host)
-            # r.set(key, gzip.compress(pickle.dumps(dataframe)))
+            r = StrictRedis(host=Fetch.redis_host)
+            r.set(key, gzip.compress(pickle.dumps(datastruct)))
 
             return datastruct
         except psycopg2.DatabaseError as e:
@@ -220,6 +219,6 @@ class Fetch:
 
 if __name__ == '__main__':
     import time
-    # start_time = time.time()
-    # Fetch.fetchIntraDayData('rb', '20170104')
-    # print(time.time() - start_time)
+    start_time = time.time()
+    Fetch.fetchIntraDayData('rb', '20170104')
+    print(time.time() - start_time)
