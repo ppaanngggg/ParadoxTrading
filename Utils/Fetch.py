@@ -215,8 +215,8 @@ class Fetch:
                 con.rollback()
             con.close()
 
-    def fetchInterDayData():
-        pass
+    # def fetchInterDayData():
+    #     pass
 
 if __name__ == '__main__':
     import time
