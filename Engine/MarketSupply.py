@@ -21,13 +21,22 @@ class MarketSupply():
 
 class BacktestMarketSupply(MarketSupply):
 
-    def __init__(self, _events: deque, _instruments: list, _begin_day: str, _end_day: str, _split=None):
+    def __init__(self, _events: deque, _begin_day: str, _end_day: str,
+                 _products=None, _dominant=True, _sub_dominant=False,
+                 _instruments=None,  _split=None):
         self.events = _events
-        self.instruments = _instruments
         self.begin_day = _begin_day
         self.end_day = _end_day
+        self.products = _products
+        self.dominant = _dominant
+        self.sub_dominant = _sub_dominant
+        self.instruments = _instruments
+
+        self.market_pool = []
 
     def get_last_instrument_data(self, _instrument: str):
         pass
 
     def update_data(self):
+        if len(self.market_pool) == 0:
+            pass

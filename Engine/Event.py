@@ -39,9 +39,10 @@ class Event():
 
 class MarketEvent(Event):
 
-    def __init__(self):
+    def __init__(self, _data):
 
         self.type = EventType.MARKET
+        self.data = _data
 
 
 class SignalEvent(Event):
