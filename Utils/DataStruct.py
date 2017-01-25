@@ -1,5 +1,6 @@
 import typing
 from bisect import bisect_left, bisect_right
+from datetime import datetime, timedelta
 
 from tabulate import tabulate
 
@@ -87,6 +88,20 @@ class DataStruct():
             return tabulate(tmp_rows, headers=tmp_keys)
         tmp_rows, tmp_keys = self.toRows()
         return tabulate(tmp_rows, headers=tmp_keys)
+
+    def datetime2float(self, _key: str=None):
+        k = _key
+        if k is None:
+            k = self.index_name
+        self.data[k] = [(d - datetime(1970, 1, 1)).total_seconds()
+                        for d in self.data[k]]
+
+    def float2datetime(self, _key: str=None):
+        k = _key
+        if k is None:
+            k = self.index_name
+        self.data[k] = [datetime(1970, 1, 1) + timedelta(seconds=d)
+                        for d in self.data[k]]
 
 
 class Loc():

@@ -1,6 +1,7 @@
 import gzip
 import pickle
 
+import h5py
 import psycopg2
 import pymongo
 from ParadoxTrading.Utils.DataStruct import DataStruct
@@ -18,6 +19,8 @@ class Fetch:
     pgsql_dbname = 'FutureData'
     pgsql_user = 'pang'
     pgsql_password = ''
+
+    cache_path = 'cache.hdf5'
 
     def productList() -> list:
         client = MongoClient(host=Fetch.mongo_host)
@@ -156,6 +159,50 @@ class Fetch:
 
         return ret
 
+    def cache2DataStruct(_inst: str, _tradingday: str, _index: str) -> DataStruct:
+        f = h5py.File(Fetch.cache_path, 'a')
+        try:
+            grp = f[_inst + '/' + _tradingday]
+        except:
+            return None
+
+        datastruct = DataStruct(list(grp.keys()), _index.lower())
+        for k in grp.keys():
+            dataset = grp[k]
+            datastruct.data[k] = dataset[:].tolist()
+            if 'timestamp' in dataset.attrs['type']:
+                datastruct.float2datetime(k)
+
+        f.close()
+        return datastruct
+
+    def DataStruct2cache(_inst, _tradingday, _columns, _types, _datastruct):
+        f = h5py.File(Fetch.cache_path, 'a')
+
+        for c, t in zip(_columns, _types):
+            if 'int' in t:
+                dtype = 'int32'
+            elif 'char' in t:
+                dtype = h5py.special_dtype(vlen=str)
+            else:
+                dtype = 'float64'
+
+            if 'timestamp' in t:
+                _datastruct.datetime2float(c)
+
+            dataset = f.create_dataset(
+                _inst + '/' + _tradingday + '/' + c,
+                (len(_datastruct),),
+                dtype=dtype,
+            )
+            dataset[:] = _datastruct.data[c]
+            dataset.attrs['type'] = t
+
+            if 'timestamp' in t:
+                _datastruct.float2datetime(c)
+
+        f.close()
+
     def fetchIntraDayData(
             _product: str, _tradingday: str,
             _instrument: str=None, _sub_dominant: bool=False,
@@ -184,6 +231,10 @@ class Fetch:
         if inst is None:
             return None
 
+        ret = Fetch.cache2DataStruct(inst, _tradingday, _index)
+        if ret is not None:
+            return ret
+
         con = psycopg2.connect(
             dbname=Fetch.pgsql_dbname,
             host=Fetch.pgsql_host,
@@ -194,12 +245,14 @@ class Fetch:
 
         # get all column names
         cur.execute(
-            "select column_name from information_schema.columns " +
+            "select column_name, data_type from information_schema.columns " +
             "where table_name='" + inst + "'"
         )
         columns = []
+        types = []
         for d in cur.fetchall():
             columns.append(d[0])
+            types.append(d[1])
 
         # get all ticks
         cur.execute(
@@ -212,6 +265,8 @@ class Fetch:
 
         # turn into datastruct
         datastruct = DataStruct(columns, _index.lower(), datas)
+
+        Fetch.DataStruct2cache(inst, _tradingday, columns, types, datastruct)
 
         return datastruct
 
