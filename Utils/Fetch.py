@@ -1,20 +1,31 @@
-import psycopg2
-from redis import StrictRedis
-from pymongo import MongoClient
-import pymongo
-from DataStruct import DataStruct
-import pickle
 import gzip
+import pickle
+
+import psycopg2
+import pymongo
+from ParadoxTrading.Utils.DataStruct import DataStruct
+from pymongo import MongoClient
+from redis import StrictRedis
 
 
 class Fetch:
 
     mongo_host = 'localhost'
+    mongo_prod_db = 'FutureProd'
+    mongo_inst_db = 'FutureInst'
 
     pgsql_host = 'localhost'
+    pgsql_dbname = 'FutureData'
     pgsql_user = 'pang'
+    pgsql_password = ''
 
-    redis_host = 'localhost'
+    def productList() -> list:
+        client = MongoClient(host=Fetch.mongo_host)
+        db = client[Fetch.mongo_prod_db]
+        ret = db.collection_names()
+        client.close()
+
+        return ret
 
     def productIsTrade(_product: str, _tradingday: str) -> bool:
         """
@@ -28,7 +39,7 @@ class Fetch:
             bool: True for traded, False for not
         """
         client = MongoClient(host=Fetch.mongo_host)
-        db = client.FutureInst
+        db = client[Fetch.mongo_prod_db]
         coll = db[_product]
         count = coll.count({'TradingDay': _tradingday})
         client.close()
@@ -47,11 +58,11 @@ class Fetch:
             str: if None, it means nothing found
         """
         client = MongoClient(host=Fetch.mongo_host)
-        db = client.FutureInst
+        db = client[Fetch.mongo_prod_db]
         coll = db[_product]
         d = coll.find_one(
             {'TradingDay': {'$lt': _tradingday}},
-            sort=[('TradingDay', pymongo.DESCENDING)], limit=1
+            sort=[('TradingDay', pymongo.DESCENDING)]
         )
         client.close()
 
@@ -69,17 +80,17 @@ class Fetch:
             str: if None, it means nothing found
         """
         client = MongoClient(host=Fetch.mongo_host)
-        db = client.FutureInst
+        db = client[Fetch.mongo_prod_db]
         coll = db[_product]
         d = coll.find_one(
             {'TradingDay': {'$gt': _tradingday}},
-            sort=[('TradingDay', pymongo.ASCENDING)], limit=1
+            sort=[('TradingDay', pymongo.ASCENDING)]
         )
         client.close()
 
         return d['TradingDay'] if d is not None else None
 
-    def fetchAllTradeInst(_product: str, _tradingday: str) -> list:
+    def fetchTradeInstrument(_product: str, _tradingday: str) -> list:
         """
         fetch all traded insts of one product on tradingday
 
@@ -91,12 +102,12 @@ class Fetch:
             list: list of str. if len() == 0, then no traded inst
         """
         client = MongoClient(host=Fetch.mongo_host)
-        db = client.FutureInst
+        db = client[Fetch.mongo_prod_db]
         coll = db[_product]
         data = coll.find_one({'TradingDay': _tradingday})
         ret = []
         if data is not None:
-            ret = sorted(list(data['InstrumentList'].keys()))
+            ret = data['InstrumentList']
         client.close()
 
         return ret
@@ -113,7 +124,7 @@ class Fetch:
             str: dominant instrument. if None, then no traded inst
         """
         client = MongoClient(host=Fetch.mongo_host)
-        db = client.FutureInst
+        db = client[Fetch.mongo_prod_db]
         coll = db[_product]
         data = coll.find_one({'TradingDay': _tradingday})
         ret = None
@@ -135,7 +146,7 @@ class Fetch:
             str: sub dominant instrument. if None, then no traded inst
         """
         client = MongoClient(host=Fetch.mongo_host)
-        db = client.FutureInst
+        db = client[Fetch.mongo_prod_db]
         coll = db[_product]
         data = coll.find_one({'TradingDay': _tradingday})
         ret = None
@@ -147,8 +158,8 @@ class Fetch:
 
     def fetchIntraDayData(
             _product: str, _tradingday: str,
-            _instrument=None, _sub_dominant=False,
-            _index='HappenTime') -> DataStruct:
+            _instrument: str=None, _sub_dominant: bool=False,
+            _index: str='HappenTime') -> DataStruct:
         """
         fetch each tick data of product(dominant) or instrument from begin date to end date
 
@@ -168,57 +179,67 @@ class Fetch:
                 inst = Fetch.fetchDominant(_product, _tradingday)
             else:
                 inst = Fetch.fetchSubDominant(_product, _tradingday)
+
+        # check instrument valid
         if inst is None:
             return None
 
-        # check whether cached in redis
-        key = inst + '-' + _tradingday
-        r = StrictRedis(host=Fetch.redis_host)
-        redis_data = r.get(key)
-        if redis_data is not None:
-            return pickle.loads(gzip.decompress(redis_data))
-
         con = psycopg2.connect(
-            database='FutureData',
+            dbname=Fetch.pgsql_dbname,
             host=Fetch.pgsql_host,
             user=Fetch.pgsql_user,
+            password=Fetch.pgsql_password,
         )
         cur = con.cursor()
-        try:
-            # get all column names
-            cur.execute(
-                "select column_name from information_schema.columns " +
-                "where table_name='" + inst + "'"
-            )
-            columns = []
-            for d in cur.fetchall():
-                columns.append(d[0])
-            # get all ticks
-            cur.execute(
-                "SELECT * FROM " + inst +
-                " WHERE TradingDay='" + _tradingday +
-                "' ORDER BY HappenTime"
-            )
-            datas = list(cur.fetchall())
-            con.close()
-            # turn into datastruct
-            datastruct = DataStruct(columns, _index.lower(), datas)
-            # cache into redis
-            r = StrictRedis(host=Fetch.redis_host)
-            r.set(key, gzip.compress(pickle.dumps(datastruct)))
 
-            return datastruct
-        except psycopg2.DatabaseError as e:
-            print('Error:', e)
-            if con:
-                con.rollback()
-            con.close()
+        # get all column names
+        cur.execute(
+            "select column_name from information_schema.columns " +
+            "where table_name='" + inst + "'"
+        )
+        columns = []
+        for d in cur.fetchall():
+            columns.append(d[0])
 
-    # def fetchInterDayData():
-    #     pass
+        # get all ticks
+        cur.execute(
+            "SELECT * FROM " + inst +
+            " WHERE TradingDay='" + _tradingday +
+            "' ORDER BY HappenTime"
+        )
+        datas = list(cur.fetchall())
+        con.close()
+
+        # turn into datastruct
+        datastruct = DataStruct(columns, _index.lower(), datas)
+
+        return datastruct
 
 if __name__ == '__main__':
-    import time
-    start_time = time.time()
-    Fetch.fetchIntraDayData('rb', '20170104')
-    print(time.time() - start_time)
+    ret = Fetch.productList()
+    assert type(ret) == list
+    print('Fetch.productList', len(ret))
+
+    ret = Fetch.productIsTrade('rb', '20170123')
+    assert ret
+    print('Fetch.productIsTrade', ret)
+
+    ret = Fetch.productLastTradingDay('rb', '20170123')
+    assert type(ret) == str
+    print('Fetch.productLastTradingDay', ret)
+
+    ret = Fetch.productNextTradingDay('rb', '20170123')
+    assert type(ret) == str
+    print('Fetch.productNextTradingDay', ret)
+
+    ret = Fetch.fetchTradeInstrument('rb', '20170123')
+    assert type(ret) == list
+    print('Fetch.fetchTradeInstrument', len(ret))
+
+    ret = Fetch.fetchDominant('rb', '20170123')
+    assert type(ret) == str
+    print('Fetch.fetchDominant', ret)
+
+    ret = Fetch.fetchSubDominant('rb', '20170123')
+    assert type(ret) == str
+    print('Fetch.fetchSubDominant', ret)
