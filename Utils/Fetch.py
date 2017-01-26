@@ -1,5 +1,6 @@
 import gzip
 import pickle
+import typing
 
 import h5py
 import psycopg2
@@ -176,7 +177,11 @@ class Fetch:
         f.close()
         return datastruct
 
-    def DataStruct2cache(_inst, _tradingday, _columns, _types, _datastruct):
+    def DataStruct2cache(
+        _inst: str, _tradingday: str,
+        _columns: typing.List[str], _types: typing.List[str],
+        _datastruct: DataStruct
+    ):
         f = h5py.File(Fetch.cache_path, 'a')
 
         for c, t in zip(_columns, _types):
@@ -206,7 +211,8 @@ class Fetch:
     def fetchIntraDayData(
             _product: str, _tradingday: str,
             _instrument: str=None, _sub_dominant: bool=False,
-            _index: str='HappenTime') -> DataStruct:
+            _index: str='HappenTime'
+    ) -> DataStruct:
         """
         fetch each tick data of product(dominant) or instrument from begin date to end date
 
@@ -231,10 +237,12 @@ class Fetch:
         if inst is None:
             return None
 
+        # if found in cache, then return
         ret = Fetch.cache2DataStruct(inst, _tradingday, _index)
         if ret is not None:
             return ret
 
+        # fetch from database
         con = psycopg2.connect(
             dbname=Fetch.pgsql_dbname,
             host=Fetch.pgsql_host,

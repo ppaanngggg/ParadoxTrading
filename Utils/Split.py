@@ -1,13 +1,12 @@
+import typing
 from datetime import datetime, timedelta
-from DataStruct import DataStruct
+
+from ParadoxTrading.Utils.DataStruct import DataStruct
 
 
-class SplitIntoMinute():
+class SplitAbstract():
 
-    def __init__(self, _minute: int):
-
-        self.skip_m = _minute
-
+    def __init__(self):
         self.cur_bar = None
         self.cur_bar_begin_time = None
         self.cur_bar_end_time = None
@@ -17,10 +16,7 @@ class SplitIntoMinute():
         self.bar_end_time_list = []
 
     def _get_begin_end_time(self, _cur_time: datetime):
-        base_m = _cur_time.minute // self.skip_m * self.skip_m
-        begin_datetime = _cur_time.replace(minute=base_m, second=0)
-        end_datetime = begin_datetime + timedelta(minutes=self.skip_m)
-        return begin_datetime, end_datetime
+        raise NotImplementedError('You need to implement _get_begin_end_time!')
 
     def _create_new_bar(self, _data: DataStruct, _cur_time: datetime):
         self.cur_bar = _data
@@ -64,8 +60,23 @@ class SplitIntoMinute():
         for d in _data.iterrows():
             self.addOne(d)
 
+
+class SplitIntoMinute(SplitAbstract):
+
+    def __init__(self, _minute: int):
+        super().__init__()
+
+        self.skip_m = _minute
+
+    def _get_begin_end_time(self, _cur_time: datetime):
+        base_m = _cur_time.minute // self.skip_m * self.skip_m
+        begin_datetime = _cur_time.replace(minute=base_m, second=0)
+        end_datetime = begin_datetime + timedelta(minutes=self.skip_m)
+        return begin_datetime, end_datetime
+
+
 if __name__ == '__main__':
     from Fetch import Fetch
-    tmp = Fetch.fetchIntraDayData('rb', '20170105')
+    tmp = Fetch.fetchIntraDayData('rb', '20170123')
     spliter = SplitIntoMinute(1)
     spliter.addMany(tmp)
