@@ -37,6 +37,19 @@ class DataStruct():
     def __len__(self) -> int:
         return len(self.index())
 
+    def __iter__(self):
+        for i in range(len(self.index())):
+            yield self.iloc[i]
+
+    def __repr__(self):
+        if len(self) > 20:
+            tmp_rows, tmp_keys = self.iloc[:8].toRows()
+            tmp_rows.append(['...' for _ in tmp_keys])
+            tmp_rows += self.iloc[-8:].toRows()[0]
+            return tabulate(tmp_rows, headers=tmp_keys)
+        tmp_rows, tmp_keys = self.toRows()
+        return tabulate(tmp_rows, headers=tmp_keys)
+
     def add(self, _struct: "DataStruct"):
         keys = _struct.data.keys()
         values = _struct.data.values()
@@ -66,28 +79,21 @@ class DataStruct():
         for _dict in _dicts:
             self.addDict(_dict)
 
-    def index(self) -> list:
-        return self.data[self.index_name]
-
-    def iterrows(self):
-        for i in range(len(self.index())):
-            yield self.iloc[i]
-
     def toRows(self) -> (typing.List[list], typing.List[str]):
         rows = []
-        keys = sorted(list(self.data.keys()))
+        keys = self.getColumnNames()
         for i in range(len(self)):
             rows.append([self.data[k][i] for k in keys])
         return rows, keys
 
-    def __repr__(self):
-        if len(self) > 20:
-            tmp_rows, tmp_keys = self.iloc[:8].toRows()
-            tmp_rows.append(['...' for _ in tmp_keys])
-            tmp_rows += self.iloc[-8:].toRows()[0]
-            return tabulate(tmp_rows, headers=tmp_keys)
-        tmp_rows, tmp_keys = self.toRows()
-        return tabulate(tmp_rows, headers=tmp_keys)
+    def index(self) -> list:
+        return self.data[self.index_name]
+
+    def getColumnNames(self) -> list:
+        return sorted(list(self.data.keys()))
+
+    def getColumn(self, _key: str) -> list:
+        return self.data[_key]
 
     def datetime2float(self, _key: str=None):
         k = _key

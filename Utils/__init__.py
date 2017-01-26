@@ -1,3 +1,3 @@
-from .Fetch import Fetch
 from .DataStruct import DataStruct
-from .Split import SplitIntoMinute
+from .Fetch import Fetch
+from .Split import SplitIntoHour, SplitIntoMinute, SplitIntoSecond

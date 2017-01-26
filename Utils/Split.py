@@ -15,7 +15,25 @@ class SplitAbstract():
         self.bar_begin_time_list = []
         self.bar_end_time_list = []
 
-    def _get_begin_end_time(self, _cur_time: datetime):
+    def getCurBar(self) -> DataStruct:
+        return self.cur_bar
+
+    def getCurBarBeginTime(self) -> datetime:
+        return self.cur_bar_begin_time
+
+    def getCurBarEndTime(self) -> datetime:
+        return self.cur_bar_end_time
+
+    def getBarList(self) -> typing.List[DataStruct]:
+        return self.bar_list
+
+    def getBarBeginTimeList(self) -> typing.List[datetime]:
+        return self.bar_begin_time_list
+
+    def getBarEndTimeList(self) -> typing.List[datetime]:
+        return self.bar_end_time_list
+
+    def _get_begin_end_time(self, _cur_time: datetime) -> (datetime, datetime):
         raise NotImplementedError('You need to implement _get_begin_end_time!')
 
     def _create_new_bar(self, _data: DataStruct, _cur_time: datetime):
@@ -57,23 +75,49 @@ class SplitAbstract():
         Args:
             _data (DataStruct): continute data
         """
-        for d in _data.iterrows():
+        for d in _data:
             self.addOne(d)
+
+
+class SplitIntoSecond(SplitAbstract):
+
+    def __init__(self, _second: int):
+        super().__init__()
+        self.skip_s = _second
+
+    def _get_begin_end_time(self, _cur_time: datetime) -> (datetime, datetime):
+        base_s = _cur_time.second // self.skip_s * self.skip_s
+        begin_datetime = _cur_time.replace(second=base_s, microsecond=0)
+        end_datetime = begin_datetime + timedelta(seconds=self.skip_s)
+        return begin_datetime, end_datetime
 
 
 class SplitIntoMinute(SplitAbstract):
 
     def __init__(self, _minute: int):
         super().__init__()
-
         self.skip_m = _minute
 
-    def _get_begin_end_time(self, _cur_time: datetime):
+    def _get_begin_end_time(self, _cur_time: datetime) -> (datetime, datetime):
         base_m = _cur_time.minute // self.skip_m * self.skip_m
-        begin_datetime = _cur_time.replace(minute=base_m, second=0)
+        begin_datetime = _cur_time.replace(
+            minute=base_m, second=0, microsecond=0)
         end_datetime = begin_datetime + timedelta(minutes=self.skip_m)
         return begin_datetime, end_datetime
 
+
+class SplitIntoHour(SplitAbstract):
+
+    def __init__(self, _hour: int):
+        super().__init__()
+        self.skip_h = _hour
+
+    def _get_begin_end_time(self, _cur_time: datetime) -> (datetime, datetime):
+        base_h = _cur_time.hour // self.skip_h * self.skip_h
+        begin_datetime = _cur_time.replace(
+            hour=base_h, minute=0, second=0, microsecond=0)
+        end_datetime = begin_datetime + timedelta(hours=self.skip_h)
+        return begin_datetime, end_datetime
 
 if __name__ == '__main__':
     from Fetch import Fetch
