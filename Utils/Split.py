@@ -62,7 +62,7 @@ class SplitAbstract():
             return True
         else:
             if cur_time < self.cur_bar_end_time:
-                self.cur_bar.add(_data)
+                self.cur_bar.merge(_data)
                 return False
             else:
                 self._create_new_bar(_data, cur_time)

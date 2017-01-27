@@ -7,6 +7,8 @@ from tabulate import tabulate
 
 class DataStruct():
 
+    EXPAND_STRICT = 'strict'
+
     def __init__(
             self,
             _keys: typing.List[str],
@@ -50,12 +52,24 @@ class DataStruct():
         tmp_rows, tmp_keys = self.toRows()
         return tabulate(tmp_rows, headers=tmp_keys)
 
-    def add(self, _struct: "DataStruct"):
+    def merge(self, _struct: "DataStruct"):
         keys = _struct.data.keys()
         values = _struct.data.values()
 
         for i in range(len(_struct.index())):
             self.addRow([d[i] for d in values], keys)
+
+    def expand(self, _struct: "DataStruct", _type: str='strict'):
+        if _type == self.EXPAND_STRICT:
+            assert len(self) == len(_struct)
+            for idx1, idx2 in zip(self.index(), _struct.index()):
+                assert idx1 == idx2
+            for name in _struct.getColumnNames(False):
+                assert name not in self.getColumnNames()
+            for name in _struct.getColumnNames(False):
+                self.data[name] = _struct.getColumn(name)
+        else:
+            raise Exception('unknow type!')
 
     def addRow(self, _row: list, _keys: typing.List[str]):
         i = 0
@@ -89,8 +103,20 @@ class DataStruct():
     def index(self) -> list:
         return self.data[self.index_name]
 
-    def getColumnNames(self) -> list:
-        return sorted(list(self.data.keys()))
+    def getColumnNames(self, _include_index_name: bool=True) -> list:
+        if _include_index_name:
+            return sorted(list(self.data.keys()))
+        else:
+            tmp = set()
+            tmp.add(self.index_name)
+            return sorted(list(self.data.keys() - tmp))
+
+    def changeColumnName(self, _old_name: str, _new_name: str):
+        assert _old_name != _new_name
+        if self.index_name == _old_name:
+            self.index_name = _new_name
+        self.data[_new_name] = self.data[_old_name]
+        del self.data[_old_name]
 
     def getColumn(self, _key: str) -> list:
         return self.data[_key]
@@ -147,7 +173,24 @@ class ILoc():
 
 if __name__ == '__main__':
     import datetime
+    from ParadoxTrading.Utils import Fetch, SplitIntoMinute
+    from ParadoxTrading.Indicator import *
 
-    from ParadoxTrading.Utils import Fetch
     data = Fetch.fetchIntraDayData('rb', '20170123')
-    print(data)
+    spliter = SplitIntoMinute(1)
+    spliter.addMany(data)
+
+    openprice = OpenPrice().addMany(spliter.getBarBeginTimeList(),
+                                    spliter.getBarList()).getAllData()
+    closeprice = ClosePrice().addMany(spliter.getBarBeginTimeList(),
+                                      spliter.getBarList()).getAllData()
+    highprice = HighPrice().addMany(spliter.getBarBeginTimeList(),
+                                    spliter.getBarList()).getAllData()
+    lowprice = LowPrice().addMany(spliter.getBarBeginTimeList(),
+                                  spliter.getBarList()).getAllData()
+
+    ochl_data = openprice
+    ochl_data.expand(closeprice)
+    ochl_data.expand(highprice)
+    ochl_data.expand(lowprice)
+    print(ochl_data)

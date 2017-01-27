@@ -1,19 +1,35 @@
 import typing
+from datetime import datetime
 
+from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class ClosePrice():
+class ClosePrice(IndicatorAbstract):
 
-    def __init__(self, _key='lastprice'):
-        self.key = _key
-        self.ret = []
+    def __init__(
+        self, _use_key: str='lastprice',
+        _idx_key: str='time', _ret_key: str='closeprice'
+    ):
+        self.use_key = _use_key
+        self.idx_key = _idx_key
+        self.ret_key = _ret_key
+        self.data = DataStruct(
+            [self.idx_key, self.ret_key],
+            self.idx_key
+        )
 
-    def addOne(self, _data: DataStruct) -> float:
-        self.ret.append(_data.getColumn(self.key)[-1])
-        return self.ret[-1]
+    def _addOne(self, _index: datetime, _data: DataStruct):
+        tmp_value = _data.getColumn(self.use_key)[-1]
+        self.data.addRow([_index, tmp_value], [self.idx_key, self.ret_key])
 
-    def addMany(
-        self, _data_list: typing.List[DataStruct]
-    ) -> typing.List[float]:
-        return [self.addOne(data) for data in _data_list]
+
+if __name__ == '__main__':
+    from ParadoxTrading.Utils import Fetch, SplitIntoMinute
+    data = Fetch.fetchIntraDayData('rb', '20170123')
+    spliter = SplitIntoMinute(1)
+    spliter.addMany(data)
+
+    closeprice = ClosePrice()
+    closeprice.addMany(spliter.getBarBeginTimeList(), spliter.getBarList())
+    print(closeprice.getAllData())
