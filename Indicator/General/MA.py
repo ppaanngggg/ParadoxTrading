@@ -1,15 +1,17 @@
 import typing
+from collections import deque
 from datetime import datetime
 
+import numpy as np
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class ClosePrice(IndicatorAbstract):
+class MA(IndicatorAbstract):
 
     def __init__(
-        self, _use_key: str='lastprice',
-        _idx_key: str='time', _ret_key: str='closeprice'
+        self, _period: int, _use_key: str,
+        _idx_key: str='time', _ret_key: str='ma'
     ):
         self.use_key = _use_key
         self.idx_key = _idx_key
@@ -19,17 +21,11 @@ class ClosePrice(IndicatorAbstract):
             self.idx_key
         )
 
+        self.period = _period
+        self.buf = deque(maxlen=self.period)
+
     def _addOne(self, _index: datetime, _data: DataStruct):
-        tmp_value = _data.getColumn(self.use_key)[-1]
+        assert len(_data) == 1
+        self.buf.append(_data.getColumn(self.use_key)[0])
+        tmp_value = np.mean(self.buf)
         self.data.addRow([_index, tmp_value], [self.idx_key, self.ret_key])
-
-
-if __name__ == '__main__':
-    from ParadoxTrading.Utils import Fetch, SplitIntoMinute
-    data = Fetch.fetchIntraDayData('rb', '20170123')
-    spliter = SplitIntoMinute(1)
-    spliter.addMany(data)
-
-    closeprice = ClosePrice()
-    closeprice.addMany(spliter.getBarBeginTimeList(), spliter.getBarList())
-    print(closeprice.getAllData())

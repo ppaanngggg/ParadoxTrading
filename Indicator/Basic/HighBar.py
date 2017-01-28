@@ -5,11 +5,11 @@ from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class OpenPrice(IndicatorAbstract):
+class HighBar(IndicatorAbstract):
 
     def __init__(
-        self, _use_key: str='lastprice',
-        _idx_key: str='time', _ret_key: str='openprice'
+        self, _use_key: str,
+        _idx_key: str='time', _ret_key: str='high'
     ):
         self.use_key = _use_key
         self.idx_key = _idx_key
@@ -20,7 +20,7 @@ class OpenPrice(IndicatorAbstract):
         )
 
     def _addOne(self, _index: datetime, _data: DataStruct):
-        tmp_value = _data.getColumn(self.use_key)[0]
+        tmp_value = max(_data.getColumn(self.use_key))
         self.data.addRow([_index, tmp_value], [self.idx_key, self.ret_key])
 
 
@@ -30,6 +30,6 @@ if __name__ == '__main__':
     spliter = SplitIntoMinute(1)
     spliter.addMany(data)
 
-    openprice = OpenPrice()
-    openprice.addMany(spliter.getBarBeginTimeList(), spliter.getBarList())
-    print(openprice.getAllData())
+    highprice = HighBar('lastprice')
+    highprice.addMany(spliter.getBarBeginTimeList(), spliter.getBarList())
+    print(highprice.getAllData())

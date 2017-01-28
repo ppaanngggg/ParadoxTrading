@@ -180,17 +180,22 @@ if __name__ == '__main__':
     spliter = SplitIntoMinute(1)
     spliter.addMany(data)
 
-    openprice = OpenPrice().addMany(spliter.getBarBeginTimeList(),
-                                    spliter.getBarList()).getAllData()
-    closeprice = ClosePrice().addMany(spliter.getBarBeginTimeList(),
-                                      spliter.getBarList()).getAllData()
-    highprice = HighPrice().addMany(spliter.getBarBeginTimeList(),
-                                    spliter.getBarList()).getAllData()
-    lowprice = LowPrice().addMany(spliter.getBarBeginTimeList(),
-                                  spliter.getBarList()).getAllData()
+    openprice = OpenBar('lastprice').addMany(
+        spliter.getBarBeginTimeList(), spliter.getBarList()).getAllData()
+    closeprice = CloseBar('lastprice').addMany(
+        spliter.getBarBeginTimeList(), spliter.getBarList()).getAllData()
+    highprice = HighBar('lastprice').addMany(
+        spliter.getBarBeginTimeList(), spliter.getBarList()).getAllData()
+    lowprice = LowBar('lastprice').addMany(
+        spliter.getBarBeginTimeList(), spliter.getBarList()).getAllData()
+
+    maprice = MA(5, 'close').addMany(
+        closeprice.index(), closeprice).getAllData()
 
     ochl_data = openprice
     ochl_data.expand(closeprice)
     ochl_data.expand(highprice)
     ochl_data.expand(lowprice)
+    ochl_data.expand(maprice)
+
     print(ochl_data)
