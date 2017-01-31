@@ -100,6 +100,12 @@ class DataStruct():
             rows.append([self.data[k][i] for k in keys])
         return rows, keys
 
+    def toDicts(self) -> (typing.List[dict]):
+        pass
+
+    def toHDF5(self, _f_name: str):
+        pass
+
     def index(self) -> list:
         return self.data[self.index_name]
 
