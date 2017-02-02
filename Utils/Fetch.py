@@ -272,7 +272,7 @@ class Fetch:
         f.close()
 
     def fetchIntraDayData(
-            _product: str, _tradingday: str,
+            _tradingday: str, _product: str=None,
             _instrument: str=None, _sub_dominant: bool=False,
             _index: str='HappenTime'
     ) -> DataStruct:
@@ -288,6 +288,8 @@ class Fetch:
         Returns:
             DataStruct:
         """
+        assert _product is None and _instrument is None
+
         # set inst to real instrument name
         inst = _instrument
         if _product is not None:
