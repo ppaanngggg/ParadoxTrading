@@ -1,3 +1,6 @@
+from datetime import datetime
+
+
 class EventType:
 
     MARKET = 1
@@ -30,33 +33,38 @@ class DirectionType:
     SELL = 2
 
 
-class Event():
+class EventAbstract():
 
     def __init__(self):
 
         self.type = None
 
 
-class MarketEvent(Event):
+class MarketEvent(EventAbstract):
 
-    def __init__(self, _data):
+    def __init__(self, _market_register_key: str, _strategy_name: str):
 
         self.type = EventType.MARKET
-        self.data = _data
+        self.market_register_key = _market_register_key
+        self.strategy_name = _strategy_name
 
 
-class SignalEvent(Event):
+class SignalEvent(EventAbstract):
 
-    def __init__(self, _instrument, _datetime, _signal_type, _strength):
+    def __init__(
+        self, _instrument: str, _strategy_name: str,
+        _datetime: datetime, _signal_type: int, _strength: float
+    ):
 
         self.type = EventType.SIGNAL
         self.instrument = _instrument
+        self.strategy_name = _strategy_name
         self.datetime = _datetime
         self.signal_type = _signal_type
         self.strength = _strength
 
 
-class OrderEvent(Event):
+class OrderEvent(EventAbstract):
 
     def __init__(self, _index, _instrument, _datetime, _order_type, _quantity, _action, _direction):
         self.type = EventType.ORDER
@@ -81,7 +89,7 @@ class OrderEvent(Event):
         )
 
 
-class FillEvent(Event):
+class FillEvent(EventAbstract):
 
     def __init__(self, _index, _instrument, _datetime, _quantity, _action, _direction, _price, _commission):
         self.type = EventType.FILL

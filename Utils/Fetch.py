@@ -94,6 +94,69 @@ class Fetch:
 
         return d['TradingDay'] if d is not None else None
 
+    def instrumentIsTrade(_instrument: str, _tradingday: str) -> bool:
+        """
+        check whether instrument is traded on tradingday
+
+        Args:
+            _instrument (str): which instrument.
+            _tradingday (str): which day.
+
+        Returns:
+            bool: True for traded, False for not
+        """
+        client = MongoClient(host=Fetch.mongo_host)
+        db = client[Fetch.mongo_inst_db]
+        coll = db[_instrument]
+        count = coll.count({'TradingDay': _tradingday})
+        client.close()
+
+        return count > 0
+
+    def instrumentLastTradingDay(_instrument: str, _tradingday: str) -> str:
+        """
+        get the first day less then _tradingday of _instrument
+
+        Args:
+            _instrument (str): which instrument.
+            _tradingday (str): which day.
+
+        Returns:
+            str: if None, it means nothing found
+        """
+        client = MongoClient(host=Fetch.mongo_host)
+        db = client[Fetch.mongo_inst_db]
+        coll = db[_instrument]
+        d = coll.find_one(
+            {'TradingDay': {'$lt': _tradingday}},
+            sort=[('TradingDay', pymongo.DESCENDING)]
+        )
+        client.close()
+
+        return d['TradingDay'] if d is not None else None
+
+    def instrumentNextTradingDay(_instrument: str, _tradingday: str) -> str:
+        """
+        get the first day greater then _tradingday of _instrument
+
+        Args:
+            _instrument (str): which instrument.
+            _tradingday (str): which day.
+
+        Returns:
+            str: if None, it means nothing found
+        """
+        client = MongoClient(host=Fetch.mongo_host)
+        db = client[Fetch.mongo_inst_db]
+        coll = db[_instrument]
+        d = coll.find_one(
+            {'TradingDay': {'$gt': _tradingday}},
+            sort=[('TradingDay', pymongo.ASCENDING)]
+        )
+        client.close()
+
+        return d['TradingDay'] if d is not None else None
+
     def fetchTradeInstrument(_product: str, _tradingday: str) -> list:
         """
         fetch all traded insts of one product on tradingday
@@ -234,7 +297,7 @@ class Fetch:
                 inst = Fetch.fetchSubDominant(_product, _tradingday)
 
         # check instrument valid
-        if inst is None:
+        if inst is None or not Fetch.instrumentIsTrade(inst, _tradingday):
             return None
 
         # if found in cache, then return
@@ -274,9 +337,11 @@ class Fetch:
         # turn into datastruct
         datastruct = DataStruct(columns, _index.lower(), datas)
 
-        Fetch.DataStruct2cache(inst, _tradingday, columns, types, datastruct)
-
-        return datastruct
+        if len(datastruct):
+            Fetch.DataStruct2cache(
+                inst, _tradingday, columns, types, datastruct)
+            return datastruct
+        return None
 
 if __name__ == '__main__':
     ret = Fetch.productList()
