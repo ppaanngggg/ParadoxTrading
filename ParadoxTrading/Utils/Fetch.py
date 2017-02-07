@@ -7,7 +7,6 @@ import psycopg2
 import pymongo
 from ParadoxTrading.Utils.DataStruct import DataStruct
 from pymongo import MongoClient
-from redis import StrictRedis
 
 
 class Fetch:
