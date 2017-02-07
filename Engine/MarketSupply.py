@@ -75,7 +75,7 @@ class MarketSupplyAbstract:
 
     def __init__(self):
         self.market_register_dict = {}  # typing.Dict[str, MarketRegister]
-        self.instrument_dict = {}  # typing.Dict[str, typing.List[str]]
+        self.instrument_dict = {}  # typing.Dict[str, set]
 
     def registerStrategy(self, _strategy_name: str, _market_register_key: str):
         if _market_register_key not in self.market_register_dict.keys():
@@ -106,20 +106,7 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         super().__init__()
 
     def createDataGenerator(self) -> DataGenerator:
-        for k, v in self.market_register_dict.items():
-            inst = None
-            if v.product is not None:
-                if v.sub_dominant:
-                    inst = Fetch.fetchSubDominant(v._product, self.cur_day)
-                else:
-                    inst = Fetch.fetchDominant(v._product, self.cur_day)
-            else:
-                inst =
+        pass
 
     def updateData(self):
-        if self.data_generator is None:
-            self.data_generator = self.createDataGenerator()
-
-        data = self.data_generator.gen()
-        if data is None:
-            self.data_generator = self.createDataGenerator()
+        pass

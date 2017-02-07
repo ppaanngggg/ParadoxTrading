@@ -143,7 +143,7 @@ if __name__ == '__main__':
     from time import time
 
     begin_time = time()
-    data = Fetch.fetchIntraDayData('rb', '20170123')
+    data = Fetch.fetchIntraDayData('20170123', 'rb')
 
     spliter = SplitIntoMinute(1)
     spliter.addMany(data)

@@ -271,24 +271,11 @@ class Fetch:
 
         f.close()
 
-    def fetchIntraDayData(
+    def _fetchInstrument(
             _tradingday: str, _product: str=None,
-            _instrument: str=None, _sub_dominant: bool=False,
-            _index: str='HappenTime'
-    ) -> DataStruct:
-        """
-        fetch each tick data of product(dominant) or instrument from begin date to end date
-
-        Args:
-            _product (str): if None using _instrument, else using dominant inst of _product
-            _tradingday (str):
-            _instrument (str): if _product is None, then using _instrument
-            _sub_dominant (bool): if True and _product is not None, using sub dominant of _product
-
-        Returns:
-            DataStruct:
-        """
-        assert _product is None and _instrument is None
+            _instrument: str=None, _sub_dominant: bool=False
+    ):
+        assert _product is not None or _instrument is not None
 
         # set inst to real instrument name
         inst = _instrument
@@ -300,6 +287,30 @@ class Fetch:
 
         # check instrument valid
         if inst is None or not Fetch.instrumentIsTrade(inst, _tradingday):
+            return None
+        return inst
+
+    def fetchIntraDayData(
+            _tradingday: str, _product: str=None,
+            _instrument: str=None, _sub_dominant: bool=False,
+            _index: str='HappenTime'
+    ) -> DataStruct:
+        """
+        fetch each tick data of product(dominant) or instrument from begin date to end date
+
+        Args:
+            _tradingday (str):
+            _product (str): if None using _instrument, else using dominant inst of _product
+            _instrument (str): if _product is None, then using _instrument
+            _sub_dominant (bool): if True and _product is not None, using sub dominant of _product
+
+        Returns:
+            DataStruct:
+        """
+
+        inst = Fetch._fetchInstrument(
+            _tradingday, _product, _instrument, _sub_dominant)
+        if inst is None:
             return None
 
         # if found in cache, then return
