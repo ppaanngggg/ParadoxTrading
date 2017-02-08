@@ -2,18 +2,14 @@ import sys
 import typing
 from datetime import datetime
 
+import ParadoxTrading.Chart.CView
+import ParadoxTrading.Chart.CWindow
 from PyQt5.Qt import QColor, QPainter
 from PyQt5.QtChart import QBarCategoryAxis
 from PyQt5.QtWidgets import QApplication, QPushButton, QVBoxLayout
 
-import CView
-import CWindow
-
 
 class CWizard:
-
-    BAR = 'bar'
-    LINE = 'line'
 
     def __init__(
         self, _title: str='', _width: int=800, _height: int=600,
@@ -22,53 +18,55 @@ class CWizard:
         self.width = _width
         self.height = _height
 
-        self.view_list = []  # typing.List[CView.CView]
+        self.view_dict = {}  # typing.Dict
 
         self.begin_idx = 0
         self.end_idx = 0
 
-    def addView(self, _stretch: int, _name: str=None):
+    def addView(self, _name: str=None, _stretch: int=1):
+        assert _name not in self.view_dict.keys()
         assert _stretch > 0
-        self.view_list.append({
-            'view': CView.CView(_name),
-            'stretch': _stretch,
-            'name': _name,
-        })
+        self.view_dict[_name] = {
+            'view': ParadoxTrading.Chart.CView.CView(_name),
+            'stretch': _stretch
+        }
 
     def addLine(
-        self, _view_idx: int,
+        self, _view_name: str,
         _x_list: typing.List[datetime], _y_list: list,
         _name: str, _color: QColor=None
     ):
-        assert _view_idx < len(self.view_list)
-        self.view_list[_view_idx]['view'].addLine(
-            _x_list, _y_list, _name, _color)
+        assert _view_name in self.view_dict.keys()
+        self.view_dict[_view_name]['view'].addLine(
+            _x_list, _y_list, _name,
+            None if _color is None else QColor(_color))
 
     def addBar(
-        self, _view_idx: int,
+        self, _view_name: str,
         _x_list: typing.List[datetime], _y_list: list,
         _name: str, _color: QColor=None
     ):
-        assert _view_idx < len(self.view_list)
-        self.view_list[_view_idx]['view'].addBar(
-            _x_list, _y_list, _name, _color)
+        assert _view_name in self.view_dict.keys()
+        self.view_dict[_view_name]['view'].addBar(
+            _x_list, _y_list, _name,
+            None if _color is None else QColor(_color))
 
     def _calcSetXDictList(self) -> (dict, dict):
         tmp = set()
-        for d in self.view_list:
+        for d in self.view_dict.values():
             tmp |= d['view'].calcSetX()
         tmp = sorted(list(tmp))
         return dict(zip(tmp, range(len(tmp)))), tmp
 
     def _calcAxisX(self, _list: list):
         tmp = [str(d) for d in _list]
-        for d in self.view_list:
+        for d in self.view_dict.values():
             d['view'].appendAxisX(tmp)
         self.begin_idx = 0
         self.end_idx = len(_list) - 1
 
     def show(self):
-        if not self.view_list:
+        if not self.view_dict:
             return
 
         app = QApplication(sys.argv)
@@ -78,13 +76,13 @@ class CWizard:
 
         layout = QVBoxLayout()
 
-        for d in self.view_list:
+        for d in self.view_dict.values():
             layout.addWidget(
                 d['view'].createChartView(self.x2idx, self.idx2x),
                 d['stretch']
             )
 
-        window = CWindow.CWindow()
+        window = ParadoxTrading.Chart.CWindow.CWindow()
         window.setWizard(self)
         window.setWindowTitle(self.title)
         window.resize(self.width, self.height)
@@ -98,7 +96,7 @@ class CWizard:
         tmp_begin = str(self.idx2x[_begin])
         tmp_end = str(self.idx2x[_end])
 
-        for d in self.view_list:
+        for d in self.view_dict.values():
             d['view'].setAxisX(tmp_begin, tmp_end)
 
     def zoomIn(self):
@@ -135,54 +133,3 @@ class CWizard:
         self.end_idx = min(self.end_idx, len(self.idx2x) - 1)
 
         self._setAxisX(self.begin_idx, self.end_idx)
-
-if __name__ == '__main__':
-    from ParadoxTrading.Utils import Fetch, SplitIntoMinute
-    from ParadoxTrading.Indicator import CloseBar, Diff, MA
-
-    from time import time
-
-    begin_time = time()
-    data = Fetch.fetchIntraDayData('20170123', 'rb')
-
-    spliter = SplitIntoMinute(1)
-    spliter.addMany(data)
-
-    closeprice = CloseBar('lastprice').addMany(
-        spliter.getBarBeginTimeList(),
-        spliter.getBarList()).getAllData()
-
-    maprice = MA(5, 'close').addMany(
-        closeprice.index(), closeprice).getAllData()
-
-    closevolume = CloseBar('volume').addMany(
-        spliter.getBarBeginTimeList(),
-        spliter.getBarList()).getAllData()
-
-    volume = Diff('close').addMany(
-        closevolume.index(), closevolume).getAllData()
-
-    data = closeprice
-    data.expand(volume)
-    data.expand(maprice)
-    data.changeColumnName('close', 'price')
-    data.changeColumnName('diff', 'volume')
-
-    print(data)
-
-    wizard = CWizard('rb1705')
-
-    wizard.addView(3, 'price')
-    wizard.addLine(
-        0, data.index(), data.getColumn('price'),
-        'price', QColor('green'))
-    wizard.addLine(
-        0, data.index(), data.getColumn('ma'),
-        'ma')
-
-    wizard.addView(1, 'volume')
-    wizard.addBar(
-        1, data.index(), data.getColumn('volume'),
-        'volume', QColor('red'))
-
-    wizard.show()

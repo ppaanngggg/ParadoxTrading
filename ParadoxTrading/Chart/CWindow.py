@@ -2,8 +2,6 @@ from PyQt5 import QtCore
 from PyQt5.Qt import QKeyEvent
 from PyQt5.QtWidgets import QWidget
 
-import CWizard
-
 
 class CWindow(QWidget):
 

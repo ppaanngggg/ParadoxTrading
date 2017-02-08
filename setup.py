@@ -9,6 +9,7 @@ setup(
         'ParadoxTrading/Chart',
         'ParadoxTrading/Engine',
         'ParadoxTrading/Utils',
+        'ParadoxTrading/Indicator',
         'ParadoxTrading/Indicator/Basic',
         'ParadoxTrading/Indicator/General',
     ],

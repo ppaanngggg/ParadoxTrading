@@ -5,10 +5,10 @@ from PyQt5.Qt import QColor, QPainter
 from PyQt5.QtChart import (QBarCategoryAxis, QBarSeries, QBarSet, QChart,
                            QChartView, QLineSeries, QValueAxis)
 
-import CWizard
-
-
 class CView:
+
+    BAR = 'bar'
+    LINE = 'line'
 
     def __init__(self, _name: str=None):
 
@@ -37,13 +37,13 @@ class CView:
         self, _x_list: typing.List[datetime], _y_list: list,
         _name: str, _color: QColor=None
     ):
-        self._add(_x_list, _y_list, _name, _color, CWizard.CWizard.BAR)
+        self._add(_x_list, _y_list, _name, _color, self.BAR)
 
     def addLine(
         self, _x_list: typing.List[datetime], _y_list: list,
         _name: str, _color: QColor=None
     ):
-        self._add(_x_list, _y_list, _name, _color, CWizard.CWizard.LINE)
+        self._add(_x_list, _y_list, _name, _color, self.LINE)
 
     def calcSetX(self) -> set:
         tmp = set()
@@ -97,10 +97,10 @@ class CView:
         chart = QChart()
 
         for k, v in self.raw_data_dict.items():
-            if v['type'] == CWizard.CWizard.LINE:
+            if v['type'] == self.LINE:
                 self._addLineSeries(
                     _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
-            elif v['type'] == CWizard.CWizard.BAR:
+            elif v['type'] == self.BAR:
                 self._addBarSeries(
                     _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
             else:
