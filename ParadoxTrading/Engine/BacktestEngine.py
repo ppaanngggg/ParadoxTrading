@@ -1,9 +1,9 @@
 import typing
 from collections import deque
 
-from Event import EventAbstract, EventType
-from MarketSupply import BacktestMarketSupply
-from Strategy import StrategyAbstract
+from ParadoxTrading.Engine.Event import EventAbstract, EventType
+from ParadoxTrading.Engine.MarketSupply import BacktestMarketSupply
+from ParadoxTrading.Engine.Strategy import StrategyAbstract
 
 
 class BacktestEngine:
@@ -16,7 +16,9 @@ class BacktestEngine:
         self.begin_day = _begin_day
         self.end_day = _end_day
 
-        self.market_supply = BacktestMarketSupply(self.begin_day, self.end_day)
+        self.market_supply = BacktestMarketSupply(
+            self.begin_day, self.end_day, self.event_queue
+        )
 
     def addStrategy(self, _strategy: StrategyAbstract):
         assert _strategy.name not in self.strategy_dict.keys()
@@ -40,17 +42,3 @@ class BacktestEngine:
                     pass
                 else:
                     raise Exception('Unknow event type!')
-
-if __name__ == '__main__':
-    class MAStrategy(StrategyAbstract):
-
-        def init(self):
-            self.addMarketRegister(_product='rb')
-            self.addMarketRegister(_product='ag', _minute_skip=1)
-
-    ma_strategy = MAStrategy('ma')
-
-    engine = BacktestEngine('20170119', '20170126')
-    engine.addStrategy(ma_strategy)
-
-    

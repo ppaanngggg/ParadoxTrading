@@ -5,8 +5,9 @@ import typing
 import h5py
 import psycopg2
 import pymongo
-from ParadoxTrading.Utils.DataStruct import DataStruct
 from pymongo import MongoClient
+
+from ParadoxTrading.Utils.DataStruct import DataStruct
 
 
 class Fetch:

@@ -1,8 +1,8 @@
 import json
 import typing
 
-from Event import SignalEvent
-from MarketSupply import MarketRegister
+from ParadoxTrading.Engine.Event import SignalEvent
+from ParadoxTrading.Engine.MarketSupply import MarketRegister
 
 
 class StrategyAbstract:

@@ -1,11 +1,12 @@
 import json
+import operator
 import typing
 from collections import deque
+from datetime import datetime, timedelta
 
-from ParadoxTrading.Utils import (Fetch, SplitIntoHour, SplitIntoMinute,
-                                  SplitIntoSecond)
-
-from Event import MarketEvent
+from ParadoxTrading.Engine.Event import MarketEvent
+from ParadoxTrading.Utils import (DataStruct, Fetch, SplitIntoHour,
+                                  SplitIntoMinute, SplitIntoSecond)
 
 
 class MarketRegister:
@@ -40,14 +41,16 @@ class MarketRegister:
         self.strategy_list.add(_strategy_name)
 
     def toJson(self) -> str:
-        return json.dumps((
-            ('product', self.product),
-            ('instrument', self.instrument),
-            ('sub_dominant', self.sub_dominant),
-            ('second_skip', self.second_skip),
-            ('minute_skip', self.minute_skip),
-            ('hour_skip', self.hour_skip),
-        ))
+        return json.dumps((strategy_list:
+                           self.event_queue.append(Ment(
+                               k, strategy))
+                           ('product', self.product),
+                           ('instrument', self.instrument),
+                           ('sub_dominant', self.sub_dominant),
+                           ('second_skip', self.second_skip),
+                           ('minute_skip', self.minute_skip),
+                           ('hour_skip', self.hour_skip),
+                           ))
 
     def fromJson(_json_str: str) -> 'MarketRegister':
         data = dict(json.loads(_json_str))
@@ -67,15 +70,17 @@ class MarketRegister:
             '- Strategy: ' + '\n' + \
             '\t' + '; '.join(self.strategy_list)
 
-    def add(self):
+    def add(self, _data: DataStruct) -> bool:
         pass
 
 
 class MarketSupplyAbstract:
 
-    def __init__(self):
+    def __init__(self, _event_queue: deque):
         self.market_register_dict = {}  # typing.Dict[str, MarketRegister]
         self.instrument_dict = {}  # typing.Dict[str, set]
+
+        self.event_queue = _event_queue
 
     def registerStrategy(self, _strategy_name: str, _market_register_key: str):
         if _market_register_key not in self.market_register_dict.keys():
@@ -84,29 +89,87 @@ class MarketSupplyAbstract:
         self.market_register_dict[_market_register_key].addStrategy(
             _strategy_name)
 
+    def addEvent(self, _instrument: str, _data: DataStruct):
+        for k in self.instrument_dict[_instrument]:
+            if (self.market_register_dict[k].add(_data)):
+                for strategy in self.market_register_dict[k].strategy_list:
+                    self.event_queue.append(MarketEvent(k, strategy))
+
+
+class DataGenerator:
+
+    def __init__(
+        self, _tradingday: str,
+        _market_register_dict: typing.Dict[str, MarketRegister],
+        _instrument_dict: typing.Dict[str, set]
+    ):
+        self.data_dict = {}  # typing.Dict[str, DataStruct]
+        self.index_dict = {}  # typing.Dict[str, int]
+
+        _instrument_dict.clear()
+
+        for k, v in _market_register_dict.items():
+            inst = Fetch._fetchInstrument(
+                _tradingday, v.product,
+                v.instrument, v.sub_dominant
+            )
+            if inst is not None:
+                self.data_dict[inst] = Fetch.fetchIntraDayData(
+                    _tradingday, _instrument=inst)
+                self.index_dict[inst] = 0
+                try:
+                    _instrument_dict[inst].add(k)
+                except KeyError:
+                    _instrument_dict[inst] = set([k])
+
+    def gen(self) -> (str, DataStruct):
+        tmp = []
+        for k, v in self.index_dict.items():
+            d = self.data_dict[k]
+            if v < len(d):
+                tmp.append((k, d.index()[v]))
+        if tmp:
+            tmp.sort(key=operator.itemgetter(1))
+            inst = tmp[0][0]
+            index = self.index_dict[inst]
+            ret = (inst, self.data_dict[inst].iloc[index])
+            self.index_dict[inst] += 1
+            return ret
+        else:
+            return None
+
 
 class BacktestMarketSupply(MarketSupplyAbstract):
 
-    class DataGenerator:
-
-        def __init__(self, _keys: typing.List[str]):
-            self.data_dict = {}  # typing.Dict[str, DataStruct]
-            self.index_dict = {}  # typing.Dict[str, int]
-
-        def gen(self):
-            pass
-
-    def __init__(self, _begin_day: str, _end_day: str):
+    def __init__(self, _begin_day: str, _end_day: str, _event_queue: deque):
         self.begin_day = _begin_day
         self.cur_day = self.begin_day
         self.end_day = _end_day
 
         self.data_generator = None  # DataGenerator
 
-        super().__init__()
+        super().__init__(_event_queue)
 
-    def createDataGenerator(self) -> DataGenerator:
-        pass
+    def incDate(self):
+        tmp = datetime.strptime(self.cur_day, '%Y%m%d')
+        tmp += timedelta(days=1)
+        self.cur_day = tmp.strftime('%Y%m%d')
 
-    def updateData(self):
-        pass
+    def updateData(self) -> bool:
+        if self.cur_day > self.end_day:
+            return False
+        if self.data_generator is None:
+            print(self.cur_day)
+            self.data_generator = DataGenerator(
+                self.cur_day,
+                self.market_register_dict,
+                self.instrument_dict
+            )
+        ret = self.data_generator.gen()
+        if ret is None:
+            self.incDate()
+            self.data_generator = None
+            return self.updateData()
+        else:
+            self.addEvent(ret[0], ret[1])
+            return True
