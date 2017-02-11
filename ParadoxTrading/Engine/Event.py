@@ -9,12 +9,6 @@ class EventType:
     FILL = 4
 
 
-class SignalType:
-
-    LONG = 1
-    SHORT = 2
-
-
 class OrderType:
 
     MARKET = 1
@@ -48,12 +42,19 @@ class MarketEvent(EventAbstract):
         self.market_register_key = _market_register_key
         self.strategy_name = _strategy_name
 
+    def __repr__(self):
+        return 'MARKET: ' + self.market_register_key + ', ' + self.strategy_name
+
 
 class SignalEvent(EventAbstract):
 
+    LONG = 1
+    SHORT = 2
+
     def __init__(
         self, _instrument: str, _strategy_name: str,
-        _datetime: datetime, _signal_type: int, _strength: float
+        _signal_type: int, _datetime: datetime,
+        _strength: float=None
     ):
 
         self.type = EventType.SIGNAL

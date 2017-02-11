@@ -1,2 +1,2 @@
-from .BacktestEngine import BacktestEngine
+from .Engine import BacktestEngine
 from .Strategy import StrategyAbstract

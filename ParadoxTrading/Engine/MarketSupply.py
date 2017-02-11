@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from ParadoxTrading.Engine.Event import MarketEvent
 from ParadoxTrading.Utils import (DataStruct, Fetch, SplitIntoHour,
                                   SplitIntoMinute, SplitIntoSecond)
+from ParadoxTrading.Utils.Split import SplitAbstract
 
 
 class MarketRegister:
@@ -27,6 +28,7 @@ class MarketRegister:
 
         self.strategy_list = set()
 
+        self.cur_data_inst = None
         self.data = None
         if self.second_skip > 0:
             self.data = SplitIntoSecond(self.second_skip)
@@ -41,16 +43,14 @@ class MarketRegister:
         self.strategy_list.add(_strategy_name)
 
     def toJson(self) -> str:
-        return json.dumps((strategy_list:
-                           self.event_queue.append(Ment(
-                               k, strategy))
-                           ('product', self.product),
-                           ('instrument', self.instrument),
-                           ('sub_dominant', self.sub_dominant),
-                           ('second_skip', self.second_skip),
-                           ('minute_skip', self.minute_skip),
-                           ('hour_skip', self.hour_skip),
-                           ))
+        return json.dumps((
+            ('product', self.product),
+            ('instrument', self.instrument),
+            ('sub_dominant', self.sub_dominant),
+            ('second_skip', self.second_skip),
+            ('minute_skip', self.minute_skip),
+            ('hour_skip', self.hour_skip),
+        ))
 
     def fromJson(_json_str: str) -> 'MarketRegister':
         data = dict(json.loads(_json_str))
@@ -68,10 +68,21 @@ class MarketRegister:
             '\tminute_skip: ' + str(self.minute_skip) + '\n' + \
             '\thour_skip: ' + str(self.hour_skip) + '\n' + \
             '- Strategy: ' + '\n' + \
-            '\t' + '; '.join(self.strategy_list)
+            '\t' + '; '.join(self.strategy_list) + '\n' + \
+            '- Data: ' + '\n' + \
+            '\t' + self.cur_data_inst
 
     def add(self, _data: DataStruct) -> bool:
-        pass
+        if isinstance(self.data, SplitAbstract):
+            return self.data.addOne(_data)
+        elif self.data is None:
+            self.data = _data
+            return True
+        elif isinstance(self.data, DataStruct):
+            self.data.merge(_data)
+            return True
+        else:
+            raise Exception()
 
 
 class MarketSupplyAbstract:
@@ -95,6 +106,12 @@ class MarketSupplyAbstract:
                 for strategy in self.market_register_dict[k].strategy_list:
                     self.event_queue.append(MarketEvent(k, strategy))
 
+    def getCurDatetime(self) ->datetime:
+        raise NotImplementedError('getCurDatetime not implemented')
+
+    def updateData(self) -> bool:
+        raise NotImplementedError('updateData not implemented')
+
 
 class DataGenerator:
 
@@ -105,6 +122,7 @@ class DataGenerator:
     ):
         self.data_dict = {}  # typing.Dict[str, DataStruct]
         self.index_dict = {}  # typing.Dict[str, int]
+        self.cur_datetime = None  # datetime
 
         _instrument_dict.clear()
 
@@ -114,6 +132,7 @@ class DataGenerator:
                 v.instrument, v.sub_dominant
             )
             if inst is not None:
+                v.cur_data_inst = inst
                 self.data_dict[inst] = Fetch.fetchIntraDayData(
                     _tradingday, _instrument=inst)
                 self.index_dict[inst] = 0
@@ -131,6 +150,7 @@ class DataGenerator:
         if tmp:
             tmp.sort(key=operator.itemgetter(1))
             inst = tmp[0][0]
+            self.cur_datetime = tmp[0][1]
             index = self.index_dict[inst]
             ret = (inst, self.data_dict[inst].iloc[index])
             self.index_dict[inst] += 1
@@ -159,7 +179,6 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         if self.cur_day > self.end_day:
             return False
         if self.data_generator is None:
-            print(self.cur_day)
             self.data_generator = DataGenerator(
                 self.cur_day,
                 self.market_register_dict,
@@ -173,3 +192,8 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         else:
             self.addEvent(ret[0], ret[1])
             return True
+
+    def getCurDatetime(self) -> datetime:
+        if self.data_generator is not None:
+            return self.data_generator.cur_datetime
+        return None

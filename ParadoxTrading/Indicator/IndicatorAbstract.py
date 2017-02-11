@@ -6,10 +6,10 @@ from ParadoxTrading.Utils import DataStruct
 
 class IndicatorAbstract:
 
-    def getLastData(self):
+    def getLastData(self) -> DataStruct:
         return self.data.iloc[-1]
 
-    def getAllData(self):
+    def getAllData(self) -> DataStruct:
         return self.data
 
     def addOne(self, _index: datetime, _data: DataStruct) -> "IndicatorAbstract":
