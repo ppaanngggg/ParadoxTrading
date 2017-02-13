@@ -185,6 +185,10 @@ class MarketSupplyAbstract:
 
 
 class DataGenerator:
+    """
+    JUST FOR BACKTEST !!!
+    """
+
     def __init__(
             self, _tradingday: str,
             _market_register_dict: typing.Dict[str, MarketRegister],

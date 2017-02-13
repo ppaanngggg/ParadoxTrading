@@ -1,4 +1,5 @@
 from datetime import datetime
+import tabulate
 
 
 class EventType:
@@ -28,7 +29,7 @@ class DirectionType:
     SELL = 2
 
 
-class EventAbstract():
+class EventAbstract:
     def __init__(self):
         self.type = None
 
@@ -72,7 +73,7 @@ class OrderEvent(EventAbstract):
     def __init__(
             self, _index: int, _instrument: str, _datetime: datetime,
             _order_type: int = None, _action: int = None, _direction: int = None,
-            _quantity: int = None, _price: float = None
+            _quantity: int = 1, _price: float = None
     ):
         super().__init__()
         self.type = EventType.ORDER

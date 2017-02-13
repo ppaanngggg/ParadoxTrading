@@ -4,7 +4,6 @@ from ParadoxTrading.Indicator import MA
 
 
 class MAStrategy(StrategyAbstract):
-
     def init(self):
         self.rb_state = None
 
@@ -57,6 +56,7 @@ class MAStrategy(StrategyAbstract):
                 self.ag_state = SignalType.SHORT
         else:
             raise Exception('unkonw product')
+
 
 ma_strategy = MAStrategy('ma')
 

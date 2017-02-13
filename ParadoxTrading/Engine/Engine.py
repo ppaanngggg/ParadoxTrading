@@ -57,6 +57,14 @@ class BacktestEngine(EngineAbstract):
         self.event_queue.append(_event)
 
     def addPortfolio(self, _portfolio: PortfolioAbstract):
+        """
+        set portfolio
+
+        :param _portfolio: _portfolio for this backtest
+        :return:
+        """
+        assert self.portfolio is None
+
         self.portfolio = _portfolio
         _portfolio._setEngine(self)
 
@@ -71,9 +79,9 @@ class BacktestEngine(EngineAbstract):
         assert self.portfolio is not None
         assert _strategy.name not in self.strategy_dict.keys()
 
+        self.strategy_dict[_strategy.name] = _strategy
         _strategy._setEngine(self)
 
-        self.strategy_dict[_strategy.name] = _strategy
         self.market_supply.addStrategy(_strategy)
         self.portfolio.addStrategy(_strategy)
 
@@ -86,6 +94,11 @@ class BacktestEngine(EngineAbstract):
         return self.market_supply.getCurDatetime()
 
     def run(self):
+        """
+        backtest until there is no market tick
+
+        :return:
+        """
         while self.market_supply.updateData():  # while there is data
             print('--- one tick ---', self.getCurDatetime())
             while len(self.event_queue):  # deal all event at that moment
@@ -96,7 +109,8 @@ class BacktestEngine(EngineAbstract):
                 elif event.type == EventType.SIGNAL:
                     self.portfolio.dealSignal(event)
                 elif event.type == EventType.ORDER:
-                    pass
+                    print(event)
+                    # self.execution
                 elif event.type == EventType.FILL:
                     self.portfolio.dealFill(event)
                 else:
