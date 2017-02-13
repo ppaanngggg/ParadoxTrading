@@ -11,7 +11,6 @@ from ParadoxTrading.Utils.DataStruct import DataStruct
 
 
 class Fetch:
-
     mongo_host = 'localhost'
     mongo_prod_db = 'FutureProd'
     mongo_inst_db = 'FutureInst'
@@ -23,6 +22,7 @@ class Fetch:
 
     cache_path = 'cache.hdf5'
 
+    @staticmethod
     def productList() -> list:
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_prod_db]
@@ -31,6 +31,7 @@ class Fetch:
 
         return ret
 
+    @staticmethod
     def productIsTrade(_product: str, _tradingday: str) -> bool:
         """
         check whether product is traded on tradingday
@@ -50,7 +51,8 @@ class Fetch:
 
         return count > 0
 
-    def productLastTradingDay(_product: str, _tradingday: str) -> str:
+    @staticmethod
+    def productLastTradingDay(_product: str, _tradingday: str) -> typing.Union[None, str]:
         """
         get the first day less then _tradingday of _product
 
@@ -72,7 +74,8 @@ class Fetch:
 
         return d['TradingDay'] if d is not None else None
 
-    def productNextTradingDay(_product: str, _tradingday: str) -> str:
+    @staticmethod
+    def productNextTradingDay(_product: str, _tradingday: str) -> typing.Union[None, str]:
         """
         get the first day greater then _tradingday of _product
 
@@ -94,6 +97,7 @@ class Fetch:
 
         return d['TradingDay'] if d is not None else None
 
+    @staticmethod
     def instrumentIsTrade(_instrument: str, _tradingday: str) -> bool:
         """
         check whether instrument is traded on tradingday
@@ -113,7 +117,8 @@ class Fetch:
 
         return count > 0
 
-    def instrumentLastTradingDay(_instrument: str, _tradingday: str) -> str:
+    @staticmethod
+    def instrumentLastTradingDay(_instrument: str, _tradingday: str) -> typing.Union[None, str]:
         """
         get the first day less then _tradingday of _instrument
 
@@ -135,7 +140,8 @@ class Fetch:
 
         return d['TradingDay'] if d is not None else None
 
-    def instrumentNextTradingDay(_instrument: str, _tradingday: str) -> str:
+    @staticmethod
+    def instrumentNextTradingDay(_instrument: str, _tradingday: str) -> typing.Union[None, str]:
         """
         get the first day greater then _tradingday of _instrument
 
@@ -157,7 +163,8 @@ class Fetch:
 
         return d['TradingDay'] if d is not None else None
 
-    def fetchTradeInstrument(_product: str, _tradingday: str) -> list:
+    @staticmethod
+    def fetchTradeInstrument(_product: str, _tradingday: str) -> typing.List[str]:
         """
         fetch all traded insts of one product on tradingday
 
@@ -179,7 +186,8 @@ class Fetch:
 
         return ret
 
-    def fetchDominant(_product: str, _tradingday: str) -> str:
+    @staticmethod
+    def fetchDominant(_product: str, _tradingday: str) -> typing.Union[None, str]:
         """
         fetch dominant instrument of one product on tradingday
 
@@ -201,7 +209,8 @@ class Fetch:
 
         return ret
 
-    def fetchSubDominant(_product: str, _tradingday: str) -> str:
+    @staticmethod
+    def fetchSubDominant(_product: str, _tradingday: str) -> typing.Union[None, str]:
         """
         fetch sub dominant instrument of one product on tradingday
 
@@ -223,7 +232,10 @@ class Fetch:
 
         return ret
 
-    def cache2DataStruct(_inst: str, _tradingday: str, _index: str) -> DataStruct:
+    @staticmethod
+    def cache2DataStruct(
+            _inst: str, _tradingday: str, _index: str
+    ) -> typing.Union[None, DataStruct]:
         f = h5py.File(Fetch.cache_path, 'a')
         try:
             grp = f[_inst + '/' + _tradingday]
@@ -240,10 +252,11 @@ class Fetch:
         f.close()
         return datastruct
 
+    @staticmethod
     def DataStruct2cache(
-        _inst: str, _tradingday: str,
-        _columns: typing.List[str], _types: typing.List[str],
-        _datastruct: DataStruct
+            _inst: str, _tradingday: str,
+            _columns: typing.List[str], _types: typing.List[str],
+            _datastruct: DataStruct
     ):
         f = h5py.File(Fetch.cache_path, 'a')
 
@@ -271,10 +284,11 @@ class Fetch:
 
         f.close()
 
+    @staticmethod
     def _fetchInstrument(
-            _tradingday: str, _product: str=None,
-            _instrument: str=None, _sub_dominant: bool=False
-    ):
+            _tradingday: str, _product: str = None,
+            _instrument: str = None, _sub_dominant: bool = False
+    ) -> typing.Union[None, str]:
         assert _product is not None or _instrument is not None
 
         # set inst to real instrument name
@@ -290,11 +304,12 @@ class Fetch:
             return None
         return inst
 
+    @staticmethod
     def fetchIntraDayData(
-            _tradingday: str, _product: str=None,
-            _instrument: str=None, _sub_dominant: bool=False,
-            _index: str='HappenTime'
-    ) -> DataStruct:
+            _tradingday: str, _product: str = None,
+            _instrument: str = None, _sub_dominant: bool = False,
+            _index: str = 'HappenTime'
+    ) -> typing.Union[None, DataStruct]:
         """
         fetch each tick data of product(dominant) or instrument from begin date to end date
 
@@ -355,6 +370,7 @@ class Fetch:
                 inst, _tradingday, columns, types, datastruct)
             return datastruct
         return None
+
 
 if __name__ == '__main__':
     ret = Fetch.productList()

@@ -1,5 +1,5 @@
-from ParadoxTrading.Engine import BacktestEngine, StrategyAbstract
-from ParadoxTrading.Engine.Event import SignalEvent
+from ParadoxTrading.Engine import BacktestEngine, StrategyAbstract, SimplePortfolio
+from ParadoxTrading.Engine import SignalType
 from ParadoxTrading.Indicator import MA
 
 
@@ -31,13 +31,13 @@ class MAStrategy(StrategyAbstract):
             rb_5 = self.ma_rb_5.getAllData().getColumn('ma')[-1]
             rb_10 = self.ma_rb_10.getAllData().getColumn('ma')[-1]
             if rb_5 > rb_10:
-                if self.rb_state == SignalEvent.SHORT:
-                    self.addEvent(market_reg.cur_data_inst, SignalEvent.LONG)
-                self.rb_state = SignalEvent.LONG
+                if self.rb_state == SignalType.SHORT:
+                    self.addEvent(market_reg.cur_data_inst, SignalType.LONG)
+                self.rb_state = SignalType.LONG
             if rb_5 < rb_10:
-                if self.rb_state == SignalEvent.LONG:
-                    self.addEvent(market_reg.cur_data_inst, SignalEvent.SHORT)
-                self.rb_state = SignalEvent.SHORT
+                if self.rb_state == SignalType.LONG:
+                    self.addEvent(market_reg.cur_data_inst, SignalType.SHORT)
+                self.rb_state = SignalType.SHORT
         elif market_reg.product == 'ag':
             self.ma_ag_5.addOne(
                 market_reg.data.getCurBarBeginTime(),
@@ -48,26 +48,22 @@ class MAStrategy(StrategyAbstract):
             ag_5 = self.ma_ag_5.getAllData().getColumn('ma')[-1]
             ag_10 = self.ma_ag_10.getAllData().getColumn('ma')[-1]
             if ag_5 > ag_10:
-                if self.ag_state == SignalEvent.SHORT:
-                    self.addEvent(market_reg.cur_data_inst, SignalEvent.LONG)
-                self.ag_state = SignalEvent.LONG
+                if self.ag_state == SignalType.SHORT:
+                    self.addEvent(market_reg.cur_data_inst, SignalType.LONG)
+                self.ag_state = SignalType.LONG
             if ag_5 < ag_10:
-                if self.ag_state == SignalEvent.LONG:
-                    self.addEvent(market_reg.cur_data_inst, SignalEvent.SHORT)
-                self.ag_state = SignalEvent.SHORT
+                if self.ag_state == SignalType.LONG:
+                    self.addEvent(market_reg.cur_data_inst, SignalType.SHORT)
+                self.ag_state = SignalType.SHORT
         else:
             raise Exception('unkonw product')
 
 ma_strategy = MAStrategy('ma')
 
+portfolio = SimplePortfolio()
+
 engine = BacktestEngine('20170119', '20170126')
+engine.addPortfolio(portfolio)
 engine.addStrategy(ma_strategy)
 
 engine.run()
-
-# while True:
-#     ret = engine.market_supply.updateData()
-#     if ret:
-#         pass
-#     else:
-#         break
