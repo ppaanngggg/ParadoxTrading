@@ -1,16 +1,20 @@
 import typing
-from datetime import datetime
 from collections import deque
+from datetime import datetime
 
 from ParadoxTrading.Engine.Event import EventAbstract, EventType
+from ParadoxTrading.Engine.Execution import ExecutionAbstract
 from ParadoxTrading.Engine.MarketSupply import BacktestMarketSupply
-from ParadoxTrading.Engine.Strategy import StrategyAbstract
 from ParadoxTrading.Engine.Portfolio import PortfolioAbstract
+from ParadoxTrading.Engine.Strategy import StrategyAbstract
 
 
 class EngineAbstract:
     def addEvent(self, _event: EventAbstract):
         raise NotImplementedError('addEvent not implemented')
+
+    def addExecution(self, _execution: ExecutionAbstract):
+        raise NotImplementedError('addExecution not implemented')
 
     def addPortfolio(self, _portfolio: PortfolioAbstract):
         raise NotImplementedError('addPortfolio not implemented')
@@ -41,9 +45,8 @@ class BacktestEngine(EngineAbstract):
         self.end_day: str = _end_day
 
         self.market_supply = BacktestMarketSupply(
-            self.begin_day, self.end_day, self
-        )
-
+            self.begin_day, self.end_day, self)
+        self.execution: ExecutionAbstract = None
         self.portfolio: PortfolioAbstract = None  # portfolio manager
 
     def addEvent(self, _event: EventAbstract):
@@ -55,6 +58,18 @@ class BacktestEngine(EngineAbstract):
         """
         assert isinstance(_event, EventAbstract)
         self.event_queue.append(_event)
+
+    def addExecution(self, _execution: ExecutionAbstract):
+        """
+        set execution
+
+        :param _execution:
+        :return:
+        """
+        assert self.execution is None
+
+        self.execution = _execution
+        _execution._setEngine(self)
 
     def addPortfolio(self, _portfolio: PortfolioAbstract):
         """
@@ -99,19 +114,30 @@ class BacktestEngine(EngineAbstract):
 
         :return:
         """
-        while self.market_supply.updateData():  # while there is data
+
+        while True:
+            data = self.market_supply.updateData()
+            if data is None:
+                # if data is None, it means end
+                break
             print('--- one tick ---', self.getCurDatetime())
-            while len(self.event_queue):  # deal all event at that moment
-                event = self.event_queue.popleft()
-                if event.type == EventType.MARKET:
-                    self.strategy_dict[event.strategy_name].deal(
-                        event.market_register_key)
-                elif event.type == EventType.SIGNAL:
-                    self.portfolio.dealSignal(event)
-                elif event.type == EventType.ORDER:
-                    print(event)
-                    # self.execution
-                elif event.type == EventType.FILL:
-                    self.portfolio.dealFill(event)
+            while True:
+                # match market for each tick, maybe there will be order to fill.
+                # If filled, execution will add fill event into queue
+                self.execution.matchMarket(*data)
+
+                if len(self.event_queue):  # deal all event at that moment
+                    event = self.event_queue.popleft()
+                    if event.type == EventType.MARKET:
+                        self.strategy_dict[event.strategy_name].deal(
+                            event.market_register_key)
+                    elif event.type == EventType.SIGNAL:
+                        self.portfolio.dealSignal(event)
+                    elif event.type == EventType.ORDER:
+                        self.execution.dealOrderEvent(event)
+                    elif event.type == EventType.FILL:
+                        self.portfolio.dealFill(event)
+                    else:
+                        raise Exception('Unknow event type!')
                 else:
-                    raise Exception('Unknow event type!')
+                    break

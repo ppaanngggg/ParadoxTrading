@@ -13,20 +13,56 @@ class SignalType:
     LONG = 1
     SHORT = 2
 
+    @staticmethod
+    def toStr(_value: int) -> str:
+        if _value == SignalType.LONG:
+            return 'long'
+        elif _value == SignalType.SHORT:
+            return 'short'
+        else:
+            raise Exception()
+
 
 class OrderType:
     MARKET = 1
     LIMIT = 2
+
+    @staticmethod
+    def toStr(_value: int) -> str:
+        if _value == OrderType.MARKET:
+            return 'marker'
+        elif _value == OrderType.LIMIT:
+            return 'limit'
+        else:
+            raise Exception()
 
 
 class ActionType:
     OPEN = 1
     CLOSE = 2
 
+    @staticmethod
+    def toStr(_value: int) -> str:
+        if _value == ActionType.OPEN:
+            return 'open'
+        elif _value == ActionType.CLOSE:
+            return 'close'
+        else:
+            raise Exception()
+
 
 class DirectionType:
     BUY = 1
     SELL = 2
+
+    @staticmethod
+    def toStr(_value: int) -> str:
+        if _value == DirectionType.BUY:
+            return 'buy'
+        elif _value == DirectionType.SELL:
+            return 'sell'
+        else:
+            raise Exception()
 
 
 class EventAbstract:
@@ -41,8 +77,23 @@ class MarketEvent(EventAbstract):
         self.market_register_key = _market_register_key
         self.strategy_name = _strategy_name
 
+    def toDict(self) -> dict:
+        return {
+            'market_register_key': self.market_register_key,
+            'strategy_name': self.strategy_name,
+        }
+
+    @staticmethod
+    def fromDict(self, _dict: dict) -> 'MarketEvent':
+        return MarketEvent(
+            _dict['market_register_key'],
+            _dict['strategy_name']
+        )
+
     def __repr__(self):
-        return 'MARKET: ' + self.market_register_key + ', ' + self.strategy_name
+        return 'MARKET: ' + '\n' + \
+               '\tkey: ' + self.market_register_key + '\n' + \
+               '\tstrategy: ' + self.strategy_name
 
 
 class SignalEvent(EventAbstract):
@@ -65,7 +116,7 @@ class SignalEvent(EventAbstract):
                '\tinstrument: ' + self.instrument + '\n' + \
                '\tstrategy: ' + self.strategy_name + '\n' + \
                '\tdatetime: ' + str(self.datetime) + '\n' + \
-               '\tsignal: ' + str(self.signal_type) + '\n' + \
+               '\tsignal: ' + SignalType.toStr(self.signal_type) + '\n' + \
                '\tstrength: ' + str(self.strength)
 
 
@@ -91,16 +142,20 @@ class OrderEvent(EventAbstract):
                "\tindex: " + str(self.index) + '\n' + \
                "\tinstrument: " + self.instrument + '\n' + \
                "\tdatetime: " + str(self.datetime) + '\n' + \
-               "\ttype: " + str(self.order_type) + '\n' + \
+               "\ttype: " + OrderType.toStr(self.order_type) + '\n' + \
                "\tquantity: " + str(self.quantity) + '\n' + \
-               "\taction: " + str(self.action) + '\n' + \
-               "\tdirection: " + str(self.direction) + '\n' + \
+               "\taction: " + ActionType.toStr(self.action) + '\n' + \
+               "\tdirection: " + DirectionType.toStr(self.direction) + '\n' + \
                "\tquantity: " + str(self.quantity) + '\n' + \
                "\tprice: " + str(self.price)
 
 
 class FillEvent(EventAbstract):
-    def __init__(self, _index, _instrument, _datetime, _quantity, _action, _direction, _price, _commission):
+    def __init__(
+            self, _index: int, _instrument: str, _datetime: datetime,
+            _quantity: int, _action: int, _direction: int,
+            _price: float, _commission: float
+    ):
         super().__init__()
         self.type = EventType.FILL
         self.index = _index
@@ -111,3 +166,14 @@ class FillEvent(EventAbstract):
         self.direction = _direction
         self.price = _price
         self.commission = _commission
+
+    def __repr__(self):
+        return 'Fill:' + '\n' + \
+               "\tindex: " + str(self.index) + '\n' + \
+               "\tinstrument: " + self.instrument + '\n' + \
+               "\tdatetime: " + str(self.datetime) + '\n' + \
+               "\tquantity: " + str(self.quantity) + '\n' + \
+               "\taction: " + ActionType.toStr(self.action) + '\n' + \
+               "\tdirection: " + DirectionType.toStr(self.action) + '\n' + \
+               "\tprice: " + str(self.price) + '\n' + \
+               "\tcommission: " + str(self.commission)

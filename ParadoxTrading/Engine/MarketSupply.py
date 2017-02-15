@@ -87,7 +87,7 @@ class MarketRegister:
         :param _json_str: json str stores register info
         :return: market register object
         """
-        data = dict(json.loads(_json_str))
+        data: typing.Dict[str, typing.Any] = dict(json.loads(_json_str))
         return MarketRegister(
             data['product'], data['instrument'], data['sub_dominant'],
             data['second_skip'], data['minute_skip'], data['hour_skip']
@@ -180,7 +180,7 @@ class MarketSupplyAbstract:
     def getCurDatetime(self) -> datetime:
         raise NotImplementedError('getCurDatetime not implemented')
 
-    def updateData(self) -> bool:
+    def updateData(self) -> typing.Union[None, typing.Tuple[str, DataStruct]]:
         raise NotImplementedError('updateData not implemented')
 
 
@@ -292,7 +292,7 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         self.cur_day = tmp.strftime('%Y%m%d')
         return self.cur_day
 
-    def updateData(self) -> bool:
+    def updateData(self) -> typing.Union[None, typing.Tuple[str, DataStruct]]:
         """
         update data tick by tick
 
@@ -301,7 +301,7 @@ class BacktestMarketSupply(MarketSupplyAbstract):
 
         # reach end, so return false to end backtest
         if self.cur_day > self.end_day:
-            return False
+            return None
 
         # if there is no data generator, create one
         if self.data_generator is None:
@@ -326,8 +326,8 @@ class BacktestMarketSupply(MarketSupplyAbstract):
             return self.updateData()
         else:
             # process new tick data
-            self.addEvent(ret[0], ret[1])
-            return True
+            self.addEvent(*ret)
+            return ret
 
     def getCurDatetime(self) -> typing.Union[None, datetime]:
         """

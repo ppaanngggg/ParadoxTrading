@@ -1,4 +1,4 @@
-from ParadoxTrading.Engine import BacktestEngine, StrategyAbstract, SimplePortfolio
+from ParadoxTrading.Engine import BacktestEngine, StrategyAbstract, SimplePortfolio, SimpleBacktestExecution
 from ParadoxTrading.Engine import SignalType
 from ParadoxTrading.Indicator import MA
 
@@ -60,10 +60,14 @@ class MAStrategy(StrategyAbstract):
 
 ma_strategy = MAStrategy('ma')
 
+execution = SimpleBacktestExecution()
 portfolio = SimplePortfolio()
 
 engine = BacktestEngine('20170119', '20170126')
+engine.addExecution(execution)
 engine.addPortfolio(portfolio)
 engine.addStrategy(ma_strategy)
 
 engine.run()
+
+print(portfolio.getPortfolioByStrategy(ma_strategy.name))

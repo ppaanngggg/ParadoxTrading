@@ -144,6 +144,15 @@ class PortfolioPerStrategy:
         """
         return self.getUnfilledOrder(_instrument, self.ACTION_TYPE.CLOSE, self.DIRECTION_TYPE.SELL)
 
+    def dealSignalEvent(self, _signal_event: SignalEvent):
+        """
+        deal signal event to set inner state
+
+        :param _signal_event:
+        :return:
+        """
+        self.signal_record.append(_signal_event)
+
     def dealOrderEvent(self, _order_event: OrderEvent):
         """
         deal order event to set inner state
@@ -154,6 +163,33 @@ class PortfolioPerStrategy:
         assert _order_event.index not in self.unfilled_order.keys()
         self.order_record.append(_order_event)
         self.unfilled_order[_order_event.index] = _order_event
+
+    def dealFillEvent(self, _fill_event: FillEvent):
+        """
+        deal fill event to set inner state
+
+        :param _fill_event:
+        :return:
+        """
+        assert _fill_event.index in self.unfilled_order.keys()
+        self.fill_record.append(_fill_event)
+        del self.unfilled_order[_fill_event.index]
+        if _fill_event.action == self.ACTION_TYPE.OPEN:
+            if _fill_event.direction == self.DIRECTION_TYPE.BUY:
+                self.incPosition(_fill_event.instrument, self.SIGNAL_TYPE.LONG, _fill_event.quantity)
+            elif _fill_event.direction == self.DIRECTION_TYPE.SELL:
+                self.incPosition(_fill_event.instrument, self.SIGNAL_TYPE.SHORT, _fill_event.quantity)
+            else:
+                raise Exception('unknown direction')
+        elif _fill_event.action == self.ACTION_TYPE.CLOSE:
+            if _fill_event.direction == self.DIRECTION_TYPE.BUY:
+                self.decPosition(_fill_event.instrument, self.SIGNAL_TYPE.SHORT, _fill_event.quantity)
+            elif _fill_event.direction == self.DIRECTION_TYPE.SELL:
+                self.decPosition(_fill_event.instrument, self.SIGNAL_TYPE.LONG, _fill_event.quantity)
+            else:
+                raise Exception('unknown direction')
+        else:
+            raise Exception('unknown action')
 
     def __repr__(self) -> str:
         def action2str(_action: int) -> str:
@@ -172,17 +208,24 @@ class PortfolioPerStrategy:
             else:
                 raise Exception()
 
+        ret = '@@@ POSITION @@@\n'
+
         table = []
         for k, v in self.position.items():
             table.append([k, v[self.SIGNAL_TYPE.LONG], v[self.SIGNAL_TYPE.SHORT]])
-        ret = tabulate.tabulate(table, ['instrument', 'LONG', 'SHORT'])
+        ret += tabulate.tabulate(table, ['instrument', 'LONG', 'SHORT'])
 
-        ret += '\n\n'
+        ret += '\n\n@@@ ORDER @@@\n'
 
         table = []
         for k, v in self.unfilled_order.items():
             table.append([k, v.instrument, action2str(v.action), direction2str(v.direction), v.quantity])
         ret += tabulate.tabulate(table, ['index', 'instrument', 'ACTION', 'DIRECTION', 'QUANTITY'])
+
+        ret += '\n\n@@@ RECORD @@@\n'
+        ret += ' - Signal: ' + str(len(self.signal_record)) + '\n'
+        ret += ' - Order: ' + str(len(self.order_record)) + '\n'
+        ret += ' - Fill: ' + str(len(self.fill_record)) + '\n'
 
         return ret
 
@@ -279,6 +322,8 @@ class SimplePortfolio(PortfolioAbstract):
     def __init__(self):
         super().__init__()
 
+        self.order_strategy_dict: typing.Dict[int, str] = {}
+
     def dealSignal(self, _event: SignalEvent):
         assert self.engine is not None
 
@@ -314,13 +359,17 @@ class SimplePortfolio(PortfolioAbstract):
             order_event.direction = self.DIRECTION_TYPE.SELL
             order_event.quantity = 1
         else:
-            raise Exception('unknow signal')
+            raise Exception('unknown signal')
 
+        portfolio.dealSignalEvent(_event)
         portfolio.dealOrderEvent(order_event)
+
+        self.order_strategy_dict[order_event.index] = _event.strategy_name
         self.addEvent(order_event)
 
     def dealFill(self, _event: FillEvent):
-        pass
+        portfolio = self.getPortfolioByStrategy(self.order_strategy_dict[_event.index])
+        portfolio.dealFillEvent(_event)
 
     def addStrategy(self, _strategy: StrategyAbstract):
         assert _strategy.name not in self.strategy_portfolio_dict.keys()
