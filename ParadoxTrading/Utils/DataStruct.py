@@ -6,15 +6,14 @@ from tabulate import tabulate
 
 
 class DataStruct():
-
     EXPAND_STRICT = 'strict'
 
     def __init__(
             self,
             _keys: typing.List[str],
             _index_name: str,
-            _rows: typing.List[list]=None,
-            _dicts: typing.List[dict]=None):
+            _rows: typing.List[list] = None,
+            _dicts: typing.List[dict] = None):
         assert _index_name in _keys
 
         self.data = {}
@@ -59,7 +58,7 @@ class DataStruct():
         for i in range(len(_struct.index())):
             self.addRow([d[i] for d in values], keys)
 
-    def expand(self, _struct: "DataStruct", _type: str='strict'):
+    def expand(self, _struct: "DataStruct", _type: str = 'strict'):
         if _type == self.EXPAND_STRICT:
             assert len(self) == len(_struct)
             for idx1, idx2 in zip(self.index(), _struct.index()):
@@ -109,7 +108,7 @@ class DataStruct():
     def index(self) -> list:
         return self.data[self.index_name]
 
-    def getColumnNames(self, _include_index_name: bool=True) -> list:
+    def getColumnNames(self, _include_index_name: bool = True) -> list:
         if _include_index_name:
             return sorted(list(self.data.keys()))
         else:
@@ -127,14 +126,14 @@ class DataStruct():
     def getColumn(self, _key: str) -> list:
         return self.data[_key]
 
-    def datetime2float(self, _key: str=None):
+    def datetime2float(self, _key: str = None):
         k = _key
         if k is None:
             k = self.index_name
         self.data[k] = [(d - datetime(1970, 1, 1)).total_seconds()
                         for d in self.data[k]]
 
-    def float2datetime(self, _key: str=None):
+    def float2datetime(self, _key: str = None):
         k = _key
         if k is None:
             k = self.index_name
@@ -143,7 +142,6 @@ class DataStruct():
 
 
 class Loc():
-
     def __init__(self, _struct: DataStruct):
         self.struct = _struct
 
@@ -163,7 +161,6 @@ class Loc():
 
 
 class ILoc():
-
     def __init__(self, _struct: DataStruct):
         self.struct = _struct
 
@@ -176,32 +173,3 @@ class ILoc():
             for k, v in self.struct.data.items():
                 ret.data[k] = [v[_item]]
         return ret
-
-if __name__ == '__main__':
-    import datetime
-    from ParadoxTrading.Utils import Fetch, SplitIntoMinute
-    from ParadoxTrading.Indicator import *
-
-    data = Fetch.fetchIntraDayData('rb', '20170123')
-    spliter = SplitIntoMinute(1)
-    spliter.addMany(data)
-
-    openprice = OpenBar('lastprice').addMany(
-        spliter.getBarBeginTimeList(), spliter.getBarList()).getAllData()
-    closeprice = CloseBar('lastprice').addMany(
-        spliter.getBarBeginTimeList(), spliter.getBarList()).getAllData()
-    highprice = HighBar('lastprice').addMany(
-        spliter.getBarBeginTimeList(), spliter.getBarList()).getAllData()
-    lowprice = LowBar('lastprice').addMany(
-        spliter.getBarBeginTimeList(), spliter.getBarList()).getAllData()
-
-    maprice = MA(5, 'close').addMany(
-        closeprice.index(), closeprice).getAllData()
-
-    ochl_data = openprice
-    ochl_data.expand(closeprice)
-    ochl_data.expand(highprice)
-    ochl_data.expand(lowprice)
-    ochl_data.expand(maprice)
-
-    print(ochl_data)

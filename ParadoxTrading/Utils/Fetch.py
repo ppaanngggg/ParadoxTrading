@@ -1,5 +1,3 @@
-import gzip
-import pickle
 import typing
 
 import h5py
@@ -357,7 +355,7 @@ class Fetch:
         cur.execute(
             "SELECT * FROM " + inst +
             " WHERE TradingDay='" + _tradingday +
-            "' ORDER BY HappenTime"
+            "' ORDER BY " + _index.lower()
         )
         datas = list(cur.fetchall())
         con.close()
@@ -371,32 +369,39 @@ class Fetch:
             return datastruct
         return None
 
+    @staticmethod
+    def fetchInterDayData(
+            _instrument: str, _begin_day: str, _end_day: str,
+            _group_index: str = 'TradingDay', _max_index: str = 'Happentime'
+    ) -> DataStruct:
 
-if __name__ == '__main__':
-    ret = Fetch.productList()
-    assert type(ret) == list
-    print('Fetch.productList', len(ret))
+        con = psycopg2.connect(
+            dbname=Fetch.pgsql_dbname,
+            host=Fetch.pgsql_host,
+            user=Fetch.pgsql_user,
+            password=Fetch.pgsql_password,
+        )
+        cur = con.cursor()
 
-    ret = Fetch.productIsTrade('rb', '20170123')
-    assert ret
-    print('Fetch.productIsTrade', ret)
+        # get all column names
+        cur.execute(
+            "select column_name, data_type from information_schema.columns " +
+            "where table_name='" + _instrument + "'"
+        )
+        columns = [d[0] for d in cur.fetchall()]
 
-    ret = Fetch.productLastTradingDay('rb', '20170123')
-    assert type(ret) == str
-    print('Fetch.productLastTradingDay', ret)
+        query = "select * from {} where {} in " \
+                " (select max({}) from {} " \
+                "where {} >= '{}' and {} <= '{}' " \
+                "group by {}) order by {}".format(
+            _instrument, _max_index.lower(),
+            _max_index.lower(), _instrument,
+            _group_index.lower(), _begin_day,
+            _group_index.lower(), _end_day,
+            _group_index.lower(), _group_index.lower()
+        )
+        cur.execute(query)
+        datas = list(cur.fetchall())
+        con.close()
 
-    ret = Fetch.productNextTradingDay('rb', '20170123')
-    assert type(ret) == str
-    print('Fetch.productNextTradingDay', ret)
-
-    ret = Fetch.fetchTradeInstrument('rb', '20170123')
-    assert type(ret) == list
-    print('Fetch.fetchTradeInstrument', len(ret))
-
-    ret = Fetch.fetchDominant('rb', '20170123')
-    assert type(ret) == str
-    print('Fetch.fetchDominant', ret)
-
-    ret = Fetch.fetchSubDominant('rb', '20170123')
-    assert type(ret) == str
-    print('Fetch.fetchSubDominant', ret)
+        return DataStruct(columns, _group_index.lower(), datas)

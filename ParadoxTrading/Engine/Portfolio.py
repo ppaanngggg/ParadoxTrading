@@ -1,6 +1,9 @@
 import typing
 
+import pymongo
 import tabulate
+from pymongo import MongoClient
+from pymongo.collection import Collection
 
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import (SignalEvent, OrderEvent, FillEvent)
@@ -191,6 +194,20 @@ class PortfolioPerStrategy:
         else:
             raise Exception('unknown action')
 
+    def storeRecords(self, _name: str, _coll: Collection):
+        """
+        store records into mongodb
+
+        :param _name:
+        :param _coll:
+        :return:
+        """
+
+        for d in self.signal_record + self.order_record + self.fill_record:
+            d = d.toDict()
+            d['strategy_name'] = _name
+            _coll.insert_one(d)
+
     def __repr__(self) -> str:
         def action2str(_action: int) -> str:
             if _action == self.ACTION_TYPE.OPEN:
@@ -281,6 +298,38 @@ class PortfolioAbstract:
         # add it
         self.engine.addEvent(_order_event)
 
+    def storeRecords(
+            self,
+            _backtest_key: str,
+            _mongo_host: str = 'localhost',
+            _mongo_database: str = 'FutureBacktest',
+    ):
+        """
+        store all strategies' records into mongodb
+
+        :param _backtest_key:
+        :param _mongo_host:
+        :param _mongo_database:
+        :return:
+        """
+        client = MongoClient(host=_mongo_host)
+        db = client[_mongo_database]
+        # clear old backtest records
+        if _backtest_key in db.collection_names():
+            db.drop_collection(_backtest_key)
+
+        coll = db[_backtest_key]
+        coll.create_index([
+            ('strategy_name', pymongo.ASCENDING),
+            ('type', pymongo.ASCENDING),
+            ('tradingday', pymongo.ASCENDING),
+            ('datetime', pymongo.ASCENDING),
+        ])
+        for k, v in self.strategy_portfolio_dict.items():
+            v.storeRecords(k, coll)
+
+        client.close()
+
     def dealSignal(self, _event: SignalEvent):
         """
         deal signal event from stategy
@@ -333,6 +382,7 @@ class SimplePortfolio(PortfolioAbstract):
         order_event = OrderEvent(
             _index=self.incOrderIndex(),
             _instrument=_event.instrument,
+            _tradingday=self.engine.getTradingDay(),
             _datetime=self.engine.getCurDatetime(),
             _order_type=self.ORDER_TYPE.MARKET,
         )

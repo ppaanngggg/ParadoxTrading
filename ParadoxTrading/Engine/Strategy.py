@@ -104,6 +104,10 @@ class StrategyAbstract:
         :return:
         """
         self.engine.addEvent(SignalEvent(
-            _instrument, self.name, _signal_type,
-            self.engine.getCurDatetime(), _strength
+            _instrument=_instrument,
+            _strategy_name=self.name,
+            _tradingday=self.engine.getTradingDay(),
+            _datetime=self.engine.getCurDatetime(),
+            _signal_type=_signal_type,
+            _strength=_strength,
         ))

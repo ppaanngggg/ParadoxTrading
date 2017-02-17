@@ -22,6 +22,9 @@ class EngineAbstract:
     def addStrategy(self, _strategy: StrategyAbstract):
         raise NotImplementedError('addStrategy not implemented')
 
+    def getTradingDay(self) -> str:
+        raise NotImplementedError('getTradingDay not implemented')
+
     def getCurDatetime(self) -> typing.Union[None, datetime]:
         raise NotImplementedError('getCurDatetime not implemented')
 
@@ -100,6 +103,14 @@ class BacktestEngine(EngineAbstract):
         self.market_supply.addStrategy(_strategy)
         self.portfolio.addStrategy(_strategy)
 
+    def getTradingDay(self) -> str:
+        """
+        Return cur tradingday of market
+
+        :return: str
+        """
+        return self.market_supply.cur_day
+
     def getCurDatetime(self) -> typing.Union[None, datetime]:
         """
         Return latest datetime of market
@@ -120,7 +131,6 @@ class BacktestEngine(EngineAbstract):
             if data is None:
                 # if data is None, it means end
                 break
-            print('--- one tick ---', self.getCurDatetime())
             while True:
                 # match market for each tick, maybe there will be order to fill.
                 # If filled, execution will add fill event into queue

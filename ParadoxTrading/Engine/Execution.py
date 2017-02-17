@@ -1,8 +1,8 @@
 import typing
 
 import ParadoxTrading.Engine
-import ParadoxTrading.Engine.Event
 import ParadoxTrading.Engine.Engine
+import ParadoxTrading.Engine.Event
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -55,6 +55,7 @@ class SimpleBacktestExecution(ExecutionAbstract):
         return ParadoxTrading.Engine.Event.FillEvent(
             _index=_order_event.index,
             _instrument=_order_event.instrument,
+            _tradingday=self.engine.getTradingDay(),
             _datetime=self.engine.getCurDatetime(),
             _quantity=_order_event.quantity,
             _action=_order_event.action,

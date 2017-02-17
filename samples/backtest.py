@@ -1,6 +1,7 @@
 from ParadoxTrading.Engine import BacktestEngine, StrategyAbstract, SimplePortfolio, SimpleBacktestExecution
 from ParadoxTrading.Engine import SignalType
 from ParadoxTrading.Indicator import MA
+from ParadoxTrading.Performance import Fetch, dailyReturn, sharpRatio
 
 
 class MAStrategy(StrategyAbstract):
@@ -63,11 +64,11 @@ ma_strategy = MAStrategy('ma')
 execution = SimpleBacktestExecution()
 portfolio = SimplePortfolio()
 
-engine = BacktestEngine('20170119', '20170126')
+engine = BacktestEngine('20170119', '20170120')
 engine.addExecution(execution)
 engine.addPortfolio(portfolio)
 engine.addStrategy(ma_strategy)
 
-engine.run()
-
-print(portfolio.getPortfolioByStrategy(ma_strategy.name))
+daily_ret = dailyReturn(Fetch.fetchFillRecords('test', 'ma'), _init_fund=1000)
+print(daily_ret)
+print(sharpRatio(daily_ret))
