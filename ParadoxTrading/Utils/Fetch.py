@@ -14,7 +14,10 @@ class Fetch:
     mongo_inst_db = 'FutureInst'
 
     pgsql_host = 'localhost'
-    pgsql_dbname = 'FutureData'
+    pgsql_tick_dbname = 'FutureTick'
+    pgsql_min_dbname = 'FutureMin'
+    pgsql_hour_dbname = 'FutureHour'
+    pgsql_day_dbname = 'FutureDay'
     pgsql_user = 'pang'
     pgsql_password = ''
 
@@ -50,7 +53,8 @@ class Fetch:
         return count > 0
 
     @staticmethod
-    def productLastTradingDay(_product: str, _tradingday: str) -> typing.Union[None, str]:
+    def productLastTradingDay(_product: str, _tradingday: str
+                              ) -> typing.Union[None, str]:
         """
         get the first day less then _tradingday of _product
 
@@ -73,7 +77,9 @@ class Fetch:
         return d['TradingDay'] if d is not None else None
 
     @staticmethod
-    def productNextTradingDay(_product: str, _tradingday: str) -> typing.Union[None, str]:
+    def productNextTradingDay(
+            _product: str, _tradingday: str
+    ) -> typing.Union[None, str]:
         """
         get the first day greater then _tradingday of _product
 
@@ -116,7 +122,8 @@ class Fetch:
         return count > 0
 
     @staticmethod
-    def instrumentLastTradingDay(_instrument: str, _tradingday: str) -> typing.Union[None, str]:
+    def instrumentLastTradingDay(_instrument: str, _tradingday: str) -> \
+            typing.Union[None, str]:
         """
         get the first day less then _tradingday of _instrument
 
@@ -139,7 +146,8 @@ class Fetch:
         return d['TradingDay'] if d is not None else None
 
     @staticmethod
-    def instrumentNextTradingDay(_instrument: str, _tradingday: str) -> typing.Union[None, str]:
+    def instrumentNextTradingDay(_instrument: str, _tradingday: str) -> \
+            typing.Union[None, str]:
         """
         get the first day greater then _tradingday of _instrument
 
@@ -162,7 +170,9 @@ class Fetch:
         return d['TradingDay'] if d is not None else None
 
     @staticmethod
-    def fetchTradeInstrument(_product: str, _tradingday: str) -> typing.List[str]:
+    def fetchTradeInstrument(
+            _product: str, _tradingday: str
+    ) -> typing.List[str]:
         """
         fetch all traded insts of one product on tradingday
 
@@ -185,7 +195,9 @@ class Fetch:
         return ret
 
     @staticmethod
-    def fetchDominant(_product: str, _tradingday: str) -> typing.Union[None, str]:
+    def fetchDominant(
+            _product: str, _tradingday: str
+    ) -> typing.Union[None, str]:
         """
         fetch dominant instrument of one product on tradingday
 
@@ -208,7 +220,9 @@ class Fetch:
         return ret
 
     @staticmethod
-    def fetchSubDominant(_product: str, _tradingday: str) -> typing.Union[None, str]:
+    def fetchSubDominant(
+            _product: str, _tradingday: str
+    ) -> typing.Union[None, str]:
         """
         fetch sub dominant instrument of one product on tradingday
 
@@ -232,12 +246,12 @@ class Fetch:
 
     @staticmethod
     def cache2DataStruct(
-            _inst: str, _tradingday: str, _index: str
+            _type: str, _inst: str, _tradingday: str, _index: str
     ) -> typing.Union[None, DataStruct]:
         f = h5py.File(Fetch.cache_path, 'a')
         try:
-            grp = f[_inst + '/' + _tradingday]
-        except:
+            grp = f[_type + '/' + _inst + '/' + _tradingday]
+        except KeyError:
             return None
 
         datastruct = DataStruct(list(grp.keys()), _index.lower())
@@ -252,7 +266,7 @@ class Fetch:
 
     @staticmethod
     def DataStruct2cache(
-            _inst: str, _tradingday: str,
+            _type: str, _inst: str, _tradingday: str,
             _columns: typing.List[str], _types: typing.List[str],
             _datastruct: DataStruct
     ):
@@ -270,7 +284,7 @@ class Fetch:
                 _datastruct.datetime2float(c)
 
             dataset = f.create_dataset(
-                _inst + '/' + _tradingday + '/' + c,
+                _type + '/' + _inst + '/' + _tradingday + '/' + c,
                 (len(_datastruct),),
                 dtype=dtype,
             )
@@ -306,19 +320,20 @@ class Fetch:
     def fetchIntraDayData(
             _tradingday: str, _product: str = None,
             _instrument: str = None, _sub_dominant: bool = False,
-            _index: str = 'HappenTime'
+            _data_type: str = 'FutureTick', _index: str = 'HappenTime',
+            _cache: bool = True
     ) -> typing.Union[None, DataStruct]:
         """
-        fetch each tick data of product(dominant) or instrument from begin date to end date
 
-        Args:
-            _tradingday (str):
-            _product (str): if None using _instrument, else using dominant inst of _product
-            _instrument (str): if _product is None, then using _instrument
-            _sub_dominant (bool): if True and _product is not None, using sub dominant of _product
 
-        Returns:
-            DataStruct:
+        :param _tradingday:
+        :param _product:
+        :param _instrument:
+        :param _sub_dominant:
+        :param _data_type:
+        :param _index:
+        :param _cache:
+        :return:
         """
 
         inst = Fetch._fetchInstrument(
@@ -326,14 +341,15 @@ class Fetch:
         if inst is None:
             return None
 
-        # if found in cache, then return
-        ret = Fetch.cache2DataStruct(inst, _tradingday, _index)
-        if ret is not None:
-            return ret
+        if _cache:
+            # if found in cache, then return
+            ret = Fetch.cache2DataStruct(_data_type, inst, _tradingday, _index)
+            if ret is not None:
+                return ret
 
         # fetch from database
         con = psycopg2.connect(
-            dbname=Fetch.pgsql_dbname,
+            dbname=_data_type,
             host=Fetch.pgsql_host,
             user=Fetch.pgsql_user,
             password=Fetch.pgsql_password,
@@ -343,7 +359,7 @@ class Fetch:
         # get all column names
         cur.execute(
             "select column_name, data_type from information_schema.columns " +
-            "where table_name='" + inst + "'"
+            "where table_name='" + inst.lower() + "'"
         )
         columns = []
         types = []
@@ -353,7 +369,7 @@ class Fetch:
 
         # get all ticks
         cur.execute(
-            "SELECT * FROM " + inst +
+            "SELECT * FROM " + inst.lower() +
             " WHERE TradingDay='" + _tradingday +
             "' ORDER BY " + _index.lower()
         )
@@ -364,19 +380,26 @@ class Fetch:
         datastruct = DataStruct(columns, _index.lower(), datas)
 
         if len(datastruct):
-            Fetch.DataStruct2cache(
-                inst, _tradingday, columns, types, datastruct)
+            if _cache:
+                Fetch.DataStruct2cache(
+                    _data_type, inst, _tradingday, columns, types, datastruct)
             return datastruct
-        return None
+        else:
+            return None
 
     @staticmethod
     def fetchInterDayData(
-            _instrument: str, _begin_day: str, _end_day: str,
-            _group_index: str = 'TradingDay', _max_index: str = 'Happentime'
+            _instrument: str, _begin_day: str, _end_day: str = None,
+            _index: str = 'TradingDay'
     ) -> DataStruct:
 
+        begin_day = _begin_day
+        end_day = _end_day
+        if _end_day is None:
+            end_day = begin_day
+
         con = psycopg2.connect(
-            dbname=Fetch.pgsql_dbname,
+            dbname=Fetch.pgsql_day_dbname,
             host=Fetch.pgsql_host,
             user=Fetch.pgsql_user,
             password=Fetch.pgsql_password,
@@ -386,22 +409,17 @@ class Fetch:
         # get all column names
         cur.execute(
             "select column_name, data_type from information_schema.columns " +
-            "where table_name='" + _instrument + "'"
+            "where table_name='" + _instrument.lower() + "'"
         )
         columns = [d[0] for d in cur.fetchall()]
 
-        query = "select * from {} where {} in " \
-                " (select max({}) from {} " \
-                "where {} >= '{}' and {} <= '{}' " \
-                "group by {}) order by {}".format(
-            _instrument, _max_index.lower(),
-            _max_index.lower(), _instrument,
-            _group_index.lower(), _begin_day,
-            _group_index.lower(), _end_day,
-            _group_index.lower(), _group_index.lower()
+        query = "select * from {} where {} >= '{}' and {} <= '{}'".format(
+            _instrument.lower(),
+            _index.lower(), begin_day,
+            _index.lower(), end_day,
         )
         cur.execute(query)
         datas = list(cur.fetchall())
         con.close()
 
-        return DataStruct(columns, _group_index.lower(), datas)
+        return DataStruct(columns, _index.lower(), datas)

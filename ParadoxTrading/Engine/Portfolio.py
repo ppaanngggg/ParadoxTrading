@@ -6,17 +6,13 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 
 import ParadoxTrading.Engine
-from ParadoxTrading.Engine.Event import (SignalEvent, OrderEvent, FillEvent)
+from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
+    DirectionType, FillEvent, OrderEvent, SignalEvent
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
 
 
 class PortfolioPerStrategy:
     def __init__(self):
-        self.SIGNAL_TYPE = ParadoxTrading.Engine.SignalType
-        self.ORDER_TYPE = ParadoxTrading.Engine.OrderType
-        self.ACTION_TYPE = ParadoxTrading.Engine.ActionType
-        self.DIRECTION_TYPE = ParadoxTrading.Engine.DirectionType
-
         # records for signal, order and fill
         self.signal_record: typing.List[SignalEvent] = []
         self.order_record: typing.List[OrderEvent] = []
@@ -35,7 +31,7 @@ class PortfolioPerStrategy:
         :param _quantity: how many
         :return:
         """
-        assert _type == self.SIGNAL_TYPE.LONG or _type == self.SIGNAL_TYPE.SHORT
+        assert _type == SignalType.LONG or _type == SignalType.SHORT
         assert _quantity > 0
         try:
             # try to add directly
@@ -43,8 +39,8 @@ class PortfolioPerStrategy:
         except KeyError:
             # create if failed
             self.position[_instrument] = {
-                self.SIGNAL_TYPE.LONG: 0,
-                self.SIGNAL_TYPE.SHORT: 0,
+                SignalType.LONG: 0,
+                SignalType.SHORT: 0,
             }
             self.position[_instrument][_type] = _quantity
 
@@ -57,7 +53,7 @@ class PortfolioPerStrategy:
         :param _quantity: how many
         :return:
         """
-        assert _type == self.SIGNAL_TYPE.LONG or _type == self.SIGNAL_TYPE.SHORT
+        assert _type == SignalType.LONG or _type == SignalType.SHORT
         assert _quantity > 0
         assert _instrument in self.position.keys()
         assert self.position[_instrument][_type] >= _quantity
@@ -72,7 +68,7 @@ class PortfolioPerStrategy:
         :param _type: long or short
         :return: number of position
         """
-        assert _type == self.SIGNAL_TYPE.LONG or _type == self.SIGNAL_TYPE.SHORT
+        assert _type == SignalType.LONG or _type == SignalType.SHORT
         if _instrument in self.position.keys():
             return self.position[_instrument][_type]
         return 0
@@ -84,7 +80,7 @@ class PortfolioPerStrategy:
         :param _instrument: which instrument
         :return: number of position
         """
-        return self.getPosition(_instrument, self.SIGNAL_TYPE.LONG)
+        return self.getPosition(_instrument, SignalType.LONG)
 
     def getShortPosition(self, _instrument: str) -> int:
         """
@@ -93,9 +89,10 @@ class PortfolioPerStrategy:
         :param _instrument: which instrument
         :return: number of position
         """
-        return self.getPosition(_instrument, self.SIGNAL_TYPE.SHORT)
+        return self.getPosition(_instrument, SignalType.SHORT)
 
-    def getUnfilledOrder(self, _instrument: str, _action: int, _direction: int) -> int:
+    def getUnfilledOrder(self, _instrument: str, _action: int,
+                         _direction: int) -> int:
         """
         get number of unfilled orders for _insturment
 
@@ -106,7 +103,8 @@ class PortfolioPerStrategy:
         """
         num = 0
         for order in self.unfilled_order.values():
-            if order.instrument == _instrument and order.action == _action and order.direction == _direction:
+            if order.instrument == _instrument and order.action == _action and \
+                            order.direction == _direction:
                 num += order.quantity
 
         return num
@@ -118,7 +116,8 @@ class PortfolioPerStrategy:
         :param _instrument:
         :return:
         """
-        return self.getUnfilledOrder(_instrument, self.ACTION_TYPE.OPEN, self.DIRECTION_TYPE.BUY)
+        return self.getUnfilledOrder(_instrument, ActionType.OPEN,
+                                     DirectionType.BUY)
 
     def getOpenSellUnfilledOrder(self, _instrument: str) -> int:
         """
@@ -127,7 +126,8 @@ class PortfolioPerStrategy:
         :param _instrument:
         :return:
         """
-        return self.getUnfilledOrder(_instrument, self.ACTION_TYPE.OPEN, self.DIRECTION_TYPE.SELL)
+        return self.getUnfilledOrder(_instrument, ActionType.OPEN,
+                                     DirectionType.SELL)
 
     def getCloseBuyUnfilledOrder(self, _instrument: str) -> int:
         """
@@ -136,7 +136,8 @@ class PortfolioPerStrategy:
         :param _instrument:
         :return:
         """
-        return self.getUnfilledOrder(_instrument, self.ACTION_TYPE.CLOSE, self.DIRECTION_TYPE.BUY)
+        return self.getUnfilledOrder(_instrument, ActionType.CLOSE,
+                                     DirectionType.BUY)
 
     def getCloseSellUnfilledOrder(self, _instrument: str) -> int:
         """
@@ -145,7 +146,8 @@ class PortfolioPerStrategy:
         :param _instrument:
         :return:
         """
-        return self.getUnfilledOrder(_instrument, self.ACTION_TYPE.CLOSE, self.DIRECTION_TYPE.SELL)
+        return self.getUnfilledOrder(_instrument, ActionType.CLOSE,
+                                     DirectionType.SELL)
 
     def dealSignalEvent(self, _signal_event: SignalEvent):
         """
@@ -177,18 +179,22 @@ class PortfolioPerStrategy:
         assert _fill_event.index in self.unfilled_order.keys()
         self.fill_record.append(_fill_event)
         del self.unfilled_order[_fill_event.index]
-        if _fill_event.action == self.ACTION_TYPE.OPEN:
-            if _fill_event.direction == self.DIRECTION_TYPE.BUY:
-                self.incPosition(_fill_event.instrument, self.SIGNAL_TYPE.LONG, _fill_event.quantity)
-            elif _fill_event.direction == self.DIRECTION_TYPE.SELL:
-                self.incPosition(_fill_event.instrument, self.SIGNAL_TYPE.SHORT, _fill_event.quantity)
+        if _fill_event.action == ActionType.OPEN:
+            if _fill_event.direction == DirectionType.BUY:
+                self.incPosition(_fill_event.instrument, SignalType.LONG,
+                                 _fill_event.quantity)
+            elif _fill_event.direction == DirectionType.SELL:
+                self.incPosition(_fill_event.instrument,
+                                 SignalType.SHORT, _fill_event.quantity)
             else:
                 raise Exception('unknown direction')
-        elif _fill_event.action == self.ACTION_TYPE.CLOSE:
-            if _fill_event.direction == self.DIRECTION_TYPE.BUY:
-                self.decPosition(_fill_event.instrument, self.SIGNAL_TYPE.SHORT, _fill_event.quantity)
-            elif _fill_event.direction == self.DIRECTION_TYPE.SELL:
-                self.decPosition(_fill_event.instrument, self.SIGNAL_TYPE.LONG, _fill_event.quantity)
+        elif _fill_event.action == ActionType.CLOSE:
+            if _fill_event.direction == DirectionType.BUY:
+                self.decPosition(_fill_event.instrument,
+                                 SignalType.SHORT, _fill_event.quantity)
+            elif _fill_event.direction == DirectionType.SELL:
+                self.decPosition(_fill_event.instrument, SignalType.LONG,
+                                 _fill_event.quantity)
             else:
                 raise Exception('unknown direction')
         else:
@@ -202,25 +208,26 @@ class PortfolioPerStrategy:
         :param _coll:
         :return:
         """
-
-        for d in self.signal_record + self.order_record + self.fill_record:
+        for d in self.signal_record + \
+                self.order_record + \
+                self.fill_record:
             d = d.toDict()
             d['strategy_name'] = _name
             _coll.insert_one(d)
 
     def __repr__(self) -> str:
         def action2str(_action: int) -> str:
-            if _action == self.ACTION_TYPE.OPEN:
+            if _action == ActionType.OPEN:
                 return 'open'
-            elif _action == self.ACTION_TYPE.CLOSE:
+            elif _action == ActionType.CLOSE:
                 return 'close'
             else:
                 raise Exception()
 
         def direction2str(_direction: int) -> str:
-            if _direction == self.DIRECTION_TYPE.BUY:
+            if _direction == DirectionType.BUY:
                 return 'buy'
-            elif _direction == self.DIRECTION_TYPE.SELL:
+            elif _direction == DirectionType.SELL:
                 return 'sell'
             else:
                 raise Exception()
@@ -229,17 +236,25 @@ class PortfolioPerStrategy:
 
         table = []
         for k, v in self.position.items():
-            table.append([k, v[self.SIGNAL_TYPE.LONG], v[self.SIGNAL_TYPE.SHORT]])
+            table.append(
+                [k, v[SignalType.LONG], v[SignalType.SHORT]])
         ret += tabulate.tabulate(table, ['instrument', 'LONG', 'SHORT'])
 
-        ret += '\n\n@@@ ORDER @@@\n'
+        ret += '\n@@@ ORDER @@@\n'
 
         table = []
         for k, v in self.unfilled_order.items():
-            table.append([k, v.instrument, action2str(v.action), direction2str(v.direction), v.quantity])
-        ret += tabulate.tabulate(table, ['index', 'instrument', 'ACTION', 'DIRECTION', 'QUANTITY'])
+            table.append([
+                k, v.instrument, action2str(v.action),
+                direction2str(v.direction), v.quantity
+            ])
+        ret += tabulate.tabulate(
+            table, ['index', 'instrument', 'ACTION', 'DIRECTION', 'QUANTITY'])
 
-        ret += '\n\n@@@ RECORD @@@\n'
+        ret += '\n@@@ UNFILLED ORDER @@@\n'
+        ret += str(sorted(self.unfilled_order.keys()))
+
+        ret += '\n@@@ RECORD @@@\n'
         ret += ' - Signal: ' + str(len(self.signal_record)) + '\n'
         ret += ' - Order: ' + str(len(self.order_record)) + '\n'
         ret += ' - Fill: ' + str(len(self.fill_record)) + '\n'
@@ -250,17 +265,20 @@ class PortfolioPerStrategy:
 class PortfolioAbstract:
     def __init__(self):
         # redirect to types
-        self.SIGNAL_TYPE = ParadoxTrading.Engine.SignalType
-        self.ORDER_TYPE = ParadoxTrading.Engine.OrderType
-        self.ACTION_TYPE = ParadoxTrading.Engine.ActionType
-        self.DIRECTION_TYPE = ParadoxTrading.Engine.DirectionType
-
         self.order_index: int = 0  # cur unused order index
-        self.engine: ParadoxTrading.Engine.Engine.EngineAbstract = None
+        self.engine: ParadoxTrading.Engine.EngineAbstract = None
 
-        self.strategy_portfolio_dict: typing.Dict[str, PortfolioPerStrategy] = {}
+        self.order_strategy_dict: typing.Dict[int, str] = {}
+        self.strategy_portfolio_dict: typing.Dict[str,
+                                                  PortfolioPerStrategy] = {}
+        self.global_portfolio: PortfolioPerStrategy = PortfolioPerStrategy()
 
-    def _setEngine(self, _engine: 'ParadoxTrading.Engine.Engine.EngineAbstract'):
+    def addStrategy(self, _strategy: StrategyAbstract):
+        assert _strategy.name not in self.strategy_portfolio_dict.keys()
+        self.strategy_portfolio_dict[_strategy.name] = PortfolioPerStrategy()
+
+    def _setEngine(self,
+                   _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
         PROTECTED !!!
 
@@ -279,11 +297,12 @@ class PortfolioAbstract:
         self.order_index += 1
         return tmp
 
-    def addEvent(self, _order_event: OrderEvent):
+    def addEvent(self, _order_event: OrderEvent, _strategy: str):
         """
         add event into engine's engine
 
         :param _order_event: order event object to be added
+        :param _strategy:
         :return:
         """
 
@@ -292,18 +311,19 @@ class PortfolioAbstract:
         assert _order_event.action is not None
         assert _order_event.direction is not None
         assert _order_event.quantity > 0
-        if _order_event.order_type == self.ORDER_TYPE.LIMIT:
+        if _order_event.order_type == OrderType.LIMIT:
             assert _order_event.price is not None
 
-        # add it
+        # map index to strategy
+        self.order_strategy_dict[_order_event.index] = _strategy
+        # add it into event queue
         self.engine.addEvent(_order_event)
 
     def storeRecords(
             self,
             _backtest_key: str,
             _mongo_host: str = 'localhost',
-            _mongo_database: str = 'FutureBacktest',
-    ):
+            _mongo_database: str = 'FutureBacktest', ):
         """
         store all strategies' records into mongodb
 
@@ -348,16 +368,8 @@ class PortfolioAbstract:
         """
         raise NotImplementedError('dealFill not implemented')
 
-    def addStrategy(self, _strategy: StrategyAbstract):
-        """
-        add strategy into portfolio manager
-
-        :param _strategy: strategy to be added
-        :return:
-        """
-        raise NotImplementedError('addStrategy not implemented')
-
-    def getPortfolioByStrategy(self, _strategy_name: str) -> PortfolioPerStrategy:
+    def getPortfolioByStrategy(self,
+                               _strategy_name: str) -> PortfolioPerStrategy:
         """
         get the individual portfolio manager of strategy
 
@@ -366,12 +378,13 @@ class PortfolioAbstract:
         """
         return self.strategy_portfolio_dict[_strategy_name]
 
+    def getPortfolioByIndex(self, _index: int) -> PortfolioPerStrategy:
+        return self.getPortfolioByStrategy(self.order_strategy_dict[_index])
 
-class SimplePortfolio(PortfolioAbstract):
+
+class SimpleTickPortfolio(PortfolioAbstract):
     def __init__(self):
         super().__init__()
-
-        self.order_strategy_dict: typing.Dict[int, str] = {}
 
     def dealSignal(self, _event: SignalEvent):
         assert self.engine is not None
@@ -384,29 +397,28 @@ class SimplePortfolio(PortfolioAbstract):
             _instrument=_event.instrument,
             _tradingday=self.engine.getTradingDay(),
             _datetime=self.engine.getCurDatetime(),
-            _order_type=self.ORDER_TYPE.MARKET,
-        )
-        if _event.signal_type == self.SIGNAL_TYPE.LONG:
+            _order_type=OrderType.MARKET, )
+        if _event.signal_type == SignalType.LONG:
             # whether there is short position to close
             if portfolio.getShortPosition(_event.instrument) - \
                     portfolio.getCloseBuyUnfilledOrder(_event.instrument) > 0:
-                order_event.action = self.ACTION_TYPE.CLOSE
+                order_event.action = ActionType.CLOSE
             else:
-                order_event.action = self.ACTION_TYPE.OPEN
+                order_event.action = ActionType.OPEN
 
             # buy because of long
-            order_event.direction = self.DIRECTION_TYPE.BUY
+            order_event.direction = DirectionType.BUY
             order_event.quantity = 1
-        elif _event.signal_type == self.SIGNAL_TYPE.SHORT:
+        elif _event.signal_type == SignalType.SHORT:
             # whether there is long position to close
             if portfolio.getLongPosition(_event.instrument) - \
                     portfolio.getCloseSellUnfilledOrder(_event.instrument) > 0:
-                order_event.action = self.ACTION_TYPE.CLOSE
+                order_event.action = ActionType.CLOSE
             else:
-                order_event.action = self.ACTION_TYPE.OPEN
+                order_event.action = ActionType.OPEN
 
             # sell because of short
-            order_event.direction = self.DIRECTION_TYPE.SELL
+            order_event.direction = DirectionType.SELL
             order_event.quantity = 1
         else:
             raise Exception('unknown signal')
@@ -414,13 +426,55 @@ class SimplePortfolio(PortfolioAbstract):
         portfolio.dealSignalEvent(_event)
         portfolio.dealOrderEvent(order_event)
 
-        self.order_strategy_dict[order_event.index] = _event.strategy_name
-        self.addEvent(order_event)
+        self.addEvent(order_event, _event.strategy_name)
 
     def dealFill(self, _event: FillEvent):
-        portfolio = self.getPortfolioByStrategy(self.order_strategy_dict[_event.index])
-        portfolio.dealFillEvent(_event)
+        self.getPortfolioByIndex(_event.index).dealFillEvent(_event)
 
-    def addStrategy(self, _strategy: StrategyAbstract):
-        assert _strategy.name not in self.strategy_portfolio_dict.keys()
-        self.strategy_portfolio_dict[_strategy.name] = PortfolioPerStrategy()
+
+class SimpleBarPortfolio(PortfolioAbstract):
+    def __init__(self):
+        super().__init__()
+
+        self.price_index = 'closeprice'
+
+    def setPriceIndex(self, _index: str):
+        self.price_index = _index
+
+    def dealSignal(self, _event: SignalEvent):
+        portfolio = self.getPortfolioByStrategy(_event.strategy_name)
+
+        order_event = OrderEvent(
+            _index=self.incOrderIndex(),
+            _instrument=_event.instrument,
+            _tradingday=self.engine.getTradingDay(),
+            _datetime=self.engine.getCurDatetime(),
+            _order_type=OrderType.LIMIT,
+        )
+        if _event.signal_type == SignalType.LONG:
+            if portfolio.getShortPosition(_event.instrument) - \
+                    portfolio.getCloseSellUnfilledOrder(_event.instrument) > 0:
+                order_event.action = ActionType.CLOSE
+            else:
+                order_event.action = ActionType.OPEN
+            order_event.direction = DirectionType.BUY
+        elif _event.signal_type == SignalType.SHORT:
+            if portfolio.getShortPosition(_event.instrument) - \
+                    portfolio.getCloseBuyUnfilledOrder(_event.instrument) > 0:
+                order_event.action = ActionType.CLOSE
+            else:
+                order_event.action = ActionType.OPEN
+            order_event.direction = DirectionType.SELL
+        else:
+            raise Exception('unknown signal')
+
+        data = self.engine.getInstrumentData(_event.instrument)
+        order_event.price = data.getColumn(self.price_index)[-1]
+
+        portfolio.dealSignalEvent(_event)
+        portfolio.dealOrderEvent(order_event)
+
+        self.addEvent(order_event, _event.strategy_name)
+
+    def dealFill(self, _event: FillEvent):
+        self.getPortfolioByIndex(_event.index).dealFillEvent(_event)

@@ -4,16 +4,18 @@ from datetime import datetime, timedelta
 from ParadoxTrading.Utils.DataStruct import DataStruct
 
 
-class SplitAbstract():
-
+class SplitAbstract:
     def __init__(self):
-        self.cur_bar = None
-        self.cur_bar_begin_time = None
-        self.cur_bar_end_time = None
+        self.cur_bar: DataStruct = None
+        self.cur_bar_begin_time: datetime = None
+        self.cur_bar_end_time: datetime = None
 
-        self.bar_list = []
-        self.bar_begin_time_list = []
-        self.bar_end_time_list = []
+        self.bar_list: typing.List[DataStruct] = []
+        self.bar_begin_time_list: typing.List[datetime] = []
+        self.bar_end_time_list: typing.List[datetime] = []
+
+    def getLastData(self) -> DataStruct:
+        return self.cur_bar.iloc[-1]
 
     def getCurBar(self) -> DataStruct:
         return self.cur_bar
@@ -62,7 +64,7 @@ class SplitAbstract():
             return True
         else:
             if cur_time < self.cur_bar_end_time:
-                self.cur_bar.merge(_data)
+                self.cur_bar.addDict(_data.toDict())
                 return False
             else:
                 self._create_new_bar(_data, cur_time)
@@ -80,7 +82,6 @@ class SplitAbstract():
 
 
 class SplitIntoSecond(SplitAbstract):
-
     def __init__(self, _second: int):
         super().__init__()
         self.skip_s = _second
@@ -93,7 +94,6 @@ class SplitIntoSecond(SplitAbstract):
 
 
 class SplitIntoMinute(SplitAbstract):
-
     def __init__(self, _minute: int):
         super().__init__()
         self.skip_m = _minute
@@ -107,7 +107,6 @@ class SplitIntoMinute(SplitAbstract):
 
 
 class SplitIntoHour(SplitAbstract):
-
     def __init__(self, _hour: int):
         super().__init__()
         self.skip_h = _hour
@@ -118,9 +117,3 @@ class SplitIntoHour(SplitAbstract):
             hour=base_h, minute=0, second=0, microsecond=0)
         end_datetime = begin_datetime + timedelta(hours=self.skip_h)
         return begin_datetime, end_datetime
-
-if __name__ == '__main__':
-    from Fetch import Fetch
-    tmp = Fetch.fetchIntraDayData('rb', '20170123')
-    spliter = SplitIntoMinute(1)
-    spliter.addMany(tmp)

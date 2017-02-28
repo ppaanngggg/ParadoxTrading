@@ -1,4 +1,3 @@
-import typing
 from datetime import datetime
 
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
@@ -6,10 +5,9 @@ from ParadoxTrading.Utils import DataStruct
 
 
 class LowBar(IndicatorAbstract):
-
     def __init__(
-        self, _use_key: str,
-        _idx_key: str='time', _ret_key: str='low'
+            self, _use_key: str,
+            _idx_key: str = 'time', _ret_key: str = 'low'
     ):
         self.use_key = _use_key
         self.idx_key = _idx_key
@@ -22,14 +20,3 @@ class LowBar(IndicatorAbstract):
     def _addOne(self, _index: datetime, _data: DataStruct):
         tmp_value = min(_data.getColumn(self.use_key))
         self.data.addRow([_index, tmp_value], [self.idx_key, self.ret_key])
-
-
-if __name__ == '__main__':
-    from ParadoxTrading.Utils import Fetch, SplitIntoMinute
-    data = Fetch.fetchIntraDayData('rb', '20170123')
-    spliter = SplitIntoMinute(1)
-    spliter.addMany(data)
-
-    lowprice = LowBar('lastprice')
-    lowprice.addMany(spliter.getBarBeginTimeList(), spliter.getBarList())
-    print(lowprice.getAllData())

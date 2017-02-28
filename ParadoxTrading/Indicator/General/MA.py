@@ -1,17 +1,16 @@
-import typing
 from collections import deque
 from datetime import datetime
 
 import numpy as np
+
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
 class MA(IndicatorAbstract):
-
     def __init__(
-        self, _period: int, _use_key: str,
-        _idx_key: str='time', _ret_key: str='ma'
+            self, _period: int, _use_key: str,
+            _idx_key: str = 'time', _ret_key: str = 'ma'
     ):
         self.use_key = _use_key
         self.idx_key = _idx_key

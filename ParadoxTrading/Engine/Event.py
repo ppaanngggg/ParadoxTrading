@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from ParadoxTrading.Utils import DataStruct
+
 
 class EventType:
     MARKET = 1
@@ -83,38 +85,48 @@ class EventAbstract:
 
 
 class MarketEvent(EventAbstract):
-    def __init__(self, _market_register_key: str, _strategy_name: str):
+    def __init__(self,
+                 _market_register_key: str,
+                 _strategy_name: str,
+                 _instrument: str,
+                 _data: DataStruct):
         super().__init__()
         self.type = EventType.MARKET
         self.market_register_key = _market_register_key
         self.strategy_name = _strategy_name
+        self.instrument = _instrument
+        self.data = _data
 
     def toDict(self) -> dict:
         return {
             'type': self.type,
             'market_register_key': self.market_register_key,
             'strategy_name': self.strategy_name,
+            'instrument': self.instrument,
         }
 
     @staticmethod
     def fromDict(_dict: dict) -> 'MarketEvent':
         return MarketEvent(
             _market_register_key=_dict['market_register_key'],
-            _strategy_name=_dict['strategy_name']
-        )
+            _strategy_name=_dict['strategy_name'],
+            _instrument=_dict['instrument'])
 
     def __repr__(self):
         return 'MARKET: ' + '\n' + \
                '\tkey: ' + self.market_register_key + '\n' + \
-               '\tstrategy: ' + self.strategy_name
+               '\tstrategy: ' + self.strategy_name + '\n' + \
+               '\tinstrument: ' + self.instrument
 
 
 class SignalEvent(EventAbstract):
-    def __init__(
-            self,
-            _instrument: str, _strategy_name: str, _signal_type: int,
-            _tradingday: str, _datetime: datetime, _strength: float = None
-    ):
+    def __init__(self,
+                 _instrument: str,
+                 _strategy_name: str,
+                 _signal_type: int,
+                 _tradingday: str,
+                 _datetime: datetime,
+                 _strength: float = None):
         super().__init__()
         self.type = EventType.SIGNAL
         self.instrument = _instrument
@@ -143,8 +155,7 @@ class SignalEvent(EventAbstract):
             _signal_type=_dict['signal_type'],
             _tradingday=_dict['tradingday'],
             _datetime=_dict['datetime'],
-            _strength=_dict['strength']
-        )
+            _strength=_dict['strength'])
 
     def __repr__(self):
         return 'SIGNAL:' + '\n' + \
@@ -157,11 +168,16 @@ class SignalEvent(EventAbstract):
 
 
 class OrderEvent(EventAbstract):
-    def __init__(
-            self, _index: int, _instrument: str, _tradingday: str, _datetime: datetime,
-            _order_type: int = None, _action: int = None, _direction: int = None,
-            _quantity: int = 1, _price: float = None
-    ):
+    def __init__(self,
+                 _index: int,
+                 _instrument: str,
+                 _tradingday: str,
+                 _datetime: datetime,
+                 _order_type: int = None,
+                 _action: int = None,
+                 _direction: int = None,
+                 _quantity: int = 1,
+                 _price: float = None):
         super().__init__()
         self.type = EventType.ORDER
         self.index = _index
@@ -199,8 +215,7 @@ class OrderEvent(EventAbstract):
             _action=_dict['action'],
             _direction=_dict['direction'],
             _quantity=_dict['quantity'],
-            _price=_dict['price'],
-        )
+            _price=_dict['price'], )
 
     def __repr__(self):
         return 'ORDER:' + '\n' + \
@@ -209,7 +224,6 @@ class OrderEvent(EventAbstract):
                "\ttradingday: " + self.tradingday + '\n' + \
                "\tdatetime: " + str(self.datetime) + '\n' + \
                "\ttype: " + OrderType.toStr(self.order_type) + '\n' + \
-               "\tquantity: " + str(self.quantity) + '\n' + \
                "\taction: " + ActionType.toStr(self.action) + '\n' + \
                "\tdirection: " + DirectionType.toStr(self.direction) + '\n' + \
                "\tquantity: " + str(self.quantity) + '\n' + \
@@ -217,12 +231,16 @@ class OrderEvent(EventAbstract):
 
 
 class FillEvent(EventAbstract):
-    def __init__(
-            self, _index: int, _instrument: str,
-            _tradingday: str, _datetime: datetime,
-            _quantity: int, _action: int, _direction: int,
-            _price: float, _commission: float
-    ):
+    def __init__(self,
+                 _index: int,
+                 _instrument: str,
+                 _tradingday: str,
+                 _datetime: datetime,
+                 _quantity: int,
+                 _action: int,
+                 _direction: int,
+                 _price: float,
+                 _commission: float):
         super().__init__()
         self.type = EventType.FILL
         self.index = _index
@@ -260,8 +278,7 @@ class FillEvent(EventAbstract):
             _action=_dict['action'],
             _direction=_dict['direction'],
             _price=_dict['price'],
-            _commission=_dict['commission'],
-        )
+            _commission=_dict['commission'], )
 
     def __repr__(self):
         return 'Fill:' + '\n' + \

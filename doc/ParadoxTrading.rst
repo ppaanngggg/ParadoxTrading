@@ -1,16 +1,6 @@
 ParadoxTrading package
 ======================
 
-Subpackages
------------
-
-.. toctree::
-
-    ParadoxTrading.Chart
-    ParadoxTrading.Engine
-    ParadoxTrading.Indicator
-    ParadoxTrading.Utils
-
 Module contents
 ---------------
 
@@ -18,3 +8,16 @@ Module contents
     :members:
     :undoc-members:
     :show-inheritance:
+
+
+Subpackages
+-----------
+
+.. toctree::
+
+    ParadoxTrading.Utils
+    ParadoxTrading.Engine
+    ParadoxTrading.Indicator
+    ParadoxTrading.Performance
+    ParadoxTrading.Chart
+

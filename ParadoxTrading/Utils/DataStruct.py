@@ -2,27 +2,43 @@ import typing
 from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta
 
+import numpy as np
 from tabulate import tabulate
 
 
-class DataStruct():
+class DataStruct:
+    """
+
+    ParadoxTrading的基本数据结构，仿照Pandas的DataFrame接口设计。
+    剪裁了DataFrame的一些特性，并且加入了一些针对需求的特性。
+
+    :param _keys:
+    :param _index_name:
+    :param _rows:
+    :param _dicts:
+
+    """
+
     EXPAND_STRICT = 'strict'
+    """strict type expand"""
 
     def __init__(
             self,
-            _keys: typing.List[str],
+            _keys: typing.Sequence[str],
             _index_name: str,
-            _rows: typing.List[list] = None,
-            _dicts: typing.List[dict] = None):
+            _rows: typing.Sequence[list] = None,
+            _dicts: typing.Sequence[dict] = None
+    ):
+
         assert _index_name in _keys
 
-        self.data = {}
+        self.data: typing.Dict[str, typing.List] = {}
         for key in _keys:
             self.data[key] = []
         self.index_name = _index_name
 
-        self.loc = Loc(self)
-        self.iloc = ILoc(self)
+        self.loc: Loc = Loc(self)
+        self.iloc: ILoc = ILoc(self)
 
         if _rows is not None:
             assert isinstance(_rows, list)
@@ -52,11 +68,7 @@ class DataStruct():
         return tabulate(tmp_rows, headers=tmp_keys)
 
     def merge(self, _struct: "DataStruct"):
-        keys = _struct.data.keys()
-        values = _struct.data.values()
-
-        for i in range(len(_struct.index())):
-            self.addRow([d[i] for d in values], keys)
+        self.addRows(*_struct.toRows())
 
     def expand(self, _struct: "DataStruct", _type: str = 'strict'):
         if _type == self.EXPAND_STRICT:
@@ -70,37 +82,62 @@ class DataStruct():
         else:
             raise Exception('unknow type!')
 
-    def addRow(self, _row: list, _keys: typing.List[str]):
-        i = 0
-        for key in _keys:
-            if key == self.index_name:
-                break
-            i += 1
-        index_value = _row[i]
-        insert_idx = bisect_right(self.index(), index_value)
-        for k, v in zip(_keys, _row):
-            self.data[k].insert(insert_idx, v)
+    def addRow(
+            self,
+            _row: typing.Sequence[typing.Any],
+            _keys: typing.Sequence[str]
+    ):
+        assert len(_row) == len(_keys)
+        self.addDict(dict(zip(_keys, _row)))
 
-    def addRows(self, _rows: typing.List[list], _keys: typing.List[str]):
+    def addRows(
+            self,
+            _rows: typing.Sequence[typing.Sequence],
+            _keys: typing.Sequence[str]
+    ):
         for row in _rows:
             self.addRow(row, _keys)
 
-    def addDict(self, _dict: dict):
-        self.addRow(_dict.values(), _dict.keys())
+    def addDict(self, _dict: typing.Dict[str, typing.Any]):
+        index_value = _dict[self.index_name]
+        insert_idx = bisect_right(self.index(), index_value)
+        for k, v in _dict.items():
+            self.data[k].insert(insert_idx, v)
 
     def addDicts(self, _dicts: typing.List[dict]):
         for _dict in _dicts:
             self.addDict(_dict)
 
-    def toRows(self) -> (typing.List[list], typing.List[str]):
+    def toRows(
+            self, _keys=None
+    ) -> (typing.List[typing.List[typing.Any]], typing.List[str]):
         rows = []
-        keys = self.getColumnNames()
+        keys: typing.List[str] = _keys
+        if keys is None:
+            keys = self.getColumnNames()
         for i in range(len(self)):
             rows.append([self.data[k][i] for k in keys])
         return rows, keys
 
-    def toDicts(self) -> (typing.List[dict]):
-        pass
+    def toRow(
+            self, _index: int = 0, _keys=None
+    ) -> (typing.List[typing.Any], typing.List[str]):
+        keys: typing.List[str] = _keys
+        if keys is None:
+            keys = self.getColumnNames()
+        row = [self.data[k][_index] for k in keys]
+        return row, keys
+
+    def toDicts(self) -> (typing.List[typing.Dict[str, typing.Any]]):
+        dicts = []
+        rows, keys = self.toRows()
+        for d in rows:
+            dicts.append(dict(zip(d, keys)))
+        return dicts
+
+    def toDict(self, _index: int = 0) -> (typing.Dict[str, typing.Any]):
+        row, keys = self.toRow(_index)
+        return dict(zip(keys, row))
 
     def toHDF5(self, _f_name: str):
         pass
@@ -108,13 +145,14 @@ class DataStruct():
     def index(self) -> list:
         return self.data[self.index_name]
 
-    def getColumnNames(self, _include_index_name: bool = True) -> list:
+    def getColumnNames(
+            self, _include_index_name: bool = True
+    ) -> typing.Sequence[str]:
         if _include_index_name:
-            return sorted(list(self.data.keys()))
+            return sorted(self.data.keys())
         else:
-            tmp = set()
-            tmp.add(self.index_name)
-            return sorted(list(self.data.keys() - tmp))
+            tmp = {self.index_name}
+            return sorted(self.data.keys() - tmp)
 
     def changeColumnName(self, _old_name: str, _new_name: str):
         assert _old_name != _new_name
@@ -125,6 +163,21 @@ class DataStruct():
 
     def getColumn(self, _key: str) -> list:
         return self.data[_key]
+
+    def dropColumn(self, _key: str):
+        assert _key in self.data.keys()
+        del self.data[_key]
+
+    def createColumn(self, _key: str, _column: typing.List[typing.Any]):
+        assert _key not in self.data.keys()
+        assert len(_column) == len(self)
+        self.data[_key] = _column
+
+    def any2str(self, _key: str = None):
+        k = _key
+        if k is None:
+            k = self.index_name
+        self.data[k] = [str(d) for d in self.data[k]]
 
     def datetime2float(self, _key: str = None):
         k = _key
@@ -140,8 +193,27 @@ class DataStruct():
         self.data[k] = [datetime(1970, 1, 1) + timedelta(seconds=d)
                         for d in self.data[k]]
 
+    def str2float(self, _key: str = None):
+        k = _key
+        if k is None:
+            k = self.index_name
+        self.data[k] = np.array(self.data[k]).astype(np.float).tolist()
 
-class Loc():
+    def str2int(self, _key: str = None):
+        k = _key
+        if k is None:
+            k = self.index_name
+        self.data[k] = np.array(self.data[k]).astype(np.int).tolist()
+
+    def str2datetime(self, _key: str = None):
+        k = _key
+        if k is None:
+            k = self.index_name
+        self.data[k] = [datetime.strptime(d, '%Y%m%d %H:%M:%S.%f')
+                        for d in self.data[k]]
+
+
+class Loc:
     def __init__(self, _struct: DataStruct):
         self.struct = _struct
 
@@ -156,16 +228,19 @@ class Loc():
             new_item = slice(new_start, new_stop)
             return self.struct.iloc.__getitem__(new_item)
         else:
-            new_item = bisect_left(self.struct.index(), _item)
-            return self.struct.iloc.__getitem__(new_item)
+            n_i = bisect_left(self.struct.index(), _item)
+            if n_i != len(self.struct) and _item == self.struct.index()[n_i]:
+                return self.struct.iloc.__getitem__(n_i)
+            else:
+                return None
 
 
-class ILoc():
+class ILoc:
     def __init__(self, _struct: DataStruct):
         self.struct = _struct
 
     def __getitem__(self, _item: slice) -> DataStruct:
-        ret = DataStruct(self.struct.data.keys(), self.struct.index_name)
+        ret = DataStruct(list(self.struct.data.keys()), self.struct.index_name)
         if isinstance(_item, slice):
             for k, v in self.struct.data.items():
                 ret.data[k] = v.__getitem__(_item)

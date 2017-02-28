@@ -1,9 +1,9 @@
 import json
 import typing
 
-from ParadoxTrading.Engine.Event import SignalEvent
 import ParadoxTrading.Engine
-import ParadoxTrading.Engine.Engine
+from ParadoxTrading.Engine.Event import MarketEvent, SignalEvent
+from ParadoxTrading.Utils import DataStruct
 
 
 class StrategyAbstract:
@@ -14,16 +14,18 @@ class StrategyAbstract:
         :param _name: name of this strategy
         """
 
-        self.name: str = _name
+        self.name: typing.AnyStr = _name
 
         # common variables
         self.engine: ParadoxTrading.Engine.Engine.EngineAbstract = None
-        self.market_register_dict: typing.Dict[str, ParadoxTrading.Engine.MarketRegister] = {}
+        self.market_register_dict: typing.Dict[
+            str, ParadoxTrading.Engine.MarketRegister] = {}
 
         # run user define init
         self.init()
 
-    def _setEngine(self, _engine: 'ParadoxTrading.Engine.Engine.EngineAbstract'):
+    def _setEngine(self,
+                   _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
         PROTECTED !!!
 
@@ -40,28 +42,29 @@ class StrategyAbstract:
         """
         raise NotImplementedError('init not implemented!')
 
-    def deal(self, _market_register_key: str):
+    def deal(self, _market_event: MarketEvent):
         """
-        user defined deal, it will be called when there is market event for this strategy
+        user defined deal, it will be called when there is
+        market event for this strategy
 
-        :param _market_register_key: key for market register
+        :param _market_event: key for market register
         :return:
         """
         raise NotImplementedError('deal not implemented!')
 
     def addMarketRegister(
-            self, _product: str = None, _instrument: str = None, _sub_dominant: bool = False,
-            _second_skip: int = 0, _minute_skip: int = 0, _hour_skip: int = 0
-    ) -> str:
+            self,
+            _product: str = None,
+            _instrument: str = None,
+            _sub_dominant: bool = False, ) -> str:
         """
         used in init() to register market data
 
         :param _product: reg which product, if not None, ignore instrument
         :param _instrument: reg which instrument
-        :param _sub_dominant: only work when use product, false means using dominant inst, true means sub dominant one
-        :param _second_skip: split into n second bar, if all skips are 0, use tick data
-        :param _minute_skip: same as above
-        :param _hour_skip: same as above
+        :param _sub_dominant: only work when use product,
+            false means using dominant inst,
+            true means sub dominant one
         :return: json str key of market register
         """
 
@@ -72,29 +75,29 @@ class StrategyAbstract:
             ('product', _product),
             ('instrument', _instrument),
             ('sub_dominant', _sub_dominant),
-            ('second_skip', _second_skip),
-            ('minute_skip', _minute_skip),
-            ('hour_skip', _hour_skip),
         ))
+
+        assert key not in self.market_register_dict.keys()
         # alloc position for market register object
         self.market_register_dict[key] = None
 
         return key
 
-    def getMarketRegister(
-            self, _market_register_key: str
-    ) -> 'ParadoxTrading.Engine.MarketRegister':
+    def getMarketRegister(self, _market_register_key: str
+                          ) -> 'ParadoxTrading.Engine.MarketRegister':
         """
         get this strategy's market register by key.
 
-        :param _market_register_key: key of market register, usually get from market event
+        :param _market_register_key: key of market register,
+            usually get from market event
         :return: market register object
         """
         return self.market_register_dict[_market_register_key]
 
-    def addEvent(
-            self, _instrument: str, _signal_type: int, _strength: float = None
-    ):
+    def addEvent(self,
+                 _instrument: str,
+                 _signal_type: int,
+                 _strength: float = None):
         """
         add signal event to event queue.
 
@@ -103,11 +106,22 @@ class StrategyAbstract:
         :param _strength: defined by user
         :return:
         """
-        self.engine.addEvent(SignalEvent(
-            _instrument=_instrument,
-            _strategy_name=self.name,
-            _tradingday=self.engine.getTradingDay(),
-            _datetime=self.engine.getCurDatetime(),
-            _signal_type=_signal_type,
-            _strength=_strength,
-        ))
+        self.engine.addEvent(
+            SignalEvent(
+                _instrument=_instrument,
+                _strategy_name=self.name,
+                _tradingday=self.engine.getTradingDay(),
+                _datetime=self.engine.getCurDatetime(),
+                _signal_type=_signal_type,
+                _strength=_strength, ))
+
+    def getInstrumentData(self, _instrument: str) -> DataStruct:
+        return self.engine.market_supply.getInstrumentData(_instrument)
+
+    def __repr__(self) -> str:
+        ret: str = 'Strategy: ' + '\n' + \
+                   '\t' + self.name + '\n' + \
+                   'Market Register:' + '\n'
+        for k in self.market_register_dict.keys():
+            ret += '\t' + k + '\n'
+        return ret

@@ -1,15 +1,12 @@
-import typing
 from datetime import datetime
 
-import numpy as np
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
 class Diff(IndicatorAbstract):
-
     def __init__(
-        self, _use_key: str, _idx_key: str='time', _ret_key: str='diff'
+            self, _use_key: str, _idx_key: str = 'time', _ret_key: str = 'diff'
     ):
         self.use_key = _use_key
         self.idx_key = _idx_key

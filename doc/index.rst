@@ -9,7 +9,7 @@ Welcome to ParadoxTrading's documentation!
 .. toctree::
    :caption: Contents:
 
-   modules
+   ParadoxTrading
 
 Indices and tables
 ==================

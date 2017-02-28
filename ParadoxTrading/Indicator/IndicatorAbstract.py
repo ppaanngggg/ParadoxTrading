@@ -5,7 +5,6 @@ from ParadoxTrading.Utils import DataStruct
 
 
 class IndicatorAbstract:
-
     def getLastData(self) -> DataStruct:
         return self.data.iloc[-1]
 
@@ -20,9 +19,9 @@ class IndicatorAbstract:
         raise NotImplementedError('You should implement addOne!')
 
     def addMany(
-        self,
-        _idx_list: typing.List[datetime],
-        _data_list: typing.List[DataStruct]
+            self,
+            _idx_list: typing.List[datetime],
+            _data_list: typing.List[DataStruct]
     ) -> "IndicatorAbstract":
         for idx, data in zip(_idx_list, _data_list):
             self._addOne(idx, data)

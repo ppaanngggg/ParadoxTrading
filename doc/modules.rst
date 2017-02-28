@@ -1,6 +1,0 @@
-ParadoxTrading
-==============
-
-.. toctree::
-
-   ParadoxTrading

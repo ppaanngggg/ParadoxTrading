@@ -1,15 +1,23 @@
+import logging
 import typing
 from collections import deque
 from datetime import datetime
 
 from ParadoxTrading.Engine.Event import EventAbstract, EventType
 from ParadoxTrading.Engine.Execution import ExecutionAbstract
-from ParadoxTrading.Engine.MarketSupply import BacktestMarketSupply
+from ParadoxTrading.Engine.MarketSupply import MarketSupplyAbstract, \
+    BacktestMarketSupply
 from ParadoxTrading.Engine.Portfolio import PortfolioAbstract
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
+from ParadoxTrading.Utils import DataStruct
 
 
 class EngineAbstract:
+    def __init__(self):
+        self.market_supply: MarketSupplyAbstract = None
+        self.execution: ExecutionAbstract = None
+        self.portfolio: PortfolioAbstract = None
+
     def addEvent(self, _event: EventAbstract):
         raise NotImplementedError('addEvent not implemented')
 
@@ -28,27 +36,32 @@ class EngineAbstract:
     def getCurDatetime(self) -> typing.Union[None, datetime]:
         raise NotImplementedError('getCurDatetime not implemented')
 
+    def getInstrumentData(self, _instrument: str) -> DataStruct:
+        raise NotImplementedError('getInstrumentData not implemented')
+
     def run(self):
         raise NotImplementedError('run not implemented')
 
 
 class BacktestEngine(EngineAbstract):
-    def __init__(self, _begin_day: str, _end_day: str):
+    def __init__(self, _begin_day: str, _end_day: str, _backtest_type: str):
         """
         Engine used for backtest
 
         :param _begin_day: begin date of backtest, like '20170123'
         :param _end_day: end date of backtest, like '20170131'
         """
+        super().__init__()
 
         self.event_queue: deque = deque()  # store event
-        self.strategy_dict: typing.Dict[str, StrategyAbstract] = {}  # map strategy's object to its name
+        self.strategy_dict: typing.Dict[str, StrategyAbstract] = {
+        }  # map strategy's object to its name
 
         self.begin_day: str = _begin_day
         self.end_day: str = _end_day
 
         self.market_supply = BacktestMarketSupply(
-            self.begin_day, self.end_day, self)
+            self.begin_day, self.end_day, self, _backtest_type)
         self.execution: ExecutionAbstract = None
         self.portfolio: PortfolioAbstract = None  # portfolio manager
 
@@ -109,7 +122,7 @@ class BacktestEngine(EngineAbstract):
 
         :return: str
         """
-        return self.market_supply.cur_day
+        return self.market_supply.getTradingDay()
 
     def getCurDatetime(self) -> typing.Union[None, datetime]:
         """
@@ -119,13 +132,22 @@ class BacktestEngine(EngineAbstract):
         """
         return self.market_supply.getCurDatetime()
 
+    def getInstrumentData(self, _instrument: str) -> DataStruct:
+        """
+        Return data
+
+        :param _instrument:
+        :return:
+        """
+        return self.market_supply.getInstrumentData(_instrument)
+
     def run(self):
         """
         backtest until there is no market tick
 
         :return:
         """
-
+        logging.info('Begin RUN!')
         while True:
             data = self.market_supply.updateData()
             if data is None:
@@ -139,8 +161,7 @@ class BacktestEngine(EngineAbstract):
                 if len(self.event_queue):  # deal all event at that moment
                     event = self.event_queue.popleft()
                     if event.type == EventType.MARKET:
-                        self.strategy_dict[event.strategy_name].deal(
-                            event.market_register_key)
+                        self.strategy_dict[event.strategy_name].deal(event)
                     elif event.type == EventType.SIGNAL:
                         self.portfolio.dealSignal(event)
                     elif event.type == EventType.ORDER:

@@ -3,7 +3,8 @@ import pymongo
 from pymongo.collection import Collection
 
 from ParadoxTrading.Engine import SignalEvent, OrderEvent, FillEvent
-from ParadoxTrading.Engine import EventType, SignalType, ActionType, DirectionType
+from ParadoxTrading.Engine import EventType, SignalType, ActionType, \
+    DirectionType
 
 
 class Fetch:
@@ -13,7 +14,8 @@ class Fetch:
     @staticmethod
     def _fetchRecords(
             _backtest_key: str, _strategy_name: str, _type: int,
-            _event_func: typing.Callable[[dict], typing.Union[SignalEvent, OrderEvent, FillEvent]]
+            _event_func: typing.Callable[
+                [dict], typing.Union[SignalEvent, OrderEvent, FillEvent]]
     ) -> typing.List[typing.Union[SignalEvent, OrderEvent, FillEvent]]:
         client = pymongo.MongoClient(Fetch.mongo_host)
         db = client[Fetch.mongo_database]

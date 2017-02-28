@@ -1,31 +1,32 @@
+"""该模块
+
+"""
+
 import json
 import operator
 import typing
 from datetime import datetime, timedelta
 
-import ParadoxTrading.Engine.Engine
-import ParadoxTrading.Engine.Strategy
+import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import MarketEvent
-from ParadoxTrading.Utils import (DataStruct, Fetch, SplitIntoHour,
-                                  SplitIntoMinute, SplitIntoSecond)
-from ParadoxTrading.Utils.Split import SplitAbstract
+from ParadoxTrading.Utils import (DataStruct, Fetch)
 
 
 class MarketRegister:
     def __init__(
-            self, _product: str = None, _instrument: str = None, _sub_dominant: bool = False,
-            _second_skip: int = 0, _minute_skip: int = 0, _hour_skip: int = 0
-    ):
+            self,
+            _product: str = None,
+            _instrument: str = None,
+            _sub_dominant: bool = False, ):
         """
-        Market Register is used to store market sub information, pre-processed data and
-        strategies used it
+        Market Register is used to store market sub information,
+        pre-processed data and strategies used it
 
         :param _product: reg which product, if not None, ignore instrument
         :param _instrument: reg which instrument
-        :param _sub_dominant: only work when use product, false means using dominant inst, true means sub dominant one
-        :param _second_skip: split into n second bar, if all skips are 0, use tick data
-        :param _minute_skip: same as above
-        :param _hour_skip: same as above
+        :param _sub_dominant: only work when use product,
+            false means using dominant inst,
+            true means sub dominant one
         """
         assert _product is not None or _instrument is not None
 
@@ -34,28 +35,12 @@ class MarketRegister:
         self.instrument = _instrument
         self.sub_dominant = _sub_dominant
 
-        self.second_skip = _second_skip
-        self.minute_skip = _minute_skip
-        self.hour_skip = _hour_skip
-
         # strategies linked to this market register
-        self.strategy_set: typing.Set[str] = set()
+        self.strategy_set: typing.Set[typing.AnyStr] = set()
 
-        # store cur instrument received
-        self.cur_data_inst: str = None
-
-        self.data: typing.Union[DataStruct, SplitAbstract] = None
-        if self.second_skip > 0:
-            self.data = SplitIntoSecond(self.second_skip)
-        elif self.minute_skip > 0:
-            self.data = SplitIntoMinute(self.minute_skip)
-        elif self.hour_skip > 0:
-            self.data = SplitIntoHour(self.hour_skip)
-        else:
-            # use tick data
-            pass
-
-    def addStrategy(self, _strategy: 'ParadoxTrading.Engine.Strategy.StrategyAbstract'):
+    def addStrategy(
+            self,
+            _strategy: 'ParadoxTrading.Engine.Strategy.StrategyAbstract'):
         """
         link strategy to self
 
@@ -70,14 +55,9 @@ class MarketRegister:
 
         :return: json str
         """
-        return json.dumps((
-            ('product', self.product),
-            ('instrument', self.instrument),
-            ('sub_dominant', self.sub_dominant),
-            ('second_skip', self.second_skip),
-            ('minute_skip', self.minute_skip),
-            ('hour_skip', self.hour_skip),
-        ))
+        return json.dumps(
+            (('product', self.product), ('instrument', self.instrument),
+             ('sub_dominant', self.sub_dominant),))
 
     @staticmethod
     def fromJson(_json_str: str) -> 'MarketRegister':
@@ -89,49 +69,24 @@ class MarketRegister:
         """
         data: typing.Dict[str, typing.Any] = dict(json.loads(_json_str))
         return MarketRegister(
-            data['product'], data['instrument'], data['sub_dominant'],
-            data['second_skip'], data['minute_skip'], data['hour_skip']
+            data['product'],
+            data['instrument'],
+            data['sub_dominant']
         )
 
     def __repr__(self):
-        return '- Params:' + '\n' + \
+        return 'Key:' + '\n' + \
+               '\t' + self.toJson() + '\n' + \
+               'Params:' + '\n' + \
                '\tproduct: ' + str(self.product) + '\n' + \
                '\tinstrument: ' + str(self.instrument) + '\n' + \
                '\tsub_dominant: ' + str(self.sub_dominant) + '\n' + \
-               '\tsecond_skip: ' + str(self.second_skip) + '\n' + \
-               '\tminute_skip: ' + str(self.minute_skip) + '\n' + \
-               '\thour_skip: ' + str(self.hour_skip) + '\n' + \
-               '- Strategy: ' + '\n' + \
-               '\t' + '; '.join(self.strategy_set) + '\n' + \
-               '- Data: ' + '\n' + \
-               '\t' + str(self.cur_data_inst)
-
-    def add(self, _data: DataStruct) -> bool:
-        """
-        add data into self.data
-
-        :param _data: tick line data
-        :return: whether to add a MarketEvent
-        """
-
-        if isinstance(self.data, SplitAbstract):
-            # if use split data, return true when gen a new bar
-            return self.data.addOne(_data)
-        elif self.data is None:
-            # then use tick data, and this is the first line
-            self.data = _data
-            return True
-        elif isinstance(self.data, DataStruct):
-            # use tick data, and add into datastruct
-            self.data.merge(_data)
-            return True
-        else:
-            # interesting.....
-            raise Exception()
+               'Strategy: ' + '\n' + \
+               '\t' + '; '.join(self.strategy_set)
 
 
 class MarketSupplyAbstract:
-    def __init__(self, _engine: 'ParadoxTrading.Engine.Engine.EngineAbstract'):
+    def __init__(self, _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
         base class market supply
 
@@ -142,10 +97,13 @@ class MarketSupplyAbstract:
         self.market_register_dict: typing.Dict[str, MarketRegister] = {}
         # map instrument to set of market register
         self.instrument_dict: typing.Dict[str, typing.Set[str]] = {}
+        self.data_dict: typing.Dict[str, DataStruct] = {}
 
         self.engine = _engine
 
-    def addStrategy(self, _strategy: 'ParadoxTrading.Engine.Strategy.StrategyAbstract'):
+    def addStrategy(
+            self,
+            _strategy: 'ParadoxTrading.Engine.StrategyAbstract'):
         """
         Add strategy into market supply
 
@@ -160,7 +118,8 @@ class MarketSupplyAbstract:
                 self.market_register_dict[key] = MarketRegister.fromJson(key)
             # add strategy into market register
             self.market_register_dict[key].addStrategy(_strategy)
-            _strategy.market_register_dict[key] = self.market_register_dict[key]
+            _strategy.market_register_dict[key] = self.market_register_dict[
+                key]
 
     def addEvent(self, _instrument: str, _data: DataStruct):
         """
@@ -171,17 +130,35 @@ class MarketSupplyAbstract:
         :return:
         """
         for k in self.instrument_dict[_instrument]:
-            # add tick data into market register
-            if self.market_register_dict[k].add(_data):
-                # add event for each strategy if necessary
-                for strategy in self.market_register_dict[k].strategy_set:
-                    self.engine.addEvent(MarketEvent(k, strategy))
+            # add event for each strategy if necessary
+            for strategy in self.market_register_dict[k].strategy_set:
+                self.engine.addEvent(
+                    MarketEvent(k, strategy, _instrument, _data))
+
+    def getTradingDay(self) -> str:
+        raise NotImplementedError('getTradingDay not implemented')
 
     def getCurDatetime(self) -> datetime:
         raise NotImplementedError('getCurDatetime not implemented')
 
+    def getInstrumentData(self, _instrument: str) -> DataStruct:
+        return self.data_dict[_instrument]
+
     def updateData(self) -> typing.Union[None, typing.Tuple[str, DataStruct]]:
         raise NotImplementedError('updateData not implemented')
+
+    def __repr__(self):
+        ret = '### MARKET REGISTER ###'
+        for k, v in self.market_register_dict.items():
+            ret += '\n' + k
+        ret += '\n### INSTRUMENT ###'
+        for k, v in self.instrument_dict.items():
+            ret += '\n' + k + ': ' + str(v)
+        ret += '\n### DATA ###'
+        for k, v in self.data_dict.items():
+            ret += '\n--- ' + k + ' ---\n' + str(v)
+
+        return ret
 
 
 class DataGenerator:
@@ -189,13 +166,15 @@ class DataGenerator:
     JUST FOR BACKTEST !!!
     """
 
-    def __init__(
-            self, _tradingday: str,
-            _market_register_dict: typing.Dict[str, MarketRegister],
-            _instrument_dict: typing.Dict[str, set]
-    ):
+    def __init__(self,
+                 _tradingday: str,
+                 _backtest_type: str,
+                 _market_register_dict: typing.Dict[str, MarketRegister],
+                 _instrument_dict: typing.Dict[str, typing.Set[str]],
+                 _time_index: str = None):
         """
-        fetch data according to market registers, and pop tick data by happentime
+        fetch data according to market registers,
+        and pop tick data by happentime
 
         :param _tradingday: the day to fetch
         :param _market_register_dict:
@@ -210,17 +189,43 @@ class DataGenerator:
 
         for k, v in _market_register_dict.items():
             inst = Fetch._fetchInstrument(
-                _tradingday, v.product,
-                v.instrument, v.sub_dominant
-            )
+                _tradingday, v.product, v.instrument, v.sub_dominant)
             # whether inst exists
             if inst is not None:
-                # set market register's cur inst
-                v.cur_data_inst = inst
-
                 # fetch data and set index to 0 init
-                self.data_dict[inst] = Fetch.fetchIntraDayData(
-                    _tradingday, _instrument=inst)
+                if _backtest_type == BacktestMarketSupply.TICK:
+                    time_index = 'HappenTime'
+                    if _time_index is not None:
+                        time_index = _time_index
+                    self.data_dict[inst] = Fetch.fetchIntraDayData(
+                        _tradingday,
+                        _instrument=inst,
+                        _data_type=Fetch.pgsql_tick_dbname,
+                        _index=time_index.lower())
+                elif _backtest_type == BacktestMarketSupply.MIN:
+                    time_index = 'BarEndTime'
+                    if _time_index is not None:
+                        time_index = _time_index
+                    self.data_dict[inst] = Fetch.fetchIntraDayData(
+                        _tradingday,
+                        _instrument=inst,
+                        _data_type=Fetch.pgsql_min_dbname,
+                        _index=time_index.lower())
+                elif _backtest_type == BacktestMarketSupply.HOUR:
+                    time_index = 'BarEndTime'
+                    if _time_index is not None:
+                        time_index = _time_index
+                    self.data_dict[inst] = Fetch.fetchIntraDayData(
+                        _tradingday,
+                        _instrument=inst,
+                        _data_type=Fetch.pgsql_hour_dbname,
+                        _index=time_index.lower())
+                elif _backtest_type == BacktestMarketSupply.DAY:
+                    self.data_dict[inst] = Fetch.fetchInterDayData(inst,
+                                                                   _tradingday)
+                else:
+                    raise Exception('unknown backtest type')
+
                 self.index_dict[inst] = 0
 
                 # map instrument to market register key
@@ -236,7 +241,7 @@ class DataGenerator:
         :return: (instrument, one tick data struct)
         """
 
-        # get latest tick of each instrument
+        # get latest one of each instrument
         tmp = []
         for k, v in self.index_dict.items():
             d = self.data_dict[k]
@@ -248,11 +253,14 @@ class DataGenerator:
             tmp.sort(key=operator.itemgetter(1))
 
             inst = tmp[0][0]
-            self.cur_datetime = tmp[0][1]  # set cur datetime to latest tick's happentime
 
             index = self.index_dict[inst]
-            ret: typing.Tuple[str, DataStruct] = (inst, self.data_dict[inst].iloc[index])
-            self.index_dict[inst] += 1  # point to next tick
+            ret: typing.Tuple[str, DataStruct] = (
+                inst, self.data_dict[inst].iloc[index])
+            self.index_dict[inst] += 1  # point to next one
+
+            # set cur datetime to latest tick's happentime
+            self.cur_datetime = tmp[0][1]
 
             return ret
         else:
@@ -262,10 +270,16 @@ class DataGenerator:
 
 
 class BacktestMarketSupply(MarketSupplyAbstract):
-    def __init__(
-            self, _begin_day: str, _end_day: str,
-            _engine: 'ParadoxTrading.Engine.Engine.EngineAbstract'
-    ):
+    TICK = 't'
+    MIN = 'm'
+    HOUR = 'h'
+    DAY = 'd'
+
+    def __init__(self,
+                 _begin_day: str,
+                 _end_day: str,
+                 _engine: 'ParadoxTrading.Engine.Engine.EngineAbstract',
+                 _backtest_type: str):
         """
         market supply for backtest
 
@@ -276,6 +290,8 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         self.begin_day: str = _begin_day
         self.cur_day: str = self.begin_day
         self.end_day: str = _end_day
+
+        self.backtest_type = _backtest_type
 
         self.data_generator: DataGenerator = None
 
@@ -306,10 +322,8 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         # if there is no data generator, create one
         if self.data_generator is None:
             self.data_generator = DataGenerator(
-                self.cur_day,
-                self.market_register_dict,
-                self.instrument_dict
-            )
+                self.cur_day, self.backtest_type, self.market_register_dict,
+                self.instrument_dict)
 
         # gen one tick data from data generator
         ret = self.data_generator.gen()
@@ -326,8 +340,15 @@ class BacktestMarketSupply(MarketSupplyAbstract):
             return self.updateData()
         else:
             # process new tick data
+            try:
+                self.data_dict[ret[0]].merge(ret[1])
+            except KeyError:
+                self.data_dict[ret[0]] = ret[1]
             self.addEvent(*ret)
             return ret
+
+    def getTradingDay(self) -> str:
+        return self.cur_day
 
     def getCurDatetime(self) -> typing.Union[None, datetime]:
         """

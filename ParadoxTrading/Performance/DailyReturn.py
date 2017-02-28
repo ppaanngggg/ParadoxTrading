@@ -1,14 +1,13 @@
-import typing
 import bisect
+import typing
 
-import ParadoxTrading.Engine as pt_eng
-from ParadoxTrading.Engine import ActionType, DirectionType, SignalType
-from ParadoxTrading.Utils import DataStruct
-from ParadoxTrading.Utils import Fetch
+from ParadoxTrading.Engine import ActionType, DirectionType, SignalType, \
+    FillEvent
+from ParadoxTrading.Utils import DataStruct, Fetch
 
 
 def _getInstrumentInterDayDataDict(
-        _fill_event_list: typing.List[pt_eng.FillEvent]
+        _fill_event_list: typing.List[FillEvent]
 ) -> typing.Dict[str, DataStruct]:
     ret: typing.Dict[str, DataStruct] = {}
 
@@ -37,8 +36,9 @@ def _calcDailyFund(
 ) -> float:
     fund = _cur_fund
     for k, v in _inst_position_dict.items():
-        i = bisect.bisect_right(_inst_dailydata_dict[k].index(), _tradingday) - 1
-        closeprice = _inst_dailydata_dict[k].getColumn('lastprice')[i]
+        i = bisect.bisect_right(_inst_dailydata_dict[k].index(),
+                                _tradingday) - 1
+        closeprice = _inst_dailydata_dict[k].getColumn('closeprice')[i]
         if v[SignalType.LONG] > 0:
             fund += closeprice * _inst_position_dict[k][SignalType.LONG]
         if v[SignalType.SHORT] > 0:
@@ -48,19 +48,22 @@ def _calcDailyFund(
 
 
 def dailyReturn(
-        _fill_event_list: typing.List[pt_eng.FillEvent],
+        _fill_event_list: typing.List[FillEvent],
         _init_fund: float = 0.0
 ) -> DataStruct:
-    inst_dailydata_dict: typing.Dict[str, DataStruct] = _getInstrumentInterDayDataDict(_fill_event_list)
+    inst_dailydata_dict: typing.Dict[
+        str, DataStruct] = _getInstrumentInterDayDataDict(_fill_event_list)
     inst_position_dict: typing.Dict[str, typing.Dict[int, int]] = {}
     cur_fund: float = _init_fund
     cur_tradingday = None
 
+    # use init fund to create DataStruct
     ret = DataStruct(['TradingDay', 'Fund'], 'TradingDay')
     ret.addRow(['', cur_fund], ['TradingDay', 'Fund'])
 
     for d in _fill_event_list:
         if cur_tradingday is not None and d.tradingday != cur_tradingday:
+            # change tradingday now
             ret.addRow(
                 [cur_tradingday,
                  _calcDailyFund(
@@ -73,7 +76,8 @@ def dailyReturn(
         if d.action == ActionType.OPEN:
             if d.direction == DirectionType.BUY:
                 try:
-                    inst_position_dict[d.instrument][SignalType.LONG] += d.quantity
+                    inst_position_dict[d.instrument][
+                        SignalType.LONG] += d.quantity
                 except KeyError:
                     inst_position_dict[d.instrument] = {
                         SignalType.LONG: d.quantity, SignalType.SHORT: 0
@@ -81,7 +85,8 @@ def dailyReturn(
                 cur_fund -= d.quantity * d.price + d.commission
             elif d.direction == DirectionType.SELL:
                 try:
-                    inst_position_dict[d.instrument][SignalType.LONG] += d.quantity
+                    inst_position_dict[d.instrument][
+                        SignalType.LONG] += d.quantity
                 except KeyError:
                     inst_position_dict[d.instrument] = {
                         SignalType.LONG: d.quantity, SignalType.SHORT: 0
@@ -91,9 +96,13 @@ def dailyReturn(
                 raise Exception('unknown direction')
         elif d.action == ActionType.CLOSE:
             if d.direction == DirectionType.BUY:
+                assert inst_position_dict[d.instrument][
+                           SignalType.SHORT] > d.quantity
                 inst_position_dict[d.instrument][SignalType.SHORT] -= d.quantity
                 cur_fund -= d.quantity * d.price + d.commission
             elif d.direction == DirectionType.SELL:
+                assert inst_position_dict[d.instrument][
+                           SignalType.LONG] > d.quantity
                 inst_position_dict[d.instrument][SignalType.LONG] -= d.quantity
                 cur_fund += d.quantity * d.price - d.commission
             else:
@@ -103,6 +112,7 @@ def dailyReturn(
 
         cur_tradingday = d.tradingday
 
+    # reach the end
     ret.addRow(
         [cur_tradingday,
          _calcDailyFund(
