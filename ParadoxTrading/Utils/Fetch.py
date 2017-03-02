@@ -46,7 +46,7 @@ class Fetch:
         """
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_prod_db]
-        coll = db[_product]
+        coll = db[_product.lower()]
         count = coll.count({'TradingDay': _tradingday})
         client.close()
 
@@ -67,7 +67,7 @@ class Fetch:
         """
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_prod_db]
-        coll = db[_product]
+        coll = db[_product.lower()]
         d = coll.find_one(
             {'TradingDay': {'$lt': _tradingday}},
             sort=[('TradingDay', pymongo.DESCENDING)]
@@ -92,7 +92,7 @@ class Fetch:
         """
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_prod_db]
-        coll = db[_product]
+        coll = db[_product.lower()]
         d = coll.find_one(
             {'TradingDay': {'$gt': _tradingday}},
             sort=[('TradingDay', pymongo.ASCENDING)]
@@ -115,7 +115,7 @@ class Fetch:
         """
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_inst_db]
-        coll = db[_instrument]
+        coll = db[_instrument.lower()]
         count = coll.count({'TradingDay': _tradingday})
         client.close()
 
@@ -136,7 +136,7 @@ class Fetch:
         """
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_inst_db]
-        coll = db[_instrument]
+        coll = db[_instrument.lower()]
         d = coll.find_one(
             {'TradingDay': {'$lt': _tradingday}},
             sort=[('TradingDay', pymongo.DESCENDING)]
@@ -160,7 +160,7 @@ class Fetch:
         """
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_inst_db]
-        coll = db[_instrument]
+        coll = db[_instrument.lower()]
         d = coll.find_one(
             {'TradingDay': {'$gt': _tradingday}},
             sort=[('TradingDay', pymongo.ASCENDING)]
@@ -185,7 +185,7 @@ class Fetch:
         """
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_prod_db]
-        coll = db[_product]
+        coll = db[_product.lower()]
         data = coll.find_one({'TradingDay': _tradingday})
         ret = []
         if data is not None:
@@ -210,7 +210,7 @@ class Fetch:
         """
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_prod_db]
-        coll = db[_product]
+        coll = db[_product.lower()]
         data = coll.find_one({'TradingDay': _tradingday})
         ret = None
         if data is not None:
@@ -235,7 +235,7 @@ class Fetch:
         """
         client = MongoClient(host=Fetch.mongo_host)
         db = client[Fetch.mongo_prod_db]
-        coll = db[_product]
+        coll = db[_product.lower()]
         data = coll.find_one({'TradingDay': _tradingday})
         ret = None
         if data is not None:
@@ -250,7 +250,7 @@ class Fetch:
     ) -> typing.Union[None, DataStruct]:
         f = h5py.File(Fetch.cache_path, 'a')
         try:
-            grp = f[_type + '/' + _inst + '/' + _tradingday]
+            grp = f[_type + '/' + _inst.lower() + '/' + _tradingday]
         except KeyError:
             return None
 
@@ -284,7 +284,7 @@ class Fetch:
                 _datastruct.datetime2float(c)
 
             dataset = f.create_dataset(
-                _type + '/' + _inst + '/' + _tradingday + '/' + c,
+                _type + '/' + _inst.lower() + '/' + _tradingday + '/' + c,
                 (len(_datastruct),),
                 dtype=dtype,
             )
@@ -302,6 +302,11 @@ class Fetch:
             _product_index: bool = False, _sub_dominant: bool = False,
     ) -> typing.Union[None, str]:
         assert _product is not None or _instrument is not None
+
+        if isinstance(_product, str):
+            _product = _product.lower()
+        if isinstance(_instrument, str):
+            _instrument = _instrument.lower()
 
         # set inst to real instrument name
         inst = _instrument
@@ -339,6 +344,10 @@ class Fetch:
         :param _cache:
         :return:
         """
+        if isinstance(_product, str):
+            _product = _product.lower()
+        if isinstance(_instrument, str):
+            _instrument = _instrument.lower()
 
         inst: str = Fetch.fetchInstrument(
             _tradingday, _product, _instrument, _product_index, _sub_dominant)
