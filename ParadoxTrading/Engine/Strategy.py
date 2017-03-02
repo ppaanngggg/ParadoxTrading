@@ -56,7 +56,9 @@ class StrategyAbstract:
             self,
             _product: str = None,
             _instrument: str = None,
-            _sub_dominant: bool = False, ) -> str:
+            _product_index: bool = False,
+            _sub_dominant: bool = False,
+    ) -> str:
         """
         used in init() to register market data
 
@@ -74,6 +76,7 @@ class StrategyAbstract:
         key = json.dumps((
             ('product', _product),
             ('instrument', _instrument),
+            ('product_index', _product_index),
             ('sub_dominant', _sub_dominant),
         ))
 

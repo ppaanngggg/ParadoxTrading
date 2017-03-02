@@ -17,13 +17,16 @@ class MarketRegister:
             self,
             _product: str = None,
             _instrument: str = None,
-            _sub_dominant: bool = False, ):
+            _product_index: bool = False,
+            _sub_dominant: bool = False,
+    ):
         """
         Market Register is used to store market sub information,
         pre-processed data and strategies used it
 
         :param _product: reg which product, if not None, ignore instrument
         :param _instrument: reg which instrument
+        :param _product_index:
         :param _sub_dominant: only work when use product,
             false means using dominant inst,
             true means sub dominant one
@@ -33,6 +36,7 @@ class MarketRegister:
         # market register info
         self.product = _product
         self.instrument = _instrument
+        self.product_index = _product_index
         self.sub_dominant = _sub_dominant
 
         # strategies linked to this market register
@@ -55,9 +59,12 @@ class MarketRegister:
 
         :return: json str
         """
-        return json.dumps(
-            (('product', self.product), ('instrument', self.instrument),
-             ('sub_dominant', self.sub_dominant),))
+        return json.dumps((
+            ('product', self.product),
+            ('instrument', self.instrument),
+            ('product_index', self.product_index),
+            ('sub_dominant', self.sub_dominant),
+        ))
 
     @staticmethod
     def fromJson(_json_str: str) -> 'MarketRegister':
@@ -71,7 +78,8 @@ class MarketRegister:
         return MarketRegister(
             data['product'],
             data['instrument'],
-            data['sub_dominant']
+            data['product_index'],
+            data['sub_dominant'],
         )
 
     def __repr__(self):
@@ -80,6 +88,7 @@ class MarketRegister:
                'Params:' + '\n' + \
                '\tproduct: ' + str(self.product) + '\n' + \
                '\tinstrument: ' + str(self.instrument) + '\n' + \
+               '\tproduct_index: ' + str(self.product_index) + '\n' + \
                '\tsub_dominant: ' + str(self.sub_dominant) + '\n' + \
                'Strategy: ' + '\n' + \
                '\t' + '; '.join(self.strategy_set)
@@ -188,43 +197,42 @@ class DataGenerator:
         _instrument_dict.clear()
 
         for k, v in _market_register_dict.items():
-            inst = Fetch._fetchInstrument(
-                _tradingday, v.product, v.instrument, v.sub_dominant)
+            inst = Fetch.fetchInstrument(
+                _tradingday, v.product, v.instrument,
+                v.product_index, v.sub_dominant
+            )
             # whether inst exists
             if inst is not None:
                 # fetch data and set index to 0 init
-                if _backtest_type == BacktestMarketSupply.TICK:
-                    time_index = 'HappenTime'
+                if _backtest_type == BacktestMarketSupply.DAY:
+                    time_index = 'TradingDay'
                     if _time_index is not None:
                         time_index = _time_index
-                    self.data_dict[inst] = Fetch.fetchIntraDayData(
-                        _tradingday,
-                        _instrument=inst,
-                        _data_type=Fetch.pgsql_tick_dbname,
-                        _index=time_index.lower())
-                elif _backtest_type == BacktestMarketSupply.MIN:
-                    time_index = 'BarEndTime'
-                    if _time_index is not None:
-                        time_index = _time_index
-                    self.data_dict[inst] = Fetch.fetchIntraDayData(
-                        _tradingday,
-                        _instrument=inst,
-                        _data_type=Fetch.pgsql_min_dbname,
-                        _index=time_index.lower())
-                elif _backtest_type == BacktestMarketSupply.HOUR:
-                    time_index = 'BarEndTime'
-                    if _time_index is not None:
-                        time_index = _time_index
-                    self.data_dict[inst] = Fetch.fetchIntraDayData(
-                        _tradingday,
-                        _instrument=inst,
-                        _data_type=Fetch.pgsql_hour_dbname,
-                        _index=time_index.lower())
-                elif _backtest_type == BacktestMarketSupply.DAY:
-                    self.data_dict[inst] = Fetch.fetchInterDayData(inst,
-                                                                   _tradingday)
+                    self.data_dict[inst] = Fetch.fetchInterDayData(
+                        inst, _tradingday, _index=time_index.lower())
                 else:
-                    raise Exception('unknown backtest type')
+                    if _backtest_type == BacktestMarketSupply.TICK:
+                        data_type = Fetch.pgsql_tick_dbname
+                        time_index = 'HappenTime'
+                    elif _backtest_type == BacktestMarketSupply.MIN:
+                        data_type = Fetch.pgsql_min_dbname
+                        time_index = 'BarEndTime'
+                    elif _backtest_type == BacktestMarketSupply.HOUR:
+                        data_type = Fetch.pgsql_hour_dbname
+                        time_index = 'BarEndTime'
+                    else:
+                        raise Exception('unknown backtest type!')
+                    if _time_index is not None:
+                        time_index = _time_index
+
+                    self.data_dict[inst] = Fetch.fetchIntraDayData(
+                        _tradingday,
+                        _product=v.product,
+                        _instrument=v.instrument,
+                        _product_index=v.product_index,
+                        _sub_dominant=v.sub_dominant,
+                        _data_type=data_type,
+                        _index=time_index)
 
                 self.index_dict[inst] = 0
 
@@ -275,11 +283,13 @@ class BacktestMarketSupply(MarketSupplyAbstract):
     HOUR = 'h'
     DAY = 'd'
 
-    def __init__(self,
-                 _begin_day: str,
-                 _end_day: str,
-                 _engine: 'ParadoxTrading.Engine.Engine.EngineAbstract',
-                 _backtest_type: str):
+    def __init__(
+            self,
+            _begin_day: str,
+            _end_day: str,
+            _engine: 'ParadoxTrading.Engine.EngineAbstract',
+            _backtest_type: str
+    ):
         """
         market supply for backtest
 
@@ -322,8 +332,11 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         # if there is no data generator, create one
         if self.data_generator is None:
             self.data_generator = DataGenerator(
-                self.cur_day, self.backtest_type, self.market_register_dict,
-                self.instrument_dict)
+                _tradingday=self.cur_day,
+                _backtest_type=self.backtest_type,
+                _market_register_dict=self.market_register_dict,
+                _instrument_dict=self.instrument_dict
+            )
 
         # gen one tick data from data generator
         ret = self.data_generator.gen()

@@ -297,16 +297,19 @@ class Fetch:
         f.close()
 
     @staticmethod
-    def _fetchInstrument(
-            _tradingday: str, _product: str = None,
-            _instrument: str = None, _sub_dominant: bool = False
+    def fetchInstrument(
+            _tradingday: str, _product: str = None, _instrument: str = None,
+            _product_index: bool = False, _sub_dominant: bool = False,
     ) -> typing.Union[None, str]:
         assert _product is not None or _instrument is not None
 
         # set inst to real instrument name
         inst = _instrument
         if _product is not None:
-            if not _sub_dominant:
+            if _product_index:
+                if Fetch.productIsTrade(_product, _tradingday):
+                    return _product
+            elif not _sub_dominant:
                 inst = Fetch.fetchDominant(_product, _tradingday)
             else:
                 inst = Fetch.fetchSubDominant(_product, _tradingday)
@@ -318,8 +321,8 @@ class Fetch:
 
     @staticmethod
     def fetchIntraDayData(
-            _tradingday: str, _product: str = None,
-            _instrument: str = None, _sub_dominant: bool = False,
+            _tradingday: str, _product: str = None, _instrument: str = None,
+            _product_index: bool = False, _sub_dominant: bool = False,
             _data_type: str = 'FutureTick', _index: str = 'HappenTime',
             _cache: bool = True
     ) -> typing.Union[None, DataStruct]:
@@ -329,6 +332,7 @@ class Fetch:
         :param _tradingday:
         :param _product:
         :param _instrument:
+        :param _product_index:
         :param _sub_dominant:
         :param _data_type:
         :param _index:
@@ -336,8 +340,8 @@ class Fetch:
         :return:
         """
 
-        inst = Fetch._fetchInstrument(
-            _tradingday, _product, _instrument, _sub_dominant)
+        inst: str = Fetch.fetchInstrument(
+            _tradingday, _product, _instrument, _product_index, _sub_dominant)
         if inst is None:
             return None
 

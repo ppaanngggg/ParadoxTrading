@@ -6,8 +6,8 @@ from ParadoxTrading.Performance import Fetch, dailyReturn, sharpRatio
 
 class MAStrategy(StrategyAbstract):
     def init(self):
-        self.addMarketRegister(_product='rb')
-        self.addMarketRegister(_product='ag')
+        self.addMarketRegister(_product='rb', _product_index=True)
+        self.addMarketRegister(_product='ag', _product_index=True)
 
     def deal(self, _market_event: MarketEvent):
         self.addEvent(_market_event.instrument, SignalType.LONG)
