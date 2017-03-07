@@ -1,3 +1,4 @@
+import json
 import typing
 
 import h5py
@@ -5,35 +6,113 @@ import psycopg2
 import pymongo
 from pymongo import MongoClient
 
-from ParadoxTrading.Utils.DataStruct import DataStruct
+from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
+from ParadoxTrading.Utils import DataStruct
 
 
-class Fetch:
-    mongo_host = 'localhost'
-    mongo_prod_db = 'FutureProd'
-    mongo_inst_db = 'FutureInst'
+class RegisterFuture(RegisterAbstract):
+    def __init__(
+            self,
+            _product: str = None, _instrument: str = None,
+            _product_index: bool = False, _sub_dominant: bool = False
+    ):
+        """
+        Market Register is used to store market sub information,
+        pre-processed data and strategies used it
 
-    pgsql_host = 'localhost'
-    pgsql_tick_dbname = 'FutureTick'
-    pgsql_min_dbname = 'FutureMin'
-    pgsql_hour_dbname = 'FutureHour'
-    pgsql_day_dbname = 'FutureDay'
-    pgsql_user = 'pang'
-    pgsql_password = ''
+        :param _product: reg which product, if not None, ignore instrument
+        :param _instrument: reg which instrument
+        :param _product_index:
+        :param _sub_dominant: only work when use product,
+            false means using dominant inst,
+            true means sub dominant one
+        """
+        super().__init__()
+        assert _product is not None or _instrument is not None
 
-    cache_path = 'cache.hdf5'
+        # market register info
+        self.product = _product
+        self.instrument = _instrument
+        self.product_index = _product_index
+        self.sub_dominant = _sub_dominant
+
+    def toJson(self) -> str:
+        """
+        encode register info into json str
+
+        :return: json str
+        """
+        return json.dumps((
+            ('product', self.product),
+            ('instrument', self.instrument),
+            ('product_index', self.product_index),
+            ('sub_dominant', self.sub_dominant),
+        ))
+
+    def toKwargs(self) -> dict:
+        return {
+            '_product': self.product,
+            '_instrument': self.instrument,
+            '_product_index': self.product_index,
+            '_sub_dominant': self.sub_dominant,
+        }
 
     @staticmethod
-    def productList() -> list:
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_prod_db]
+    def fromJson(_json_str: str) -> 'RegisterFuture':
+        """
+        create object from a json str
+
+        :param _json_str: json str stores register info
+        :return: market register object
+        """
+        data: typing.Dict[str, typing.Any] = dict(json.loads(_json_str))
+        return RegisterFuture(
+            data['product'],
+            data['instrument'],
+            data['product_index'],
+            data['sub_dominant'],
+        )
+
+    def __repr__(self):
+        return 'Key:' + '\n' + \
+               '\t' + self.toJson() + '\n' + \
+               'Params:' + '\n' + \
+               '\tproduct: ' + str(self.product) + '\n' + \
+               '\tinstrument: ' + str(self.instrument) + '\n' + \
+               '\tproduct_index: ' + str(self.product_index) + '\n' + \
+               '\tsub_dominant: ' + str(self.sub_dominant) + '\n' + \
+               'Strategy: ' + '\n' + \
+               '\t' + '; '.join(self.strategy_set)
+
+
+class RegisterFutureTick(RegisterFuture):
+    pass
+
+
+class FetchFutureTick(FetchAbstract):
+    def __init__(self):
+        self.mongo_host = 'localhost'
+        self.mongo_prod_db = 'FutureProd'
+        self.mongo_inst_db = 'FutureInst'
+
+        self.psql_host = 'localhost'
+        self.psql_dbname = 'FutureTick'
+        self.psql_user = 'pang'
+        self.psql_password = ''
+
+        self.cache_path = 'FutureTick.hdf5'
+
+    def productList(self) -> list:
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_prod_db]
         ret = db.collection_names()
         client.close()
 
         return ret
 
-    @staticmethod
-    def productIsTrade(_product: str, _tradingday: str) -> bool:
+    def productIsTrade(
+            self, _product: str, _tradingday: str
+    ) -> bool:
         """
         check whether product is traded on tradingday
 
@@ -44,17 +123,17 @@ class Fetch:
         Returns:
             bool: True for traded, False for not
         """
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_prod_db]
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_prod_db]
         coll = db[_product.lower()]
         count = coll.count({'TradingDay': _tradingday})
         client.close()
 
         return count > 0
 
-    @staticmethod
-    def productLastTradingDay(_product: str, _tradingday: str
-                              ) -> typing.Union[None, str]:
+    def productLastTradingDay(
+            self, _product: str, _tradingday: str
+    ) -> typing.Union[None, str]:
         """
         get the first day less then _tradingday of _product
 
@@ -65,8 +144,8 @@ class Fetch:
         Returns:
             str: if None, it means nothing found
         """
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_prod_db]
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_prod_db]
         coll = db[_product.lower()]
         d = coll.find_one(
             {'TradingDay': {'$lt': _tradingday}},
@@ -76,9 +155,8 @@ class Fetch:
 
         return d['TradingDay'] if d is not None else None
 
-    @staticmethod
     def productNextTradingDay(
-            _product: str, _tradingday: str
+            self, _product: str, _tradingday: str
     ) -> typing.Union[None, str]:
         """
         get the first day greater then _tradingday of _product
@@ -90,8 +168,8 @@ class Fetch:
         Returns:
             str: if None, it means nothing found
         """
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_prod_db]
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_prod_db]
         coll = db[_product.lower()]
         d = coll.find_one(
             {'TradingDay': {'$gt': _tradingday}},
@@ -101,8 +179,9 @@ class Fetch:
 
         return d['TradingDay'] if d is not None else None
 
-    @staticmethod
-    def instrumentIsTrade(_instrument: str, _tradingday: str) -> bool:
+    def instrumentIsTrade(
+            self, _instrument: str, _tradingday: str
+    ) -> bool:
         """
         check whether instrument is traded on tradingday
 
@@ -113,17 +192,17 @@ class Fetch:
         Returns:
             bool: True for traded, False for not
         """
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_inst_db]
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_inst_db]
         coll = db[_instrument.lower()]
         count = coll.count({'TradingDay': _tradingday})
         client.close()
 
         return count > 0
 
-    @staticmethod
-    def instrumentLastTradingDay(_instrument: str, _tradingday: str) -> \
-            typing.Union[None, str]:
+    def instrumentLastTradingDay(
+            self, _instrument: str, _tradingday: str
+    ) -> typing.Union[None, str]:
         """
         get the first day less then _tradingday of _instrument
 
@@ -134,8 +213,8 @@ class Fetch:
         Returns:
             str: if None, it means nothing found
         """
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_inst_db]
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_inst_db]
         coll = db[_instrument.lower()]
         d = coll.find_one(
             {'TradingDay': {'$lt': _tradingday}},
@@ -145,9 +224,9 @@ class Fetch:
 
         return d['TradingDay'] if d is not None else None
 
-    @staticmethod
-    def instrumentNextTradingDay(_instrument: str, _tradingday: str) -> \
-            typing.Union[None, str]:
+    def instrumentNextTradingDay(
+            self, _instrument: str, _tradingday: str
+    ) -> typing.Union[None, str]:
         """
         get the first day greater then _tradingday of _instrument
 
@@ -158,8 +237,8 @@ class Fetch:
         Returns:
             str: if None, it means nothing found
         """
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_inst_db]
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_inst_db]
         coll = db[_instrument.lower()]
         d = coll.find_one(
             {'TradingDay': {'$gt': _tradingday}},
@@ -169,9 +248,8 @@ class Fetch:
 
         return d['TradingDay'] if d is not None else None
 
-    @staticmethod
     def fetchTradeInstrument(
-            _product: str, _tradingday: str
+            self, _product: str, _tradingday: str
     ) -> typing.List[str]:
         """
         fetch all traded insts of one product on tradingday
@@ -183,8 +261,8 @@ class Fetch:
         Returns:
             list: list of str. if len() == 0, then no traded inst
         """
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_prod_db]
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_prod_db]
         coll = db[_product.lower()]
         data = coll.find_one({'TradingDay': _tradingday})
         ret = []
@@ -194,9 +272,8 @@ class Fetch:
 
         return ret
 
-    @staticmethod
     def fetchDominant(
-            _product: str, _tradingday: str
+            self, _product: str, _tradingday: str
     ) -> typing.Union[None, str]:
         """
         fetch dominant instrument of one product on tradingday
@@ -208,8 +285,8 @@ class Fetch:
         Returns:
             str: dominant instrument. if None, then no traded inst
         """
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_prod_db]
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_prod_db]
         coll = db[_product.lower()]
         data = coll.find_one({'TradingDay': _tradingday})
         ret = None
@@ -219,9 +296,8 @@ class Fetch:
 
         return ret
 
-    @staticmethod
     def fetchSubDominant(
-            _product: str, _tradingday: str
+            self, _product: str, _tradingday: str
     ) -> typing.Union[None, str]:
         """
         fetch sub dominant instrument of one product on tradingday
@@ -233,8 +309,8 @@ class Fetch:
         Returns:
             str: sub dominant instrument. if None, then no traded inst
         """
-        client = MongoClient(host=Fetch.mongo_host)
-        db = client[Fetch.mongo_prod_db]
+        client = MongoClient(host=self.mongo_host)
+        db = client[self.mongo_prod_db]
         coll = db[_product.lower()]
         data = coll.find_one({'TradingDay': _tradingday})
         ret = None
@@ -244,13 +320,12 @@ class Fetch:
 
         return ret
 
-    @staticmethod
     def cache2DataStruct(
-            _type: str, _inst: str, _tradingday: str, _index: str
+            self, _inst: str, _tradingday: str, _index: str
     ) -> typing.Union[None, DataStruct]:
-        f = h5py.File(Fetch.cache_path, 'a')
+        f = h5py.File(self.cache_path, 'a')
         try:
-            grp = f[_type + '/' + _inst.lower() + '/' + _tradingday]
+            grp = f[_inst.lower() + '/' + _tradingday]
         except KeyError:
             return None
 
@@ -264,13 +339,12 @@ class Fetch:
         f.close()
         return datastruct
 
-    @staticmethod
     def DataStruct2cache(
-            _type: str, _inst: str, _tradingday: str,
+            self, _inst: str, _tradingday: str,
             _columns: typing.List[str], _types: typing.List[str],
             _datastruct: DataStruct
     ):
-        f = h5py.File(Fetch.cache_path, 'a')
+        f = h5py.File(self.cache_path, 'a')
 
         for c, t in zip(_columns, _types):
             if 'int' in t:
@@ -284,7 +358,7 @@ class Fetch:
                 _datastruct.datetime2float(c)
 
             dataset = f.create_dataset(
-                _type + '/' + _inst.lower() + '/' + _tradingday + '/' + c,
+                _inst.lower() + '/' + _tradingday + '/' + c,
                 (len(_datastruct),),
                 dtype=dtype,
             )
@@ -296,9 +370,9 @@ class Fetch:
 
         f.close()
 
-    @staticmethod
-    def fetchInstrument(
-            _tradingday: str, _product: str = None, _instrument: str = None,
+    def fetchSymbol(
+            self, _tradingday: str,
+            _product: str = None, _instrument: str = None,
             _product_index: bool = False, _sub_dominant: bool = False,
     ) -> typing.Union[None, str]:
         assert _product is not None or _instrument is not None
@@ -312,34 +386,32 @@ class Fetch:
         inst = _instrument
         if _product is not None:
             if _product_index:
-                if Fetch.productIsTrade(_product, _tradingday):
+                if self.productIsTrade(_product, _tradingday):
                     return _product
             elif not _sub_dominant:
-                inst = Fetch.fetchDominant(_product, _tradingday)
+                inst = self.fetchDominant(_product, _tradingday)
             else:
-                inst = Fetch.fetchSubDominant(_product, _tradingday)
+                inst = self.fetchSubDominant(_product, _tradingday)
 
         # check instrument valid
-        if inst is None or not Fetch.instrumentIsTrade(inst, _tradingday):
+        if inst is None or not self.instrumentIsTrade(
+                inst, _tradingday):
             return None
         return inst
 
-    @staticmethod
-    def fetchIntraDayData(
-            _tradingday: str, _product: str = None, _instrument: str = None,
+    def fetchData(
+            self, _tradingday: str,
+            _product: str = None, _instrument: str = None,
             _product_index: bool = False, _sub_dominant: bool = False,
-            _data_type: str = 'FutureTick', _index: str = 'HappenTime',
-            _cache: bool = True
+            _cache=True, _index='HappenTime'
     ) -> typing.Union[None, DataStruct]:
         """
-
 
         :param _tradingday:
         :param _product:
         :param _instrument:
         :param _product_index:
         :param _sub_dominant:
-        :param _data_type:
         :param _index:
         :param _cache:
         :return:
@@ -349,29 +421,32 @@ class Fetch:
         if isinstance(_instrument, str):
             _instrument = _instrument.lower()
 
-        inst: str = Fetch.fetchInstrument(
-            _tradingday, _product, _instrument, _product_index, _sub_dominant)
+        inst: str = self.fetchSymbol(
+            _tradingday, _product, _instrument,
+            _product_index, _sub_dominant)
         if inst is None:
             return None
 
         if _cache:
             # if found in cache, then return
-            ret = Fetch.cache2DataStruct(_data_type, inst, _tradingday, _index)
+            ret = self.cache2DataStruct(
+                inst, _tradingday, _index)
             if ret is not None:
                 return ret
 
         # fetch from database
         con = psycopg2.connect(
-            dbname=_data_type,
-            host=Fetch.pgsql_host,
-            user=Fetch.pgsql_user,
-            password=Fetch.pgsql_password,
+            dbname=self.psql_dbname,
+            host=self.psql_host,
+            user=self.psql_user,
+            password=self.psql_password,
         )
         cur = con.cursor()
 
         # get all column names
         cur.execute(
-            "select column_name, data_type from information_schema.columns " +
+            "select column_name, data_type "
+            "from information_schema.columns "
             "where table_name='" + inst.lower() + "'"
         )
         columns = []
@@ -387,6 +462,8 @@ class Fetch:
             "' ORDER BY " + _index.lower()
         )
         datas = list(cur.fetchall())
+
+        cur.close()
         con.close()
 
         # turn into datastruct
@@ -394,45 +471,16 @@ class Fetch:
 
         if len(datastruct):
             if _cache:
-                Fetch.DataStruct2cache(
-                    _data_type, inst, _tradingday, columns, types, datastruct)
+                self.DataStruct2cache(
+                    inst, _tradingday,
+                    columns, types, datastruct
+                )
             return datastruct
         else:
             return None
 
-    @staticmethod
-    def fetchInterDayData(
-            _instrument: str, _begin_day: str, _end_day: str = None,
-            _index: str = 'TradingDay'
+    def fetchDayData(
+            self, _begin_day: str, _end_day: str = None,
+            _instrument: str = None, _index: str = 'TradingDay'
     ) -> DataStruct:
-
-        begin_day = _begin_day
-        end_day = _end_day
-        if _end_day is None:
-            end_day = begin_day
-
-        con = psycopg2.connect(
-            dbname=Fetch.pgsql_day_dbname,
-            host=Fetch.pgsql_host,
-            user=Fetch.pgsql_user,
-            password=Fetch.pgsql_password,
-        )
-        cur = con.cursor()
-
-        # get all column names
-        cur.execute(
-            "select column_name, data_type from information_schema.columns " +
-            "where table_name='" + _instrument.lower() + "'"
-        )
-        columns = [d[0] for d in cur.fetchall()]
-
-        query = "select * from {} where {} >= '{}' and {} <= '{}'".format(
-            _instrument.lower(),
-            _index.lower(), begin_day,
-            _index.lower(), end_day,
-        )
-        cur.execute(query)
-        datas = list(cur.fetchall())
-        con.close()
-
-        return DataStruct(columns, _index.lower(), datas)
+        raise NotImplementedError()

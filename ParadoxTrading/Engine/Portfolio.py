@@ -7,7 +7,7 @@ from pymongo.collection import Collection
 
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
-    DirectionType, FillEvent, OrderEvent, SignalEvent
+    DirectionType, FillEvent, OrderEvent, SignalEvent, EventAbstract
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
 
 
@@ -22,11 +22,11 @@ class PortfolioPerStrategy:
         self.position: typing.Dict[str, typing.Dict[str, int]] = {}
         self.unfilled_order: typing.Dict[int, OrderEvent] = {}
 
-    def incPosition(self, _instrument: str, _type: str, _quantity: int = 1):
+    def incPosition(self, _symbol: str, _type: str, _quantity: int = 1):
         """
-        inc position of instrument
+        inc position of symbol
 
-        :param _instrument: instrument to inc
+        :param _symbol: symbol to inc
         :param _type: long or short
         :param _quantity: how many
         :return:
@@ -35,118 +35,119 @@ class PortfolioPerStrategy:
         assert _quantity > 0
         try:
             # try to add directly
-            self.position[_instrument][_type] += _quantity
+            self.position[_symbol][_type] += _quantity
         except KeyError:
             # create if failed
-            self.position[_instrument] = {
+            self.position[_symbol] = {
                 SignalType.LONG: 0,
                 SignalType.SHORT: 0,
             }
-            self.position[_instrument][_type] = _quantity
+            self.position[_symbol][_type] = _quantity
 
-    def decPosition(self, _instrument: str, _type: str, _quantity: int = 1):
+    def decPosition(self, _symbol: str, _type: str, _quantity: int = 1):
         """
-        dec position of instrument
+        dec position of symbol
 
-        :param _instrument: instrument to inc
+        :param _symbol: symbol to inc
         :param _type: long or short
         :param _quantity: how many
         :return:
         """
         assert _type == SignalType.LONG or _type == SignalType.SHORT
         assert _quantity > 0
-        assert _instrument in self.position.keys()
-        assert self.position[_instrument][_type] >= _quantity
-        self.position[_instrument][_type] -= _quantity
-        assert self.position[_instrument][_type] >= 0
+        assert _symbol in self.position.keys()
+        assert self.position[_symbol][_type] >= _quantity
+        self.position[_symbol][_type] -= _quantity
+        assert self.position[_symbol][_type] >= 0
 
-    def getPosition(self, _instrument: str, _type: str) -> int:
+    def getPosition(self, _symbol: str, _type: str) -> int:
         """
-        get _type position of instrument
+        get _type position of symbol
 
-        :param _instrument: which instrument
+        :param _symbol: which symbol
         :param _type: long or short
         :return: number of position
         """
         assert _type == SignalType.LONG or _type == SignalType.SHORT
-        if _instrument in self.position.keys():
-            return self.position[_instrument][_type]
+        if _symbol in self.position.keys():
+            return self.position[_symbol][_type]
         return 0
 
-    def getLongPosition(self, _instrument: str) -> int:
+    def getLongPosition(self, _symbol: str) -> int:
         """
-        get long position of instrument
+        get long position of symbol
 
-        :param _instrument: which instrument
+        :param _symbol: which symbol
         :return: number of position
         """
-        return self.getPosition(_instrument, SignalType.LONG)
+        return self.getPosition(_symbol, SignalType.LONG)
 
-    def getShortPosition(self, _instrument: str) -> int:
+    def getShortPosition(self, _symbol: str) -> int:
         """
-        get short position of instrument
+        get short position of symbol
 
-        :param _instrument: which instrument
+        :param _symbol: which symbol
         :return: number of position
         """
-        return self.getPosition(_instrument, SignalType.SHORT)
+        return self.getPosition(_symbol, SignalType.SHORT)
 
-    def getUnfilledOrder(self, _instrument: str, _action: int,
+    def getUnfilledOrder(self, _symbol: str, _action: int,
                          _direction: int) -> int:
         """
         get number of unfilled orders for _insturment
 
-        :param _instrument: which instrument
+        :param _symbol: which symbol
         :param _action: open or close
         :param _direction: buy or sell
         :return: number of unfilled order
         """
         num = 0
         for order in self.unfilled_order.values():
-            if order.instrument == _instrument and order.action == _action and \
+            if order.symbol == _symbol and \
+                            order.action == _action and \
                             order.direction == _direction:
                 num += order.quantity
 
         return num
 
-    def getOpenBuyUnfilledOrder(self, _instrument: str) -> int:
+    def getOpenBuyUnfilledOrder(self, _symbol: str) -> int:
         """
         number of unfilled order which is OPEN and BUY
 
-        :param _instrument:
+        :param _symbol:
         :return:
         """
-        return self.getUnfilledOrder(_instrument, ActionType.OPEN,
+        return self.getUnfilledOrder(_symbol, ActionType.OPEN,
                                      DirectionType.BUY)
 
-    def getOpenSellUnfilledOrder(self, _instrument: str) -> int:
+    def getOpenSellUnfilledOrder(self, _symbol: str) -> int:
         """
         number of unfilled order which is OPEN and SELL
 
-        :param _instrument:
+        :param _symbol:
         :return:
         """
-        return self.getUnfilledOrder(_instrument, ActionType.OPEN,
+        return self.getUnfilledOrder(_symbol, ActionType.OPEN,
                                      DirectionType.SELL)
 
-    def getCloseBuyUnfilledOrder(self, _instrument: str) -> int:
+    def getCloseBuyUnfilledOrder(self, _symbol: str) -> int:
         """
         number of unfilled order which is CLOSE and BUY
 
-        :param _instrument:
+        :param _symbol:
         :return:
         """
-        return self.getUnfilledOrder(_instrument, ActionType.CLOSE,
+        return self.getUnfilledOrder(_symbol, ActionType.CLOSE,
                                      DirectionType.BUY)
 
-    def getCloseSellUnfilledOrder(self, _instrument: str) -> int:
+    def getCloseSellUnfilledOrder(self, _symbol: str) -> int:
         """
         number of unfilled order which is CLOSE and SELL
 
-        :param _instrument:
+        :param _symbol:
         :return:
         """
-        return self.getUnfilledOrder(_instrument, ActionType.CLOSE,
+        return self.getUnfilledOrder(_symbol, ActionType.CLOSE,
                                      DirectionType.SELL)
 
     def dealSignalEvent(self, _signal_event: SignalEvent):
@@ -181,19 +182,19 @@ class PortfolioPerStrategy:
         del self.unfilled_order[_fill_event.index]
         if _fill_event.action == ActionType.OPEN:
             if _fill_event.direction == DirectionType.BUY:
-                self.incPosition(_fill_event.instrument, SignalType.LONG,
+                self.incPosition(_fill_event.symbol, SignalType.LONG,
                                  _fill_event.quantity)
             elif _fill_event.direction == DirectionType.SELL:
-                self.incPosition(_fill_event.instrument,
+                self.incPosition(_fill_event.symbol,
                                  SignalType.SHORT, _fill_event.quantity)
             else:
                 raise Exception('unknown direction')
         elif _fill_event.action == ActionType.CLOSE:
             if _fill_event.direction == DirectionType.BUY:
-                self.decPosition(_fill_event.instrument,
+                self.decPosition(_fill_event.symbol,
                                  SignalType.SHORT, _fill_event.quantity)
             elif _fill_event.direction == DirectionType.SELL:
-                self.decPosition(_fill_event.instrument, SignalType.LONG,
+                self.decPosition(_fill_event.symbol, SignalType.LONG,
                                  _fill_event.quantity)
             else:
                 raise Exception('unknown direction')
@@ -208,9 +209,11 @@ class PortfolioPerStrategy:
         :param _coll:
         :return:
         """
-        for d in self.signal_record + \
-                self.order_record + \
-                self.fill_record:
+        tmp_list: typing.List[EventAbstract] = []
+        tmp_list += self.signal_record
+        tmp_list += self.order_record
+        tmp_list += self.fill_record
+        for d in tmp_list:
             d = d.toDict()
             d['strategy_name'] = _name
             _coll.insert_one(d)
@@ -238,18 +241,18 @@ class PortfolioPerStrategy:
         for k, v in self.position.items():
             table.append(
                 [k, v[SignalType.LONG], v[SignalType.SHORT]])
-        ret += tabulate.tabulate(table, ['instrument', 'LONG', 'SHORT'])
+        ret += tabulate.tabulate(table, ['symbol', 'LONG', 'SHORT'])
 
         ret += '\n@@@ ORDER @@@\n'
 
         table = []
         for k, v in self.unfilled_order.items():
             table.append([
-                k, v.instrument, action2str(v.action),
+                k, v.symbol, action2str(v.action),
                 direction2str(v.direction), v.quantity
             ])
         ret += tabulate.tabulate(
-            table, ['index', 'instrument', 'ACTION', 'DIRECTION', 'QUANTITY'])
+            table, ['index', 'symbol', 'ACTION', 'DIRECTION', 'QUANTITY'])
 
         ret += '\n@@@ UNFILLED ORDER @@@\n'
         ret += str(sorted(self.unfilled_order.keys()))
@@ -269,16 +272,15 @@ class PortfolioAbstract:
         self.engine: ParadoxTrading.Engine.EngineAbstract = None
 
         self.order_strategy_dict: typing.Dict[int, str] = {}
-        self.strategy_portfolio_dict: typing.Dict[str,
-                                                  PortfolioPerStrategy] = {}
+        self.strategy_portfolio_dict: typing.Dict[
+            str, PortfolioPerStrategy] = {}
         self.global_portfolio: PortfolioPerStrategy = PortfolioPerStrategy()
 
     def addStrategy(self, _strategy: StrategyAbstract):
         assert _strategy.name not in self.strategy_portfolio_dict.keys()
         self.strategy_portfolio_dict[_strategy.name] = PortfolioPerStrategy()
 
-    def _setEngine(self,
-                   _engine: 'ParadoxTrading.Engine.EngineAbstract'):
+    def setEngine(self, _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
         PROTECTED !!!
 
@@ -394,14 +396,14 @@ class SimpleTickPortfolio(PortfolioAbstract):
         # create order event
         order_event = OrderEvent(
             _index=self.incOrderIndex(),
-            _instrument=_event.instrument,
+            _symbol=_event.symbol,
             _tradingday=self.engine.getTradingDay(),
-            _datetime=self.engine.getCurDatetime(),
+            _datetime=self.engine.getDatetime(),
             _order_type=OrderType.MARKET, )
         if _event.signal_type == SignalType.LONG:
             # whether there is short position to close
-            if portfolio.getShortPosition(_event.instrument) - \
-                    portfolio.getCloseBuyUnfilledOrder(_event.instrument) > 0:
+            if portfolio.getShortPosition(_event.symbol) - \
+                    portfolio.getCloseBuyUnfilledOrder(_event.symbol) > 0:
                 order_event.action = ActionType.CLOSE
             else:
                 order_event.action = ActionType.OPEN
@@ -411,8 +413,8 @@ class SimpleTickPortfolio(PortfolioAbstract):
             order_event.quantity = 1
         elif _event.signal_type == SignalType.SHORT:
             # whether there is long position to close
-            if portfolio.getLongPosition(_event.instrument) - \
-                    portfolio.getCloseSellUnfilledOrder(_event.instrument) > 0:
+            if portfolio.getLongPosition(_event.symbol) - \
+                    portfolio.getCloseSellUnfilledOrder(_event.symbol) > 0:
                 order_event.action = ActionType.CLOSE
             else:
                 order_event.action = ActionType.OPEN
@@ -446,21 +448,21 @@ class SimpleBarPortfolio(PortfolioAbstract):
 
         order_event = OrderEvent(
             _index=self.incOrderIndex(),
-            _instrument=_event.instrument,
+            _symbol=_event.symbol,
             _tradingday=self.engine.getTradingDay(),
-            _datetime=self.engine.getCurDatetime(),
+            _datetime=self.engine.getDatetime(),
             _order_type=OrderType.LIMIT,
         )
         if _event.signal_type == SignalType.LONG:
-            if portfolio.getShortPosition(_event.instrument) - \
-                    portfolio.getCloseSellUnfilledOrder(_event.instrument) > 0:
+            if portfolio.getShortPosition(_event.symbol) - \
+                    portfolio.getCloseBuyUnfilledOrder(_event.symbol) > 0:
                 order_event.action = ActionType.CLOSE
             else:
                 order_event.action = ActionType.OPEN
             order_event.direction = DirectionType.BUY
         elif _event.signal_type == SignalType.SHORT:
-            if portfolio.getShortPosition(_event.instrument) - \
-                    portfolio.getCloseBuyUnfilledOrder(_event.instrument) > 0:
+            if portfolio.getLongPosition(_event.symbol) - \
+                    portfolio.getCloseSellUnfilledOrder(_event.symbol) > 0:
                 order_event.action = ActionType.CLOSE
             else:
                 order_event.action = ActionType.OPEN
@@ -468,7 +470,7 @@ class SimpleBarPortfolio(PortfolioAbstract):
         else:
             raise Exception('unknown signal')
 
-        data = self.engine.getInstrumentData(_event.instrument)
+        data = self.engine.getSymbolData(_event.symbol)
         order_event.price = data.getColumn(self.price_index)[-1]
 
         portfolio.dealSignalEvent(_event)

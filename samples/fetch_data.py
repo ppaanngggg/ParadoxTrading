@@ -1,33 +1,166 @@
-from ParadoxTrading.Utils import Fetch
+from ParadoxTrading.Fetch import FetchFutureTick, FetchFutureMin, \
+    FetchFutureHour, FetchFutureDay
 
-inst = Fetch.fetchInstrument(
+fetcher = FetchFutureTick()
+inst = fetcher.fetchSymbol(
     _tradingday='20170123',
     _product='rb',
 )
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+)
 print(inst)
-inst = Fetch.fetchInstrument(
+print(data)
+input()
+
+inst = fetcher.fetchSymbol(
     _tradingday='20170123',
     _product='rb',
     _sub_dominant=True
 )
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+    _sub_dominant=True
+)
 print(inst)
-inst = Fetch.fetchInstrument(
+print(data)
+input()
+
+inst = fetcher.fetchSymbol(
     _tradingday='20170123',
     _product='rb',
     _product_index=True
 )
-print(inst)
-
-data = Fetch.fetchIntraDayData(
+data = fetcher.fetchData(
     _tradingday='20170203',
     _product='rb',
     _product_index=True
 )
+print(inst)
+print(data)
+input()
 
-# data = Fetch.fetchIntraDayData(
-#     _tradingday='20170123',
-#     _product='rb',
-#     _product_index=True,
-#     _data_type=Fetch.pgsql_min_dbname,
-#     _index='BarTime'
-# )
+fetcher = FetchFutureMin()
+inst = fetcher.fetchSymbol(
+    _tradingday='20170123',
+    _product='rb',
+)
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+)
+print(inst)
+print(data)
+input()
+
+inst = fetcher.fetchSymbol(
+    _tradingday='20170123',
+    _product='rb',
+    _sub_dominant=True
+)
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+    _sub_dominant=True
+)
+print(inst)
+print(data)
+input()
+
+inst = fetcher.fetchSymbol(
+    _tradingday='20170123',
+    _product='rb',
+    _product_index=True
+)
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+    _product_index=True
+)
+print(inst)
+print(data)
+input()
+
+fetcher = FetchFutureHour()
+inst = fetcher.fetchSymbol(
+    _tradingday='20170123',
+    _product='rb',
+)
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+)
+print(inst)
+print(data)
+input()
+
+inst = fetcher.fetchSymbol(
+    _tradingday='20170123',
+    _product='rb',
+    _sub_dominant=True
+)
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+    _sub_dominant=True
+)
+print(inst)
+print(data)
+input()
+
+inst = fetcher.fetchSymbol(
+    _tradingday='20170123',
+    _product='rb',
+    _product_index=True
+)
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+    _product_index=True
+)
+print(inst)
+print(data)
+input()
+
+fetcher = FetchFutureDay()
+inst = fetcher.fetchSymbol(
+    _tradingday='20170123',
+    _product='rb',
+)
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+)
+print(inst)
+print(data)
+input()
+
+inst = fetcher.fetchSymbol(
+    _tradingday='20170123',
+    _product='rb',
+    _sub_dominant=True
+)
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+    _sub_dominant=True
+)
+print(inst)
+print(data)
+input()
+
+inst = fetcher.fetchSymbol(
+    _tradingday='20170123',
+    _product='rb',
+    _product_index=True
+)
+data = fetcher.fetchData(
+    _tradingday='20170203',
+    _product='rb',
+    _product_index=True
+)
+print(inst)
+print(data)
+input()

@@ -13,12 +13,10 @@ class ExecutionAbstract:
         self.order_dict: typing.Dict[
             int, ParadoxTrading.Engine.Event.OrderEvent] = {}
 
-    def _setEngine(self,
-                   _engine: 'ParadoxTrading.Engine.EngineAbstract'):
+    def setEngine(self, _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         self.engine = _engine
 
-    def dealOrderEvent(self,
-                       _order_event: OrderEvent):
+    def dealOrderEvent(self, _order_event: OrderEvent):
         raise NotImplementedError('deal not implemented')
 
     def matchMarket(self, _instrument: str, _data: DataStruct):
@@ -44,16 +42,16 @@ class SimpleTickBacktestExecution(ExecutionAbstract):
                   ) -> FillEvent:
         return ParadoxTrading.Engine.Event.FillEvent(
             _index=_order_event.index,
-            _instrument=_order_event.instrument,
+            _symbol=_order_event.symbol,
             _tradingday=self.engine.getTradingDay(),
-            _datetime=self.engine.getCurDatetime(),
+            _datetime=self.engine.getDatetime(),
             _quantity=_order_event.quantity,
             _action=_order_event.action,
             _direction=_order_event.direction,
             _price=_price,
             _commission=0.0)
 
-    def matchMarket(self, _instrument: str, _data: DataStruct):
+    def matchMarket(self, _symbol: str, _data: DataStruct):
         assert len(_data) == 1
 
         askprice: float = _data.getColumn('askprice')[0]
@@ -61,7 +59,7 @@ class SimpleTickBacktestExecution(ExecutionAbstract):
 
         for index in sorted(self.order_dict.keys()):
             order = self.order_dict[index]
-            if order.instrument == _instrument:
+            if order.symbol == _symbol:
                 if order.direction == DirectionType.BUY:
                     if (order.order_type == OrderType.MARKET or
                                 askprice <= order.price) and askprice > 0:
@@ -85,9 +83,9 @@ class SimpleBarBacktestExecution(ExecutionAbstract):
         assert _order_event.order_type == OrderType.LIMIT
         fill_event = FillEvent(
             _index=_order_event.index,
-            _instrument=_order_event.instrument,
+            _symbol=_order_event.symbol,
             _tradingday=self.engine.getTradingDay(),
-            _datetime=self.engine.getCurDatetime(),
+            _datetime=self.engine.getDatetime(),
             _quantity=_order_event.quantity,
             _action=_order_event.action,
             _direction=_order_event.direction,
@@ -96,5 +94,5 @@ class SimpleBarBacktestExecution(ExecutionAbstract):
         )
         self.addEvent(fill_event)
 
-    def matchMarket(self, _instrument: str, _data: DataStruct):
+    def matchMarket(self, _symbol: str, _data: DataStruct):
         pass
