@@ -97,7 +97,7 @@ class FetchFutureTick(FetchAbstract):
 
         self.psql_host = 'localhost'
         self.psql_dbname = 'FutureTick'
-        self.psql_user = 'pang'
+        self.psql_user = ''
         self.psql_password = ''
 
         self.cache_path = 'FutureTick.hdf5'
