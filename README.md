@@ -6,6 +6,22 @@ by hantian_pang
 
 > PYTHON 3.6 !!!!!
 
+how to install python3.6 in ubuntu by ppa
+
+```
+sudo add-apt-repository ppa:jonathonf/python-3.6
+sudo apt-get update
+sudo apt-get install python3.6
+```
+
+or
+
+```
+sudo add-apt-repository ppa:fkrull/deadsnakes
+sudo apt-get update
+sudo apt-get install python3.6
+```
+
 ## Install
 
 1. `cd` into source folder
