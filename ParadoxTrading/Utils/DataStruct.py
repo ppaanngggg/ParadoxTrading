@@ -154,6 +154,15 @@ class DataStruct:
             tmp = {self.index_name}
             return sorted(self.data.keys() - tmp)
 
+    def changeIndex(self, _new_index: str):
+        assert _new_index in self.data.keys()
+        assert all(a <= b for a, b in zip(
+            self.data[_new_index][:-1],
+            self.data[_new_index][1:]
+        ))
+
+        self.index_name = _new_index
+
     def changeColumnName(self, _old_name: str, _new_name: str):
         assert _old_name != _new_name
         if self.index_name == _old_name:

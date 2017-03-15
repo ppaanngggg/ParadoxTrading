@@ -103,6 +103,11 @@ class FetchFutureTick(FetchAbstract):
         self.cache_path = 'FutureTick.hdf5'
 
     def productList(self) -> list:
+        """
+        get all product list stored in mongo
+
+        :return: list of product names
+        """
         client = MongoClient(host=self.mongo_host)
         db = client[self.mongo_prod_db]
         ret = db.collection_names()
