@@ -1,7 +1,8 @@
-from ParadoxTrading.Fetch.FetchFutureDay import FetchFutureDay, RegisterFuture
+from ParadoxTrading.Fetch import FetchFutureDay, RegisterFutureDay, \
+    FetchFutureDayIndex, RegisterFutureDayIndex
 
 
-class RegisterSHFEDay(RegisterFuture):
+class RegisterSHFEDay(RegisterFutureDay):
     pass
 
 
@@ -28,7 +29,22 @@ class FetchSHFEDay(FetchFutureDay):
             'openinterestdiff',
             'presettlementprice',
         ]
-        self.index_columns = [
+
+
+class RegisterSHFEDayIndex(RegisterFutureDayIndex):
+    pass
+
+
+class FetchSHFEDayIndex(FetchFutureDayIndex):
+    def __init__(self):
+        super().__init__()
+
+        self.mongo_prod_db = 'SHFEProd'
+        self.mongo_inst_db = 'SHFEInst'
+
+        self.psql_dbname = 'SHFEDay'
+
+        self.columns = [
             'tradingday',
             'highprice',
             'lowprice',

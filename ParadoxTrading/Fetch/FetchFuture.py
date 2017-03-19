@@ -487,9 +487,9 @@ class RegisterFutureTickIndex(RegisterAbstract):
         self.product = _product
 
     def toJson(self) -> str:
-        return json.dumps(
+        return json.dumps((
             ('product', self.product),
-        )
+        ))
 
     def toKwargs(self) -> dict:
         return {

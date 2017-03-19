@@ -7,12 +7,13 @@ from .FetchFuture import FetchFutureTick, RegisterFutureTick, \
     FetchFutureHourIndex, RegisterFutureHourIndex, \
     FetchFutureDay, RegisterFutureDay, \
     FetchFutureDayIndex, RegisterFutureDayIndex
-# from .FetchFutureDay import FetchFutureDay, RegisterFutureDay
-# from .FetchFutureHour import FetchFutureHour, RegisterFutureHour
-# from .FetchFutureMin import FetchFutureMin, RegisterFutureMin
-# from .FetchGuoJinDay import FetchGuoJinDay, RegisterGuoJinDay
-# from .FetchGuoJinHour import FetchGuoJinHour, RegisterGuoJinHour
-# from .FetchGuoJinMin import FetchGuoJinMin, RegisterGuoJinMin
-# from .FetchGuoJinTick import FetchGuoJinTick, RegisterGuoJinTick
-# from .FetchSHFEDay import FetchSHFEDay, RegisterSHFEDay
-#
+from .FetchGuoJin import FetchGuoJinTick, RegisterGuoJinTick, \
+    FetchGuoJinTickIndex, RegisterGuoJinTickIndex, \
+    FetchGuoJinMin, RegisterGuoJinMin, \
+    FetchGuoJinMinIndex, RegisterGuoJinMinIndex, \
+    FetchGuoJinHour, RegisterGuoJinHour, \
+    FetchGuoJinHourIndex, RegisterGuoJinHourIndex, \
+    FetchGuoJinDay, RegisterGuoJinDay, \
+    FetchGuoJinDayIndex, RegisterGuoJinDayIndex
+from .FetchSHFE import FetchSHFEDay, RegisterSHFEDay, \
+    FetchSHFEDayIndex, RegisterSHFEDayIndex

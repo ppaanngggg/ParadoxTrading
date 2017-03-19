@@ -2,16 +2,16 @@ from ParadoxTrading.Engine import (BacktestEngine, BacktestMarketSupply,
                                    MarketEvent, SignalType,
                                    SimpleBarBacktestExecution,
                                    SimpleBarPortfolio, StrategyAbstract)
-from ParadoxTrading.Fetch import FetchSHFEDay, RegisterSHFEDay
+from ParadoxTrading.Fetch import FetchSHFEDayIndex, RegisterSHFEDayIndex
 
 
 class MAStrategy(StrategyAbstract):
     def init(self):
-        self.addMarketRegister(RegisterSHFEDay(
-            _product='rb', _product_index=True
+        self.addMarketRegister(RegisterSHFEDayIndex(
+            _product='rb'
         ))
-        self.addMarketRegister(RegisterSHFEDay(
-            _product='ag', _product_index=True
+        self.addMarketRegister(RegisterSHFEDayIndex(
+            _product='ag'
         ))
 
     def deal(self, _market_event: MarketEvent):
@@ -25,7 +25,7 @@ ma_strategy = MAStrategy('ma')
 
 market_supply = BacktestMarketSupply(
     '20120119', '20170120',
-    RegisterSHFEDay, FetchSHFEDay)
+    RegisterSHFEDayIndex, FetchSHFEDayIndex)
 execution = SimpleBarBacktestExecution()
 portfolio = SimpleBarPortfolio()
 portfolio.price_index = 'averageprice'
