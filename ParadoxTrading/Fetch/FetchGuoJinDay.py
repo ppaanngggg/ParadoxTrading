@@ -13,3 +13,25 @@ class FetchGuoJinDay(FetchFutureDay):
         self.mongo_inst_db = 'GuoJinInst'
 
         self.psql_dbname = 'GuoJinDay'
+
+        self.columns = [
+            'tradingday',
+            'openprice',
+            'highprice',
+            'lowprice',
+            'closeprice',
+            'volume',
+            'turnover',
+            'openinterest',
+            'precloseprice',
+            'preopeninterest',
+        ]
+        self.index_columns = [
+            'tradingday',
+            'openprice',
+            'highprice',
+            'lowprice',
+            'closeprice',
+            'volume',
+            'openinterest',
+        ]

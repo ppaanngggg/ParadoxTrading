@@ -1,43 +1,16 @@
 from ParadoxTrading.Chart import CWizard
-from ParadoxTrading.Indicator import MA, CloseBar, Diff
-from ParadoxTrading.Utils import Fetch, SplitIntoMinute
+from ParadoxTrading.Fetch import FetchFutureDay
+from ParadoxTrading.Indicator import MA
 
-data = Fetch.fetchIntraDayData('20170123', 'rb')
-
-spliter = SplitIntoMinute(1)
-spliter.addMany(data)
-
-closeprice = CloseBar('lastprice').addMany(
-    spliter.getBarBeginTimeList(),
-    spliter.getBarList()
-).getAllData()
-
-maprice = MA(10, 'close').addMany(
-    closeprice.index(), closeprice
-).getAllData()
-
-closevolume = CloseBar('volume').addMany(
-    spliter.getBarBeginTimeList(),
-    spliter.getBarList()
-).getAllData()
-
-volume = Diff('close').addMany(
-    closevolume.index(), closevolume
-).getAllData()
-
-data = closeprice
-data.expand(volume)
-data.expand(maprice)
-data.changeColumnName('close', 'price')
-data.changeColumnName('diff', 'volume')
-
-print(data)
+data = FetchFutureDay().fetchDayData('20170101', '20170301', 'rb')
+ma_data = MA(10, 'closeprice').addMany(data.index(), data).getAllData()
+data.expand(ma_data)
 
 wizard = CWizard('rb')
 
 wizard.addView('price', 3)
 wizard.addLine(
-    'price', data.index(), data.getColumn('price'),
+    'price', data.index(), data.getColumn('closeprice'),
     'closeprice', 'green'
 )
 wizard.addLine(

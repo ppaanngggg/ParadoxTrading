@@ -1,5 +1,4 @@
 from ParadoxTrading.Fetch.FetchFutureTick import RegisterFuture, FetchFutureTick
-from ParadoxTrading.Utils import DataStruct
 
 
 class RegisterGuoJinTick(RegisterFuture):
@@ -17,8 +16,25 @@ class FetchGuoJinTick(FetchFutureTick):
 
         self.cache_path = 'GuoJinTick.hdf5'
 
-    def fetchDayData(
-            self, _begin_day: str, _end_day: str = None,
-            _instrument: str = None, _index: str = 'TradingDay'
-    ) -> DataStruct:
-        raise NotImplementedError()
+        self.columns = [
+            'tradingday', 'lastprice', 'highestprice', 'lowestprice',
+            'volume', 'turnover', 'openinterest',
+            'upperlimitprice', 'lowerlimitprice',
+            'askprice', 'askvolume', 'bidprice', 'bidvolume',
+            'happentime',
+        ]
+        self.types = [
+            'character',
+            'double precision', 'double precision', 'double precision',
+            'integer', 'double precision', 'double precision',
+            'double precision', 'double precision',
+            'double precision', 'integer', 'double precision', 'integer',
+            'timestamp without time zone',
+        ]
+        self.index_columns = [
+            'tradingday', 'lastprice', 'volume', 'openinterest', 'happentime'
+        ]
+        self.index_types = [
+            'character', 'double precision', 'integer',
+            'double precision', 'timestamp without time zone',
+        ]

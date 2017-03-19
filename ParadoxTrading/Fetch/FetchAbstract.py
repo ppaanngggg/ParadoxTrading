@@ -35,11 +35,11 @@ class FetchAbstract:
         raise NotImplementedError('fetchSymbol')
 
     def fetchData(
-            self, _tradingday: str, **kwargs
+            self, _tradingday: str, _symbol: str, **kwargs
     ) -> typing.Union[None, DataStruct]:
         raise NotImplementedError('fetchData')
 
     def fetchDayData(
-            self, _begin_day: str, _end_day: str, **kwargs
+            self, _begin_day: str, _end_day: str, _symbol: str, **kwargs
     ) -> DataStruct:
         raise NotImplementedError('fetchDayData')

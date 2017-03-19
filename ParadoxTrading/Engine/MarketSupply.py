@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import MarketEvent
-from ParadoxTrading.Fetch import RegisterAbstract, FetchAbstract
+from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -129,7 +129,7 @@ class DataGenerator:
             if inst is not None:
                 # fetch data and set index to 0 init
                 self.data_dict[inst] = _fetcher.fetchData(
-                    _tradingday, **v.toKwargs())
+                    _tradingday, _symbol=inst)
                 self.index_dict[inst] = 0
 
                 # map symbol to market register key

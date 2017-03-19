@@ -1,8 +1,8 @@
 import bisect
 import typing
 
-from ParadoxTrading.Engine import ActionType, DirectionType, SignalType, \
-    FillEvent
+from ParadoxTrading.Engine import (ActionType, DirectionType, FillEvent,
+                                   SignalType)
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -34,13 +34,14 @@ def _calcDailyFund(
         _cur_fund: float,
         _tradingday: str,
         _dailydata_dict: typing.Dict[str, DataStruct],
-        _position_dict: typing.Dict[str, typing.Dict[int, int]]
+        _position_dict: typing.Dict[str, typing.Dict[int, int]],
+        _price_index: str = 'closeprice'
 ) -> float:
     fund = _cur_fund
     for k, v in _position_dict.items():
         i = bisect.bisect_right(_dailydata_dict[k].index(),
                                 _tradingday) - 1
-        closeprice = _dailydata_dict[k].getColumn('closeprice')[i]
+        closeprice = _dailydata_dict[k].getColumn(_price_index)[i]
         if v[SignalType.LONG] > 0:
             fund += closeprice * _position_dict[k][SignalType.LONG]
         if v[SignalType.SHORT] > 0:
@@ -53,7 +54,8 @@ def dailyReturn(
         _begin_day: str, _end_day: str,
         _fill_event_list: typing.List[FillEvent],
         _fetch_func: typing.Callable[..., DataStruct],
-        _init_fund: float = 0.0
+        _init_fund: float = 0.0,
+        _price_index: str = 'closeprice'
 ) -> DataStruct:
     dailydata_dict: typing.Dict[str, DataStruct] = _getInterDayDataDict(
         _begin_day, _end_day, _fill_event_list, _fetch_func)
@@ -71,7 +73,7 @@ def dailyReturn(
 
     for tradingday in sorted(tradingday_set):
         while cur_fill_idx < len(_fill_event_list) and \
-                        _fill_event_list[cur_fill_idx].tradingday <= tradingday:
+                _fill_event_list[cur_fill_idx].tradingday <= tradingday:
             d = _fill_event_list[cur_fill_idx]
             if d.action == ActionType.OPEN:
                 if d.direction == DirectionType.BUY:
@@ -97,12 +99,12 @@ def dailyReturn(
             elif d.action == ActionType.CLOSE:
                 if d.direction == DirectionType.BUY:
                     assert position_dict[d.symbol][
-                               SignalType.SHORT] > d.quantity
+                        SignalType.SHORT] > d.quantity
                     position_dict[d.symbol][SignalType.SHORT] -= d.quantity
                     cur_fund -= d.quantity * d.price + d.commission
                 elif d.direction == DirectionType.SELL:
                     assert position_dict[d.symbol][
-                               SignalType.LONG] > d.quantity
+                        SignalType.LONG] > d.quantity
                     position_dict[d.symbol][SignalType.LONG] -= d.quantity
                     cur_fund += d.quantity * d.price - d.commission
                 else:
@@ -116,7 +118,8 @@ def dailyReturn(
             [tradingday,
              _calcDailyFund(
                  cur_fund, tradingday,
-                 dailydata_dict, position_dict
+                 dailydata_dict, position_dict,
+                 _price_index
              )],
             ['TradingDay', 'Fund']
         )

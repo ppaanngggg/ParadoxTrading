@@ -1,17 +1,16 @@
-from ParadoxTrading.Engine import BacktestEngine, MarketEvent, SignalType, \
-    SimpleBarBacktestExecution, SimpleBarPortfolio, StrategyAbstract, \
-    BacktestMarketSupply
-from ParadoxTrading.Fetch import RegisterFutureHour, FetchFutureHour, \
-    FetchFutureDay
-from ParadoxTrading.Performance import FetchRecord, dailyReturn
+from ParadoxTrading.Engine import (BacktestEngine, BacktestMarketSupply,
+                                   MarketEvent, SignalType,
+                                   SimpleBarBacktestExecution,
+                                   SimpleBarPortfolio, StrategyAbstract)
+from ParadoxTrading.Fetch import FetchSHFEDay, RegisterSHFEDay
 
 
 class MAStrategy(StrategyAbstract):
     def init(self):
-        self.addMarketRegister(RegisterFutureHour(
+        self.addMarketRegister(RegisterSHFEDay(
             _product='rb', _product_index=True
         ))
-        self.addMarketRegister(RegisterFutureHour(
+        self.addMarketRegister(RegisterSHFEDay(
             _product='ag', _product_index=True
         ))
 
@@ -21,13 +20,15 @@ class MAStrategy(StrategyAbstract):
         if _market_event.symbol == 'ag':
             self.addEvent(_market_event.symbol, SignalType.SHORT)
 
+
 ma_strategy = MAStrategy('ma')
 
 market_supply = BacktestMarketSupply(
-    '20170119', '20170120',
-    RegisterFutureHour, FetchFutureHour)
+    '20120119', '20170120',
+    RegisterSHFEDay, FetchSHFEDay)
 execution = SimpleBarBacktestExecution()
 portfolio = SimpleBarPortfolio()
+portfolio.price_index = 'averageprice'
 
 engine = BacktestEngine()
 engine.addMarketSupply(market_supply)
@@ -36,11 +37,3 @@ engine.addPortfolio(portfolio)
 engine.addStrategy(ma_strategy)
 
 engine.run()
-
-portfolio.storeRecords('test')
-
-fill_list = FetchRecord.fetchFillRecords('test', 'ma')
-print(dailyReturn(
-    '20170119', '20170130', fill_list,
-    FetchFutureDay().fetchDayData
-))

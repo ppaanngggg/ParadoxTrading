@@ -3,7 +3,7 @@ from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta
 
 import numpy as np
-from tabulate import tabulate
+import tabulate
 
 
 class DataStruct:
@@ -63,9 +63,9 @@ class DataStruct:
             tmp_rows, tmp_keys = self.iloc[:8].toRows()
             tmp_rows.append(['...' for _ in tmp_keys])
             tmp_rows += self.iloc[-8:].toRows()[0]
-            return tabulate(tmp_rows, headers=tmp_keys)
+            return tabulate.tabulate(tmp_rows, headers=tmp_keys)
         tmp_rows, tmp_keys = self.toRows()
-        return tabulate(tmp_rows, headers=tmp_keys)
+        return tabulate.tabulate(tmp_rows, headers=tmp_keys)
 
     def merge(self, _struct: "DataStruct"):
         self.addRows(*_struct.toRows())
