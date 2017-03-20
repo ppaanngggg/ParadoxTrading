@@ -1,4 +1,4 @@
-from ParadoxTrading.Fetch import FetchGuoJinTick, FetchGuoJinMin, FetchGuoJinDay
+from ParadoxTrading.Fetch import FetchGuoJinTick, FetchSHFEDayIndex
 
 fetcher = FetchGuoJinTick()
 fetcher.psql_host = '192.168.4.102'
@@ -7,47 +7,36 @@ fetcher.mongo_host = '192.168.4.102'
 
 # get all product in mongo database
 print(fetcher.productList())
+
+# get symbol of config. This function is the most common interface
+# 1. get the dominant symbol
+print(fetcher.fetchSymbol('20160506', 'rb'))
+# 2. get the subdominant symbol
+print(fetcher.fetchSymbol('20160506', 'rb', _sub_dominant=True))
+# 3. get the instrument symbol
+print(fetcher.fetchSymbol('20160506', _instrument='rb1609'))
+
 # get dominant symbol of ag
-print(fetcher.fetchDominant('ag', '20160314'))
+print(fetcher.fetchDominant('ag', '20160506'))
 # get sub dominant symbol of ag
-print(fetcher.fetchSubDominant('ag', '20160314'))
+print(fetcher.fetchSubDominant('ag', '20160506'))
 # get add instrument traded of this product
-print(fetcher.fetchTradeInstrument('ag', '20160314'))
-input()
+print(fetcher.fetchTradeInstrument('ag', '20160506'))
 
-# get dominant data of ag
-print(fetcher.fetchData('20160314', _product='ag'))
-input()
-# get sub dominant data of ag
-print(fetcher.fetchData('20160314', _product='ag', _sub_dominant=True))
-input()
-# get product index of ag
-print(fetcher.fetchData('20160314', _product='ag', _product_index=True))
-input()
-# get insturment of ag1603
-print(fetcher.fetchData('20160314', _instrument='ag1603'))
+# get tick data
+print(fetcher.fetchData('20160506', fetcher.fetchSymbol('20160506', 'rb')))
 
-# fetch min data
-fetcher = FetchGuoJinMin()
-fetcher.psql_host = '192.168.4.102'
+# this is a product index fetcher
+fetcher = FetchSHFEDayIndex()
+fetcher.psql_host = '192.168.4.103'
 fetcher.psql_user = 'ubuntu'
-fetcher.mongo_host = '192.168.4.102'
+fetcher.mongo_host = '192.168.4.103'
 
-# fetch min bar of ag, and use begin time as index
-print(fetcher.fetchData('20160314', 'ag', _index='bartime'))
-input()
-# fetch min bar of ag, and use end time as index
-print(fetcher.fetchData('20160314', 'ag', _index='barendtime'))
-input()
+# get the symbol of product
+print(fetcher.fetchSymbol('20170123','rb'))
 
-# fetch day data
-fetcher = Fetch = FetchGuoJinDay()
-fetcher.psql_host = '192.168.4.102'
-fetcher.psql_user = 'ubuntu'
-fetcher.mongo_host = '192.168.4.102'
+# get index data
+print(fetcher.fetchData('20170123', 'rb'))
 
-# fetch one day
-print(fetcher.fetchData('20160314', 'ag'))
-# fetch a range of days
-print(fetcher.fetchDayData('20160301', '20160401', 'ag1606'))
-input()
+# get during data
+print(fetcher.fetchDayData('20170101', '20170201', 'rb'))
