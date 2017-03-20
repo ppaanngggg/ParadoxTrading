@@ -33,7 +33,7 @@ fetcher.psql_user = 'ubuntu'
 fetcher.mongo_host = '192.168.4.103'
 
 # get the symbol of product
-print(fetcher.fetchSymbol('20170123','rb'))
+print(fetcher.fetchSymbol('20170123', 'rb'))
 
 # get index data
 print(fetcher.fetchData('20170123', 'rb'))
