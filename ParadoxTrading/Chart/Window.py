@@ -2,10 +2,12 @@ from PyQt5 import QtCore
 from PyQt5.Qt import QKeyEvent
 from PyQt5.QtWidgets import QWidget
 
+import ParadoxTrading.Chart
 
-class CWindow(QWidget):
 
-    def setWizard(self, _wizard: "CWizard.CWizard"):
+class Window(QWidget):
+
+    def setWizard(self, _wizard: "ParadoxTrading.Chart.Wizard"):
         self.wizard = _wizard
 
     def keyReleaseEvent(self, _event: QKeyEvent):

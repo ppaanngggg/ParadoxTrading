@@ -2,22 +2,27 @@ import sys
 import typing
 from datetime import datetime
 
-import ParadoxTrading.Chart.CView
-import ParadoxTrading.Chart.CWindow
 from PyQt5.Qt import QColor, QPainter
 from PyQt5.QtChart import QBarCategoryAxis
 from PyQt5.QtWidgets import QApplication, QPushButton, QVBoxLayout
 
+import ParadoxTrading.Chart.View
+import ParadoxTrading.Chart.Window
 
-class CWizard:
+
+class Wizard:
+
+    ZOOM_STEP = 10.0
+    SCROLL_STEP = 10.0
 
     def __init__(
-        self, _title: str='', _width: int=800, _height: int=600,
+        self, _title: str='', _width: int=1440, _height: int=960,
     ):
         self.title = _title
         self.width = _width
         self.height = _height
 
+        self.view_list = []
         self.view_dict = {}  # typing.Dict
 
         self.begin_idx = 0
@@ -26,8 +31,9 @@ class CWizard:
     def addView(self, _name: str=None, _stretch: int=1):
         assert _name not in self.view_dict.keys()
         assert _stretch > 0
+        self.view_list.append(_name)
         self.view_dict[_name] = {
-            'view': ParadoxTrading.Chart.CView.CView(_name),
+            'view': ParadoxTrading.Chart.View.View(_name),
             'stretch': _stretch
         }
 
@@ -51,7 +57,7 @@ class CWizard:
             _x_list, _y_list, _name,
             None if _color is None else QColor(_color))
 
-    def _calcSetXDictList(self) -> (dict, dict):
+    def _calcSetX(self) -> (dict, dict):
         tmp = set()
         for d in self.view_dict.values():
             tmp |= d['view'].calcSetX()
@@ -71,18 +77,18 @@ class CWizard:
 
         app = QApplication(sys.argv)
 
-        self.x2idx, self.idx2x = self._calcSetXDictList()
+        self.x2idx, self.idx2x = self._calcSetX()
         self._calcAxisX(self.idx2x)
 
         layout = QVBoxLayout()
 
-        for d in self.view_dict.values():
+        for d in [self.view_dict[name] for name in self.view_list]:
             layout.addWidget(
                 d['view'].createChartView(self.x2idx, self.idx2x),
                 d['stretch']
             )
 
-        window = ParadoxTrading.Chart.CWindow.CWindow()
+        window = ParadoxTrading.Chart.Window.Window()
         window.setWizard(self)
         window.setWindowTitle(self.title)
         window.resize(self.width, self.height)
@@ -101,7 +107,9 @@ class CWizard:
 
     def zoomIn(self):
         mid = (self.begin_idx + self.end_idx) / 2.0
-        diff = max(int((self.end_idx - self.begin_idx) / 2.0 / 10.0), 1)
+        diff = max(
+            int((self.end_idx - self.begin_idx) / 2.0 / self.ZOOM_STEP),
+            1)
         if self.end_idx - self.begin_idx > 2 * diff:
             self.begin_idx += diff
             self.end_idx -= diff
@@ -110,14 +118,18 @@ class CWizard:
 
     def zoomOut(self):
         mid = (self.begin_idx + self.end_idx) / 2.0
-        diff = max(int((self.end_idx - self.begin_idx) / 2.0 / 10.0), 1)
+        diff = max(
+            int((self.end_idx - self.begin_idx) / 2.0 / self.ZOOM_STEP),
+            1)
         self.begin_idx = max(self.begin_idx - diff, 0)
         self.end_idx = min(self.end_idx + diff, len(self.idx2x) - 1)
 
         self._setAxisX(self.begin_idx, self.end_idx)
 
     def scrollLeft(self):
-        diff = max(int((self.end_idx - self.begin_idx) / 10.0), 1)
+        diff = max(
+            int((self.end_idx - self.begin_idx) / self.SCROLL_STEP),
+            1)
         self.begin_idx -= diff
         self.begin_idx = max(self.begin_idx, 0)
         self.end_idx -= diff
@@ -126,7 +138,9 @@ class CWizard:
         self._setAxisX(self.begin_idx, self.end_idx)
 
     def scrollRight(self):
-        diff = max(int((self.end_idx - self.begin_idx) / 10.0), 1)
+        diff = max(
+            int((self.end_idx - self.begin_idx) / self.SCROLL_STEP),
+            1)
         self.begin_idx += diff
         self.begin_idx = min(self.begin_idx, len(self.idx2x) - 1)
         self.end_idx += diff

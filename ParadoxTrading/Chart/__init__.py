@@ -1,1 +1,1 @@
-from .CWizard import CWizard
+from .Wizard import Wizard

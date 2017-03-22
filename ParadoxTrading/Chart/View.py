@@ -5,7 +5,8 @@ from PyQt5.Qt import QColor, QPainter
 from PyQt5.QtChart import (QBarCategoryAxis, QBarSeries, QBarSet, QChart,
                            QChartView, QLineSeries, QValueAxis)
 
-class CView:
+
+class View:
 
     BAR = 'bar'
     LINE = 'line'
@@ -51,6 +52,12 @@ class CView:
             tmp |= set(v['x'])
         return tmp
 
+    def calcRangeY(self) -> (float, float):
+        return (
+            min([min(v['y']) for v in self.raw_data_dict.values()]),
+            max([max(v['y']) for v in self.raw_data_dict.values()]),
+        )
+
     def _addLineSeries(
         self, _x2idx: dict, _idx2x: list, _v: dict, _chart: QChart,
         _axis_x: QBarCategoryAxis, _axis_y: QValueAxis
@@ -91,11 +98,15 @@ class CView:
     def setAxisX(self, _begin: str, _end: str):
         self.axis_x.setRange(_begin, _end)
 
+    def setAxisY(self, _begin: str, _end: str):
+        self.axis_y.setRange(_begin, _end)
+
     def createChartView(
             self, _x2idx: dict, _idx2x: list
     ) -> QChartView:
         chart = QChart()
 
+        self.setAxisY(*self.calcRangeY())
         for k, v in self.raw_data_dict.items():
             if v['type'] == self.LINE:
                 self._addLineSeries(
