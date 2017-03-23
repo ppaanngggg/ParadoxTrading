@@ -84,6 +84,8 @@ class RegisterFutureTick(RegisterAbstract):
 
 class FetchFutureTick(FetchAbstract):
     def __init__(self):
+        self.register_type = RegisterFutureTick
+
         self.mongo_host: str = 'localhost'
         self.mongo_prod_db: str = 'FutureProd'
         self.mongo_inst_db: str = 'FutureInst'
@@ -508,6 +510,8 @@ class FetchFutureTickIndex(FetchFutureTick):
     def __init__(self):
         super().__init__()
 
+        self.register_type = RegisterFutureTickIndex
+
         self.columns = [
             'tradingday', 'lastprice', 'volume', 'openinterest', 'happentime'
         ]
@@ -535,6 +539,8 @@ class RegisterFutureMin(RegisterFutureTick):
 class FetchFutureMin(FetchFutureTick):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterFutureMin
         # reset path
         self.psql_dbname = 'FutureMin'
         self.cache_path = 'FutureMin.hdf5'
@@ -571,6 +577,8 @@ class FetchFutureMinIndex(FetchFutureTickIndex):
     def __init__(self):
         super().__init__()
 
+        self.register_type = RegisterFutureMinIndex
+
         self.psql_dbname = 'FutureMin'
         self.cache_path = 'FutureMin.hdf5'
 
@@ -602,6 +610,8 @@ class RegisterFutureHour(RegisterFutureTick):
 class FetchFutureHour(FetchFutureMin):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterFutureHour
         # reset path
         self.psql_dbname = 'FutureHour'
         self.cache_path = 'FutureHour.hdf5'
@@ -614,6 +624,8 @@ class RegisterFutureHourIndex(RegisterFutureTickIndex):
 class FetchFutureHourIndex(FetchFutureMinIndex):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterFutureHourIndex
 
         self.psql_dbname = 'FutureHour'
         self.cache_path = 'FutureHour.hdf5'
@@ -628,6 +640,8 @@ class FetchFutureDay(FetchFutureTick):
         super().__init__()
         self.psql_dbname = 'FutureDay'
         del self.cache_path
+
+        self.register_type = RegisterFutureDay
 
         self.columns = [
             'tradingday', 'openprice', 'highprice', 'lowprice', 'closeprice',
@@ -681,6 +695,7 @@ class FetchFutureDayIndex(FetchFutureDay):
     def __init__(self):
         super().__init__()
 
+        self.register_type = RegisterFutureDayIndex
         self.columns = [
             'tradingday', 'openprice', 'highprice', 'lowprice',
             'closeprice', 'volume', 'openinterest',

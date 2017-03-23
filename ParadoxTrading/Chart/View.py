@@ -1,9 +1,18 @@
 import typing
 from datetime import datetime
 
-from PyQt5.Qt import QColor, QPainter
+from PyQt5.Qt import QColor, QMouseEvent, QPainter
 from PyQt5.QtChart import (QBarCategoryAxis, QBarSeries, QBarSet, QChart,
                            QChartView, QLineSeries, QValueAxis)
+
+
+class ChartView(QChartView):
+
+    def mouseMoveEvent(self, _event: QMouseEvent):
+        tmp_chart: QChart = self.chart()
+        point = self.chart().mapToValue(_event.pos())
+        index = round(point.x())
+        # print(index)
 
 
 class View:
@@ -103,7 +112,7 @@ class View:
 
     def createChartView(
             self, _x2idx: dict, _idx2x: list
-    ) -> QChartView:
+    ) -> ChartView:
         chart = QChart()
 
         self.setAxisY(*self.calcRangeY())
@@ -117,6 +126,6 @@ class View:
             else:
                 raise Exception('Unknow type!')
 
-        chartview = QChartView(chart)
+        chartview = ChartView(chart)
         chartview.setRenderHint(QPainter.Antialiasing)
         return chartview

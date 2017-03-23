@@ -1,19 +1,23 @@
 from .FetchAbstract import FetchAbstract, RegisterAbstract
-from .FetchFuture import FetchFutureTick, RegisterFutureTick, \
-    FetchFutureTickIndex, RegisterFutureTickIndex, \
-    FetchFutureMin, RegisterFutureMin, \
-    FetchFutureMinIndex, RegisterFutureMinIndex, \
-    FetchFutureHour, RegisterFutureHour, \
-    FetchFutureHourIndex, RegisterFutureHourIndex, \
-    FetchFutureDay, RegisterFutureDay, \
-    FetchFutureDayIndex, RegisterFutureDayIndex
-from .FetchGuoJin import FetchGuoJinTick, RegisterGuoJinTick, \
-    FetchGuoJinTickIndex, RegisterGuoJinTickIndex, \
-    FetchGuoJinMin, RegisterGuoJinMin, \
-    FetchGuoJinMinIndex, RegisterGuoJinMinIndex, \
-    FetchGuoJinHour, RegisterGuoJinHour, \
-    FetchGuoJinHourIndex, RegisterGuoJinHourIndex, \
-    FetchGuoJinDay, RegisterGuoJinDay, \
-    FetchGuoJinDayIndex, RegisterGuoJinDayIndex
-from .FetchSHFE import FetchSHFEDay, RegisterSHFEDay, \
-    FetchSHFEDayIndex, RegisterSHFEDayIndex
+from .FetchCZCE import (FetchCZCEDay, FetchCZCEDayIndex, RegisterCZCEDay,
+                        RegisterCZCEDayIndex)
+from .FetchDCE import (FetchDCEDay, FetchDCEDayIndex, RegisterDCEDay,
+                       RegisterDCEDayIndex)
+from .FetchFuture import (FetchFutureDay, FetchFutureDayIndex, FetchFutureHour,
+                          FetchFutureHourIndex, FetchFutureMin,
+                          FetchFutureMinIndex, FetchFutureTick,
+                          FetchFutureTickIndex, RegisterFutureDay,
+                          RegisterFutureDayIndex, RegisterFutureHour,
+                          RegisterFutureHourIndex, RegisterFutureMin,
+                          RegisterFutureMinIndex, RegisterFutureTick,
+                          RegisterFutureTickIndex)
+from .FetchGuoJin import (FetchGuoJinDay, FetchGuoJinDayIndex, FetchGuoJinHour,
+                          FetchGuoJinHourIndex, FetchGuoJinMin,
+                          FetchGuoJinMinIndex, FetchGuoJinTick,
+                          FetchGuoJinTickIndex, RegisterGuoJinDay,
+                          RegisterGuoJinDayIndex, RegisterGuoJinHour,
+                          RegisterGuoJinHourIndex, RegisterGuoJinMin,
+                          RegisterGuoJinMinIndex, RegisterGuoJinTick,
+                          RegisterGuoJinTickIndex)
+from .FetchSHFE import (FetchSHFEDay, FetchSHFEDayIndex, RegisterSHFEDay,
+                        RegisterSHFEDayIndex)

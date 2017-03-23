@@ -1,14 +1,18 @@
-from ParadoxTrading.Fetch import (FetchFutureDay, FetchFutureDayIndex,
-                                  RegisterFutureDay, RegisterFutureDayIndex)
+from ParadoxTrading.Fetch.FetchFuture import (FetchFutureDay,
+                                              FetchFutureDayIndex,
+                                              RegisterFutureDay,
+                                              RegisterFutureDayIndex)
 
 
-class RegisterSHFEDay(RegisterFutureDay):
+class RegisterDCEDay(RegisterFutureDay):
     pass
 
 
-class FetchSHFEDay(FetchFutureDay):
+class FetchDCEDay(FetchFutureDay):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterDCEDay
 
         self.mongo_prod_db = 'DCEProd'
         self.mongo_inst_db = 'DCEInst'
@@ -32,13 +36,15 @@ class FetchSHFEDay(FetchFutureDay):
         ]
 
 
-class RegisterSHFEDayIndex(RegisterFutureDayIndex):
+class RegisterDCEDayIndex(RegisterFutureDayIndex):
     pass
 
 
-class FetchSHFEDayIndex(FetchFutureDayIndex):
+class FetchDCEDayIndex(FetchFutureDayIndex):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterDCEDayIndex
 
         self.mongo_prod_db = 'DCEProd'
         self.mongo_inst_db = 'DCEInst'

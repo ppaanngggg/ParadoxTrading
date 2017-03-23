@@ -1,34 +1,38 @@
-from ParadoxTrading.Engine import (BacktestEngine, BacktestMarketSupply,
-                                   MarketEvent, SignalType,
-                                   SimpleBarBacktestExecution,
-                                   SimpleBarPortfolio, StrategyAbstract)
-from ParadoxTrading.Fetch import FetchSHFEDayIndex, RegisterSHFEDayIndex
+from ParadoxTrading.Engine import MarketEvent, SignalType, StrategyAbstract
+from ParadoxTrading.EngineExt import (BacktestEngine, BacktestMarketSupply,
+                                      TickBacktestExecution, TickPortfolio)
+from ParadoxTrading.Fetch import FetchGuoJinTick, RegisterGuoJinTick
 
 
-class MAStrategy(StrategyAbstract):
+class MyStrategy(StrategyAbstract):
     def init(self):
-        self.addMarketRegister(RegisterSHFEDayIndex(
+        self.addMarketRegister(RegisterGuoJinTick(
             _product='rb'
         ))
-        self.addMarketRegister(RegisterSHFEDayIndex(
+        self.addMarketRegister(RegisterGuoJinTick(
             _product='ag'
         ))
 
     def deal(self, _market_event: MarketEvent):
-        if _market_event.symbol == 'rb':
-            self.addEvent(_market_event.symbol, SignalType.LONG)
-        if _market_event.symbol == 'ag':
-            self.addEvent(_market_event.symbol, SignalType.SHORT)
+        print(_market_event.data)
+        input()
+        # if _market_event.symbol == 'rb':
+        #     self.addEvent(_market_event.symbol, SignalType.LONG)
+        # if _market_event.symbol == 'ag':
+        #     self.addEvent(_market_event.symbol, SignalType.SHORT)
 
 
-ma_strategy = MAStrategy('ma')
+ma_strategy = MyStrategy('ma')
+
+fetcher = FetchGuoJinTick()
+fetcher.psql_host = '192.168.4.102'
+fetcher.psql_user = 'ubuntu'
+fetcher.mongo_host = '192.168.4.102'
 
 market_supply = BacktestMarketSupply(
-    '20120119', '20170120',
-    RegisterSHFEDayIndex, FetchSHFEDayIndex)
-execution = SimpleBarBacktestExecution()
-portfolio = SimpleBarPortfolio()
-portfolio.price_index = 'averageprice'
+    '20160101', '20170120', fetcher)
+execution = TickBacktestExecution()
+portfolio = TickPortfolio()
 
 engine = BacktestEngine()
 engine.addMarketSupply(market_supply)

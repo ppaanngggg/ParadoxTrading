@@ -3,7 +3,7 @@ import typing
 from datetime import datetime, timedelta
 
 from ParadoxTrading.Engine import MarketSupplyAbstract
-from ParadoxTrading.Fetch import RegisterAbstract, FetchAbstract
+from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -89,7 +89,7 @@ class DataGenerator:
 class BacktestMarketSupply(MarketSupplyAbstract):
     def __init__(
             self, _begin_day: str, _end_day: str,
-            _register_type: type, _fetch_type: type
+            _fetcher: FetchAbstract
     ):
         """
         market supply for backtest
@@ -97,15 +97,13 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         :param _begin_day: begin date of backtest, like '20170123'
         :param _end_day: end date of backtest, like '20170131'
         """
+        super().__init__(_fetcher)
+
         self.begin_day: str = _begin_day
         self.cur_day: str = self.begin_day
         self.end_day: str = _end_day
 
-        self.fetcher: FetchAbstract = _fetch_type()
-
         self.data_generator: DataGenerator = None
-
-        super().__init__(_register_type)
 
     def incDate(self) -> str:
         """

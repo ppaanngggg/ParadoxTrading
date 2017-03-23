@@ -1,6 +1,11 @@
-from ParadoxTrading.Fetch import RegisterFutureTick, FetchFutureTick, \
-    RegisterFutureTickIndex, FetchFutureTickIndex, FetchFutureMin, \
-    FetchFutureMinIndex, FetchFutureDay, FetchFutureDayIndex
+from ParadoxTrading.Fetch.FetchFuture import (FetchFutureDay,
+                                              FetchFutureDayIndex,
+                                              FetchFutureMin,
+                                              FetchFutureMinIndex,
+                                              FetchFutureTick,
+                                              FetchFutureTickIndex,
+                                              RegisterFutureTick,
+                                              RegisterFutureTickIndex)
 
 
 class RegisterGuoJinTick(RegisterFutureTick):
@@ -10,6 +15,8 @@ class RegisterGuoJinTick(RegisterFutureTick):
 class FetchGuoJinTick(FetchFutureTick):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterGuoJinTick
 
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
@@ -43,6 +50,8 @@ class FetchGuoJinTickIndex(FetchFutureTickIndex):
     def __init__(self):
         super().__init__()
 
+        self.register_type = RegisterGuoJinTickIndex
+
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
 
@@ -66,6 +75,9 @@ class RegisterGuoJinMin(RegisterFutureTick):
 class FetchGuoJinMin(FetchFutureMin):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterGuoJinMin
+
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
 
@@ -97,6 +109,9 @@ class RegisterGuoJinMinIndex(RegisterFutureTickIndex):
 class FetchGuoJinMinIndex(FetchFutureMinIndex):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterGuoJinMinIndex
+
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
 
@@ -126,6 +141,9 @@ class RegisterGuoJinHour(RegisterFutureTick):
 class FetchGuoJinHour(FetchGuoJinMin):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterGuoJinHour
+
         self.psql_dbname = 'GuoJinHour'
         self.cache_path = 'GuoJinHour.hdf5'
 
@@ -137,6 +155,9 @@ class RegisterGuoJinHourIndex(RegisterFutureTickIndex):
 class FetchGuoJinHourIndex(FetchGuoJinMinIndex):
     def __init__(self):
         super().__init__()
+
+        self.register_type = RegisterGuoJinHourIndex
+
         self.psql_dbname = 'GuoJinHour'
         self.cache_path = 'GuoJinHour.hdf5'
 
@@ -148,6 +169,9 @@ class RegisterGuoJinDay(RegisterFutureTick):
 class FetchGuoJinDay(FetchFutureDay):
     def __init__(self):
         super().__init__()
+
+        self.register_type = FetchGuoJinDay
+
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
 
@@ -167,6 +191,9 @@ class RegisterGuoJinDayIndex(RegisterFutureTickIndex):
 class FetchGuoJinDayIndex(FetchFutureDayIndex):
     def __init__(self):
         super().__init__()
+
+        self.register_type = FetchGuoJinDayIndex
+
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
 

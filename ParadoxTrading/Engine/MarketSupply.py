@@ -7,24 +7,22 @@ from datetime import datetime
 
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import MarketEvent
-from ParadoxTrading.Fetch import RegisterAbstract
+from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
 class MarketSupplyAbstract:
-    def __init__(self, _register_type):
+    def __init__(self, _fetcher: FetchAbstract):
         """
         base class market supply
 
         """
-
+        self.fetcher: FetchAbstract = _fetcher
         # map market register's key to its object
         self.register_dict: typing.Dict[str, RegisterAbstract] = {}
         # map symbol to set of market register
         self.symbol_dict: typing.Dict[str, typing.Set[str]] = {}
         self.data_dict: typing.Dict[str, DataStruct] = {}
-
-        self.register_type = _register_type
 
         self.engine: ParadoxTrading.Engine.EngineAbstract = None
 
@@ -43,7 +41,7 @@ class MarketSupplyAbstract:
         for key in _strategy.register_dict.keys():
             if key not in self.register_dict.keys():
                 # if not existed, create it
-                self.register_dict[key] = self.register_type.fromJson(
+                self.register_dict[key] = self.fetcher.register_type.fromJson(
                     key)
             # add strategy into market register
             self.register_dict[key].addStrategy(_strategy)
