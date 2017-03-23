@@ -27,14 +27,13 @@ print(data.index_name)
 # get values of index
 print(data.index())
 # get values of one column
+print(data['askprice'])
 print(data.getColumn('askprice'))
 
 # you can get rows by number, [start, end)
 print(data.iloc[:10])
 # get rows by index value, [start, end) ! not same as pd.DataFrame
 print(data.loc[:data.index()[10]])
-# or you can
-print(data[:data.index()[10]])
 # when slice one row,
 print(data[data.index()[10]])
 # return None if not exists
@@ -54,3 +53,7 @@ print(v)
 print(k)
 # turn datastruct to list of dict
 print(a.toDicts())
+
+# iter each line in data
+for d in data:
+    print(d)
