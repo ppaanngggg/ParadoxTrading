@@ -58,7 +58,7 @@ class MarketSupplyAbstract:
         try:
             self.data_dict[_symbol].merge(_data)
         except KeyError:
-            self.data_dict[_symbol] = _data[:]
+            self.data_dict[_symbol] = _data.iloc[:]
         for k in self.symbol_dict[_symbol]:
             # add event for each strategy if necessary
             for strategy in self.register_dict[k].strategy_set:

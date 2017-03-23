@@ -14,6 +14,7 @@ class MyStrategy(StrategyAbstract):
         ))
 
     def deal(self, _market_event: MarketEvent):
+        print(_market_event.symbol)
         print(_market_event.data)
         input()
         # if _market_event.symbol == 'rb':
