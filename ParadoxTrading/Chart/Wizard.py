@@ -57,6 +57,16 @@ class Wizard:
             _x_list, _y_list, _name,
             None if _color is None else QColor(_color))
 
+    def addScatter(
+        self, _view_name:str,
+        _x_list: typing.List[datetime], _y_list: list,
+        _name: str, _color: QColor=None
+    ):
+        assert _view_name in self.view_dict.keys()
+        self.view_dict[_view_name]['view'].addScatter(
+            _x_list, _y_list, _name,
+            None if _color is None else QColor(_color))
+
     def _calcSetX(self) -> (dict, dict):
         tmp = set()
         for d in self.view_dict.values():

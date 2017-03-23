@@ -3,7 +3,7 @@ from datetime import datetime
 
 from PyQt5.Qt import QColor, QMouseEvent, QPainter
 from PyQt5.QtChart import (QBarCategoryAxis, QBarSeries, QBarSet, QChart,
-                           QChartView, QLineSeries, QValueAxis)
+                           QChartView, QLineSeries, QScatterSeries, QValueAxis)
 
 
 class ChartView(QChartView):
@@ -19,6 +19,7 @@ class View:
 
     BAR = 'bar'
     LINE = 'line'
+    SCATTER = 'scatter'
 
     def __init__(self, _name: str=None):
 
@@ -55,6 +56,12 @@ class View:
     ):
         self._add(_x_list, _y_list, _name, _color, self.LINE)
 
+    def addScatter(
+        self, _x_list: typing.List[datetime], _y_list: list,
+        _name: str, _color: QColor=None
+    ):
+        self._add(_x_list, _y_list, _name, _color, self.SCATTER)
+
     def calcSetX(self) -> set:
         tmp = set()
         for v in self.raw_data_dict.values():
@@ -77,6 +84,7 @@ class View:
             series.append(_x2idx[x], y)
         if _v['color'] is not None:
             series.setColor(_v['color'])
+
         _chart.addSeries(series)
         _chart.setAxisX(_axis_x, series)
         _chart.setAxisY(_axis_y, series)
@@ -101,6 +109,21 @@ class View:
         _chart.setAxisX(_axis_x, barseries)
         _chart.setAxisY(_axis_y, barseries)
 
+    def _addScatterSeries(
+        self, _x2idx: dict, _idx2x: list, _v: dict, _chart: QChart,
+        _axis_x: QBarCategoryAxis, _axis_y: QValueAxis
+    ):
+        series = QScatterSeries()
+        series.setName(_v['name'])
+        for x, y in zip(_v['x'], _v['y']):
+            series.append(_x2idx[x], y)
+        if _v['color'] is not None:
+            series.setColor(_v['color'])
+
+        _chart.addSeries(series)
+        _chart.setAxisX(_axis_x, series)
+        _chart.setAxisY(_axis_y, series)
+
     def appendAxisX(self, _list: typing.List[str]):
         self.axis_x.append(_list)
 
@@ -122,6 +145,9 @@ class View:
                     _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
             elif v['type'] == self.BAR:
                 self._addBarSeries(
+                    _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
+            elif v['type'] == self.SCATTER:
+                self._addScatterSeries(
                     _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
             else:
                 raise Exception('Unknow type!')

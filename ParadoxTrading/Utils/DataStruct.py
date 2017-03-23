@@ -48,8 +48,9 @@ class DataStruct:
             assert isinstance(_dicts, list)
             self.addDicts(_dicts)
 
-    def __getitem__(self, _item: slice) -> "DataStruct":
-        return self.loc.__getitem__(_item)
+    def __getitem__(self, _item: str) -> typing.List[typing.Any]:
+        assert type(_item) == str
+        return self.data[_item]
 
     def __len__(self) -> int:
         return len(self.index())
