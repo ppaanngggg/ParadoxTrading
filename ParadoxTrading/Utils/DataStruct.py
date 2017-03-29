@@ -133,7 +133,7 @@ class DataStruct:
         dicts = []
         rows, keys = self.toRows()
         for d in rows:
-            dicts.append(dict(zip(d, keys)))
+            dicts.append(dict(zip(keys, d)))
         return dicts
 
     def toDict(self, _index: int = 0) -> (typing.Dict[str, typing.Any]):
