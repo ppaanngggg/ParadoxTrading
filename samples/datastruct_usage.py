@@ -55,13 +55,10 @@ print(k)
 # turn datastruct to list of dict
 print(a.toDicts())
 
-# iter each line in data
-for d in data:
-    print(d)
+# # iter each line in data
+# for d in data:
+#     print(d)
 
 # change index
-data = fetcher.fetchData('20160506', 'rb1609')
-data_new = DataStruct(data.getColumnNames(), 'lastprice')
-for d in data:
-    data_new.merge(d)
+data_new = data.changeIndex('lastprice')
 print(data_new)
