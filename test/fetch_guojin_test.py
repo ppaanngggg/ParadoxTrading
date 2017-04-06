@@ -1,15 +1,17 @@
-from ParadoxTrading.Fetch import \
-    FetchGuoJinTick, RegisterGuoJinTick, \
-    FetchGuoJinTickIndex, RegisterGuoJinTickIndex, \
-    FetchGuoJinMin, RegisterGuoJinMin, \
-    FetchGuoJinMinIndex, RegisterGuoJinMinIndex, \
-    FetchGuoJinHour, RegisterGuoJinHour, \
-    FetchGuoJinHourIndex, RegisterGuoJinHourIndex, \
-    FetchGuoJinDay, RegisterGuoJinDay, \
-    FetchGuoJinDayIndex, RegisterGuoJinDayIndex
+from ParadoxTrading.Fetch import (FetchGuoJinDay, FetchGuoJinDayIndex,
+                                  FetchGuoJinHour, FetchGuoJinHourIndex,
+                                  FetchGuoJinMin, FetchGuoJinMinIndex,
+                                  FetchGuoJinTick, FetchGuoJinTickIndex,
+                                  RegisterGuoJinDay, RegisterGuoJinDayIndex,
+                                  RegisterGuoJinHour, RegisterGuoJinHourIndex,
+                                  RegisterGuoJinMin, RegisterGuoJinMinIndex,
+                                  RegisterGuoJinTick, RegisterGuoJinTickIndex)
 
 print('--- FetchGuoJinTick')
 fetcher = FetchGuoJinTick()
+fetcher.psql_host = '192.168.4.102'
+fetcher.mongo_host = '192.168.4.102'
+fetcher.psql_user = 'ubuntu'
 print(fetcher.productList())
 # get dominant symbol of ag
 print(fetcher.fetchSymbol(
@@ -30,6 +32,9 @@ print(len(fetcher.fetchData('20160506', 'rb1701')))
 
 print('--- FetchGuoJinTickIndex')
 fetcher = FetchGuoJinTickIndex()
+fetcher.psql_host = '192.168.4.102'
+fetcher.mongo_host = '192.168.4.102'
+fetcher.psql_user = 'ubuntu'
 print(fetcher.fetchSymbol(
     '20160506', **RegisterGuoJinTickIndex('cu').toKwargs()
 ))
@@ -38,6 +43,9 @@ print(len(fetcher.fetchData('20160509', 'cu')))
 
 print('--- FetchGuoJinMin')
 fetcher = FetchGuoJinMin()
+fetcher.psql_host = '192.168.4.102'
+fetcher.mongo_host = '192.168.4.102'
+fetcher.psql_user = 'ubuntu'
 print(fetcher.fetchSymbol(
     '20160506', **RegisterGuoJinMin('au').toKwargs()
 ))
@@ -55,6 +63,9 @@ print(len(fetcher.fetchData('20160506', 'au1606')))
 
 print('--- FetchGuoJinMinIndex')
 fetcher = FetchGuoJinMinIndex()
+fetcher.psql_host = '192.168.4.102'
+fetcher.mongo_host = '192.168.4.102'
+fetcher.psql_user = 'ubuntu'
 print(fetcher.fetchSymbol(
     '20160506', **RegisterGuoJinMinIndex('ag').toKwargs()
 ))
@@ -63,6 +74,9 @@ print(len(fetcher.fetchData('20160509', 'ag')))
 
 print('--- FetchGuoJinHour')
 fetcher = FetchGuoJinHour()
+fetcher.psql_host = '192.168.4.102'
+fetcher.mongo_host = '192.168.4.102'
+fetcher.psql_user = 'ubuntu'
 print(fetcher.fetchSymbol(
     '20160506', **RegisterGuoJinHour('m').toKwargs()
 ))
@@ -80,6 +94,9 @@ print(len(fetcher.fetchData('20160506', 'm1701')))
 
 print('--- FetchGuoJinHourIndex')
 fetcher = FetchGuoJinHourIndex()
+fetcher.psql_host = '192.168.4.102'
+fetcher.mongo_host = '192.168.4.102'
+fetcher.psql_user = 'ubuntu'
 print(fetcher.fetchSymbol(
     '20160506', **RegisterGuoJinHourIndex('ma').toKwargs()
 ))
@@ -88,6 +105,9 @@ print(len(fetcher.fetchData('20160509', 'ma')))
 
 print('--- FetchGuoJinDay')
 fetcher = FetchGuoJinDay()
+fetcher.psql_host = '192.168.4.102'
+fetcher.mongo_host = '192.168.4.102'
+fetcher.psql_user = 'ubuntu'
 print(fetcher.fetchSymbol(
     '20160506', **RegisterGuoJinDay('pp').toKwargs()
 ))
@@ -101,10 +121,15 @@ print(fetcher.fetchSymbol(
     '20160506', **RegisterGuoJinDay(_instrument='pp1703').toKwargs()
 ))
 print(len(fetcher.fetchData('20160506', 'pp1609')))
+print(len(fetcher.fetchDayData('20160101', '20160501', 'pp1609')))
 
 print('--- FetchGuoJinDayIndex')
 fetcher = FetchGuoJinDayIndex()
+fetcher.psql_host = '192.168.4.102'
+fetcher.mongo_host = '192.168.4.102'
+fetcher.psql_user = 'ubuntu'
 print(fetcher.fetchSymbol(
     '20160506', **RegisterGuoJinDayIndex('oi').toKwargs()
 ))
 print(len(fetcher.fetchData('20160506', 'oi')))
+print(len(fetcher.fetchDayData('20160101', '20160501', 'oi')))

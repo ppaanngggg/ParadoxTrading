@@ -1,9 +1,9 @@
-import typing
 from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta
 
 import numpy as np
 import tabulate
+import typing
 
 
 class DataStruct:
@@ -247,7 +247,7 @@ class ILoc:
     def __init__(self, _struct: DataStruct):
         self.struct = _struct
 
-    def __getitem__(self, _item: slice) -> DataStruct:
+    def __getitem__(self, _item: typing.Union[int, slice]) -> DataStruct:
         ret = DataStruct(list(self.struct.data.keys()), self.struct.index_name)
         if isinstance(_item, slice):
             for k, v in self.struct.data.items():

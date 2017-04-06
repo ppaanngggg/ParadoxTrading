@@ -19,5 +19,7 @@ from .FetchGuoJin import (FetchGuoJinDay, FetchGuoJinDayIndex, FetchGuoJinHour,
                           RegisterGuoJinHourIndex, RegisterGuoJinMin,
                           RegisterGuoJinMinIndex, RegisterGuoJinTick,
                           RegisterGuoJinTickIndex)
+from .FetchOption50ETF import FetchOption50ETFTick, RegisterOption50ETFTick, \
+    RegisterOption50ETFDay, FetchOption50ETFDay
 from .FetchSHFE import (FetchSHFEDay, FetchSHFEDayIndex, RegisterSHFEDay,
                         RegisterSHFEDayIndex)

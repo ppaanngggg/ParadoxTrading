@@ -1,12 +1,11 @@
 import json
-import typing
 
-import h5py
 import psycopg2
 import psycopg2.extensions
 import pymongo
 import pymongo.collection
 import pymongo.database
+import typing
 from pymongo import MongoClient
 
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
@@ -71,16 +70,6 @@ class RegisterFutureTick(RegisterAbstract):
             data['sub_dominant'],
         )
 
-    def __repr__(self):
-        return 'Key:' + '\n' + \
-               '\t' + self.toJson() + '\n' + \
-               'Params:' + '\n' + \
-               '\tproduct: ' + str(self.product) + '\n' + \
-               '\tinstrument: ' + str(self.instrument) + '\n' + \
-               '\tsub_dominant: ' + str(self.sub_dominant) + '\n' + \
-               'Strategy: ' + '\n' + \
-               '\t' + '; '.join(self.strategy_set)
-
 
 class FetchFutureTick(FetchAbstract):
     def __init__(self):
@@ -136,21 +125,6 @@ class FetchFutureTick(FetchAbstract):
                 self.mongo_inst_db]
         return self.mongo_inst
 
-    def _get_psql_con_cur(self) -> typing.Tuple[
-        psycopg2.extensions.connection, psycopg2.extensions.cursor
-    ]:
-        if not self.psql_con:
-            self.psql_con: psycopg2.extensions.connection = psycopg2.connect(
-                dbname=self.psql_dbname,
-                host=self.psql_host,
-                user=self.psql_user,
-                password=self.psql_password,
-            )
-        if not self.psql_cur:
-            self.psql_cur: psycopg2.extensions.cursor = self.psql_con.cursor()
-
-        return self.psql_con, self.psql_cur
-
     def productList(self) -> list:
         """
         get all product list stored in mongo
@@ -165,13 +139,6 @@ class FetchFutureTick(FetchAbstract):
     ) -> bool:
         """
         check whether product is traded on tradingday
-
-        Args:
-            _product (str): which product.
-            _tradingday (str): which day.
-
-        Returns:
-            bool: True for traded, False for not
         """
         db = self._get_mongo_prod()
         coll = db[_product.lower()]
@@ -184,13 +151,6 @@ class FetchFutureTick(FetchAbstract):
     ) -> typing.Union[None, str]:
         """
         get the first day less then _tradingday of _product
-
-        Args:
-            _product (str): which product.
-            _tradingday (str): which day.
-
-        Returns:
-            str: if None, it means nothing found
         """
         db = self._get_mongo_prod()
         coll = db[_product.lower()]
@@ -206,13 +166,6 @@ class FetchFutureTick(FetchAbstract):
     ) -> typing.Union[None, str]:
         """
         get the first day greater then _tradingday of _product
-
-        Args:
-            _product (str): which product.
-            _tradingday (str): which day.
-
-        Returns:
-            str: if None, it means nothing found
         """
         db = self._get_mongo_prod()
         coll = db[_product.lower()]
@@ -228,13 +181,6 @@ class FetchFutureTick(FetchAbstract):
     ) -> bool:
         """
         check whether instrument is traded on tradingday
-
-        Args:
-            _instrument (str): which instrument.
-            _tradingday (str): which day.
-
-        Returns:
-            bool: True for traded, False for not
         """
         db = self._get_mongo_inst()
         coll = db[_instrument.lower()]
@@ -247,13 +193,6 @@ class FetchFutureTick(FetchAbstract):
     ) -> typing.Union[None, str]:
         """
         get the first day less then _tradingday of _instrument
-
-        Args:
-            _instrument (str): which instrument.
-            _tradingday (str): which day.
-
-        Returns:
-            str: if None, it means nothing found
         """
         db = self._get_mongo_inst()
         coll = db[_instrument.lower()]
@@ -269,13 +208,6 @@ class FetchFutureTick(FetchAbstract):
     ) -> typing.Union[None, str]:
         """
         get the first day greater then _tradingday of _instrument
-
-        Args:
-            _instrument (str): which instrument.
-            _tradingday (str): which day.
-
-        Returns:
-            str: if None, it means nothing found
         """
         db = self._get_mongo_inst()
         coll = db[_instrument.lower()]
@@ -291,13 +223,6 @@ class FetchFutureTick(FetchAbstract):
     ) -> typing.List[str]:
         """
         fetch all traded insts of one product on tradingday
-
-        Args:
-            _product (str): which product.
-            _tradingday (str): which day.
-
-        Returns:
-            list: list of str. if len() == 0, then no traded inst
         """
         db = self._get_mongo_prod()
         coll = db[_product.lower()]
@@ -313,13 +238,6 @@ class FetchFutureTick(FetchAbstract):
     ) -> typing.Union[None, str]:
         """
         fetch dominant instrument of one product on tradingday
-
-        Args:
-            _product (str): which product.
-            _tradingday (str): which day.
-
-        Returns:
-            str: dominant instrument. if None, then no traded inst
         """
         db = self._get_mongo_prod()
         coll = db[_product.lower()]
@@ -335,13 +253,6 @@ class FetchFutureTick(FetchAbstract):
     ) -> typing.Union[None, str]:
         """
         fetch sub dominant instrument of one product on tradingday
-
-        Args:
-            _product (str): which product.
-            _tradingday (str): which day.
-
-        Returns:
-            str: sub dominant instrument. if None, then no traded inst
         """
         db = self._get_mongo_prod()
         coll = db[_product.lower()]
@@ -351,56 +262,6 @@ class FetchFutureTick(FetchAbstract):
             ret = data['SubDominant']
 
         return ret
-
-    def cache2DataStruct(
-            self, _inst: str, _tradingday: str, _index: str
-    ) -> typing.Union[None, DataStruct]:
-        f = h5py.File(self.cache_path, 'a')
-        try:
-            grp = f[_inst.lower() + '/' + _tradingday]
-        except KeyError:
-            return None
-
-        datastruct = DataStruct(list(grp.keys()), _index.lower())
-        for k in grp.keys():
-            dataset = grp[k]
-            datastruct.data[k] = dataset[:].tolist()
-            if 'timestamp' in dataset.attrs['type']:
-                datastruct.float2datetime(k)
-
-        f.close()
-        return datastruct
-
-    def DataStruct2cache(
-            self, _inst: str, _tradingday: str,
-            _columns: typing.List[str], _types: typing.List[str],
-            _datastruct: DataStruct
-    ):
-        f = h5py.File(self.cache_path, 'a')
-
-        for c, t in zip(_columns, _types):
-            if 'int' in t:
-                dtype = 'int32'
-            elif 'char' in t:
-                dtype = h5py.special_dtype(vlen=str)
-            else:
-                dtype = 'float64'
-
-            if 'timestamp' in t:
-                _datastruct.datetime2float(c)
-
-            dataset = f.create_dataset(
-                _inst.lower() + '/' + _tradingday + '/' + c,
-                (len(_datastruct),),
-                dtype=dtype,
-            )
-            dataset[:] = _datastruct.data[c]
-            dataset.attrs['type'] = t
-
-            if 'timestamp' in t:
-                _datastruct.float2datetime(c)
-
-        f.close()
 
     def fetchSymbol(
             self, _tradingday: str,
@@ -457,9 +318,8 @@ class FetchFutureTick(FetchAbstract):
 
         # get all ticks
         cur.execute(
-            "SELECT * FROM " + symbol +
-            " WHERE TradingDay='" + _tradingday +
-            "' ORDER BY " + _index.lower()
+            "SELECT * FROM {} WHERE TradingDay='{}' ORDER BY {}".format(
+                symbol, _tradingday, _index.lower())
         )
         datas = list(cur.fetchall())
 
@@ -705,7 +565,7 @@ class FetchFutureDayIndex(FetchFutureDay):
             self, _tradingday: str,
             _product: str = None, _instrument: str = None,
             _sub_dominant: bool = False,
-    ):
+    ) -> typing.Union[None, str]:
         assert _product is not None
 
         if self.productIsTrade(_product, _tradingday):
