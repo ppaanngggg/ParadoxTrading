@@ -1,5 +1,6 @@
-import typing
 from datetime import datetime, timedelta
+
+import typing
 
 from ParadoxTrading.Utils.DataStruct import DataStruct
 

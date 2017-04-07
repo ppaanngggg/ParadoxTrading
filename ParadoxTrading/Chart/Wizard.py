@@ -40,7 +40,7 @@ class Wizard:
     def addLine(
         self, _view_name: str,
         _x_list: typing.List[datetime], _y_list: list,
-        _name: str, _color: QColor=None
+        _name: str, _color: typing.Union[typing.Any, QColor]=None
     ):
         assert _view_name in self.view_dict.keys()
         self.view_dict[_view_name]['view'].addLine(
@@ -50,7 +50,7 @@ class Wizard:
     def addBar(
         self, _view_name: str,
         _x_list: typing.List[datetime], _y_list: list,
-        _name: str, _color: QColor=None
+        _name: str, _color: typing.Union[typing.Any, QColor]=None
     ):
         assert _view_name in self.view_dict.keys()
         self.view_dict[_view_name]['view'].addBar(
@@ -60,7 +60,7 @@ class Wizard:
     def addScatter(
         self, _view_name:str,
         _x_list: typing.List[datetime], _y_list: list,
-        _name: str, _color: QColor=None
+        _name: str, _color: typing.Union[typing.Any, QColor]=None
     ):
         assert _view_name in self.view_dict.keys()
         self.view_dict[_view_name]['view'].addScatter(

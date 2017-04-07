@@ -1,18 +1,24 @@
+import logging
+
 from ParadoxTrading.Engine import OrderType, OrderEvent, SignalType, \
     ActionType, DirectionType, FillEvent, SignalEvent
 from ParadoxTrading.Engine import PortfolioAbstract
 
 
 class BarPortfolio(PortfolioAbstract):
-    def __init__(self):
+    def __init__(self, _price_index: str = 'closeprice'):
+        """
+        :param _price_index: the index of price which will be used to deal
+        """
         super().__init__()
 
-        self.price_index = 'closeprice'
+        self.price_index = _price_index
 
     def setPriceIndex(self, _index: str):
         self.price_index = _index
 
     def dealSignal(self, _event: SignalEvent):
+        logging.debug('Portfolio recv {}'.format(_event.toDict()))
         portfolio = self.getPortfolioByStrategy(_event.strategy_name)
 
         order_event = OrderEvent(
@@ -40,12 +46,12 @@ class BarPortfolio(PortfolioAbstract):
             raise Exception('unknown signal')
 
         data = self.engine.getSymbolData(_event.symbol)
-        order_event.price = data.getColumn(self.price_index)[-1]
+        order_event.price = data[self.price_index][-1]
+
+        self.addEvent(order_event, _event.strategy_name)
 
         portfolio.dealSignalEvent(_event)
         portfolio.dealOrderEvent(order_event)
-
-        self.addEvent(order_event, _event.strategy_name)
 
     def dealFill(self, _event: FillEvent):
         self.getPortfolioByIndex(_event.index).dealFillEvent(_event)

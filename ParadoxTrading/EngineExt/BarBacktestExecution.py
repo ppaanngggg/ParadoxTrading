@@ -4,8 +4,10 @@ from ParadoxTrading.Utils import DataStruct
 
 
 class BarBacktestExecution(ExecutionAbstract):
-    def __init__(self):
+    def __init__(self, _commission_rate: float = 0.0):
         super().__init__()
+
+        self.commission_rate: float = _commission_rate
 
     def dealOrderEvent(self,
                        _order_event: OrderEvent):
@@ -19,7 +21,7 @@ class BarBacktestExecution(ExecutionAbstract):
             _action=_order_event.action,
             _direction=_order_event.direction,
             _price=_order_event.price,
-            _commission=0.0,
+            _commission=self.commission_rate * _order_event.quantity * _order_event.price,
         )
         self.addEvent(fill_event)
 

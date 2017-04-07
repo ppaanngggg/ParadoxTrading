@@ -2,8 +2,9 @@
 
 """
 
-import typing
 from datetime import datetime
+
+import typing
 
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import MarketEvent
@@ -72,6 +73,12 @@ class MarketSupplyAbstract:
         raise NotImplementedError('getDatetime not implemented')
 
     def getSymbolData(self, _symbol: str) -> DataStruct:
+        """
+        return data of one symbol
+        
+        :param _symbol: 
+        :return: 
+        """
         return self.data_dict[_symbol]
 
     def updateData(self) -> typing.Union[None, typing.Tuple[str, DataStruct]]:

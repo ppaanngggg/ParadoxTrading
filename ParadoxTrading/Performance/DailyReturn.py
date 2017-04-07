@@ -1,4 +1,5 @@
 import bisect
+
 import typing
 
 from ParadoxTrading.Engine import (ActionType, DirectionType, FillEvent,
@@ -73,7 +74,7 @@ def dailyReturn(
 
     for tradingday in sorted(tradingday_set):
         while cur_fill_idx < len(_fill_event_list) and \
-                _fill_event_list[cur_fill_idx].tradingday <= tradingday:
+                        _fill_event_list[cur_fill_idx].tradingday <= tradingday:
             d = _fill_event_list[cur_fill_idx]
             if d.action == ActionType.OPEN:
                 if d.direction == DirectionType.BUY:
@@ -99,12 +100,12 @@ def dailyReturn(
             elif d.action == ActionType.CLOSE:
                 if d.direction == DirectionType.BUY:
                     assert position_dict[d.symbol][
-                        SignalType.SHORT] > d.quantity
+                               SignalType.SHORT] > d.quantity
                     position_dict[d.symbol][SignalType.SHORT] -= d.quantity
                     cur_fund -= d.quantity * d.price + d.commission
                 elif d.direction == DirectionType.SELL:
                     assert position_dict[d.symbol][
-                        SignalType.LONG] > d.quantity
+                               SignalType.LONG] > d.quantity
                     position_dict[d.symbol][SignalType.LONG] -= d.quantity
                     cur_fund += d.quantity * d.price - d.commission
                 else:

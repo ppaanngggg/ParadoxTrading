@@ -1,7 +1,8 @@
-import typing
+import logging
 
 import pymongo
 import tabulate
+import typing
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
@@ -267,22 +268,37 @@ class PortfolioPerStrategy:
 
 class PortfolioAbstract:
     def __init__(self):
-        # redirect to types
-        self.order_index: int = 0  # cur unused order index
         self.engine: ParadoxTrading.Engine.EngineAbstract = None
 
+        # init order index, and create a map from order to strategy
+        self.order_index: int = 0  # cur unused order index
         self.order_strategy_dict: typing.Dict[int, str] = {}
+
+        # map from strategy key to its portfolio
+        # !!! maybe this is the virtual portfolio
         self.strategy_portfolio_dict: typing.Dict[
             str, PortfolioPerStrategy] = {}
+        # the global portfolio,
+        # !!! usually this is the true portfolio,
+        # !!! however how to manage it is up to implement
         self.global_portfolio: PortfolioPerStrategy = PortfolioPerStrategy()
 
     def addStrategy(self, _strategy: StrategyAbstract):
+        """
+        add strategy in to portfolio
+        
+        :param _strategy: 
+        :return: 
+        """
+
+        # check unique
         assert _strategy.name not in self.strategy_portfolio_dict.keys()
+        # create a portfolio for this strategy
         self.strategy_portfolio_dict[_strategy.name] = PortfolioPerStrategy()
 
     def setEngine(self, _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
-        PROTECTED !!!
+        used by engine
 
         :param _engine: ref to engine
         :return:
@@ -301,7 +317,7 @@ class PortfolioAbstract:
 
     def addEvent(self, _order_event: OrderEvent, _strategy: str):
         """
-        add event into engine's engine
+        add order event into engine's engine
 
         :param _order_event: order event object to be added
         :param _strategy:
@@ -320,13 +336,19 @@ class PortfolioAbstract:
         self.order_strategy_dict[_order_event.index] = _strategy
         # add it into event queue
         self.engine.addEvent(_order_event)
+        logging.info('Portfolio {} {} at {} when {}'.format(
+            DirectionType.toStr(_order_event.direction),
+            _order_event.symbol, _order_event.price, _order_event.datetime
+        ))
 
     def storeRecords(
             self,
             _backtest_key: str,
             _mongo_host: str = 'localhost',
-            _mongo_database: str = 'FutureBacktest', ):
+            _mongo_database: str = 'Backtest',
+    ):
         """
+        !!! This func will delete the old coll of _backtest_key !!!
         store all strategies' records into mongodb
 
         :param _backtest_key:
@@ -370,8 +392,10 @@ class PortfolioAbstract:
         """
         raise NotImplementedError('dealFill not implemented')
 
-    def getPortfolioByStrategy(self,
-                               _strategy_name: str) -> PortfolioPerStrategy:
+    def getPortfolioByStrategy(
+            self,
+            _strategy_name: str
+    ) -> PortfolioPerStrategy:
         """
         get the individual portfolio manager of strategy
 
@@ -381,4 +405,10 @@ class PortfolioAbstract:
         return self.strategy_portfolio_dict[_strategy_name]
 
     def getPortfolioByIndex(self, _index: int) -> PortfolioPerStrategy:
+        """
+        get the portfolio by order's index
+        
+        :param _index: 
+        :return: 
+        """
         return self.getPortfolioByStrategy(self.order_strategy_dict[_index])

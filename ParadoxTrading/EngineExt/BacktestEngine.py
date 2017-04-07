@@ -27,6 +27,9 @@ class BacktestEngine(EngineAbstract):
             if data is None:
                 # if data is None, it means end
                 break
+            logging.debug('Data({}) {}'.format(
+                data[0], data[1].toDict()
+            ))
             while True:
                 # match market for each tick, maybe there will be order to fill.
                 # If filled, execution will add fill event into queue

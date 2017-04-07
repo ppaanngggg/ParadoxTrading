@@ -13,13 +13,13 @@ class EventType:
     @staticmethod
     def toStr(_value: int) -> str:
         if _value == EventType.MARKET:
-            return 'market'
+            return 'MARKET'
         elif _value == EventType.SIGNAL:
-            return 'signal'
+            return 'SIGNAL'
         elif _value == EventType.ORDER:
-            return 'order'
+            return 'ORDER'
         elif _value == EventType.FILL:
-            return 'fill'
+            return 'FILL'
         else:
             raise Exception('unknown event type')
 
@@ -31,9 +31,9 @@ class SignalType:
     @staticmethod
     def toStr(_value: int) -> str:
         if _value == SignalType.LONG:
-            return 'long'
+            return 'LONG'
         elif _value == SignalType.SHORT:
-            return 'short'
+            return 'SHORT'
         else:
             raise Exception('unknown signal type')
 
@@ -45,9 +45,9 @@ class OrderType:
     @staticmethod
     def toStr(_value: int) -> str:
         if _value == OrderType.MARKET:
-            return 'marker'
+            return 'MARKET'
         elif _value == OrderType.LIMIT:
-            return 'limit'
+            return 'LIMIT'
         else:
             raise Exception()
 
@@ -59,9 +59,9 @@ class ActionType:
     @staticmethod
     def toStr(_value: int) -> str:
         if _value == ActionType.OPEN:
-            return 'open'
+            return 'OPEN'
         elif _value == ActionType.CLOSE:
-            return 'close'
+            return 'CLOSE'
         else:
             raise Exception()
 
@@ -73,9 +73,9 @@ class DirectionType:
     @staticmethod
     def toStr(_value: int) -> str:
         if _value == DirectionType.BUY:
-            return 'buy'
+            return 'BUY'
         elif _value == DirectionType.SELL:
-            return 'sell'
+            return 'SELL'
         else:
             raise Exception()
 

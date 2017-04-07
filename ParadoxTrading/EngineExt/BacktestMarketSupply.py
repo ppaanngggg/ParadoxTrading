@@ -1,6 +1,7 @@
 import operator
-import typing
 from datetime import datetime, timedelta
+import logging
+import typing
 
 from ParadoxTrading.Engine import MarketSupplyAbstract
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
@@ -27,6 +28,7 @@ class DataGenerator:
         :param _register_dict:
         :param _symbol_dict:
         """
+        logging.info('Fetch Day: {}'.format(_tradingday))
         self.data_dict: typing.Dict[str, DataStruct] = {}
         self.index_dict: typing.Dict[str, int] = {}
         self.cur_datetime: datetime = None
@@ -50,6 +52,7 @@ class DataGenerator:
                     _symbol_dict[inst].add(k)
                 except KeyError:
                     _symbol_dict[inst] = {k}
+        logging.info('Available symbol: {}'.format(_symbol_dict.keys()))
 
     def gen(self) -> typing.Union[None, typing.Tuple[str, DataStruct]]:
         """

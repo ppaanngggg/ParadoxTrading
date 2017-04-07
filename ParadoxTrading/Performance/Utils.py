@@ -8,7 +8,7 @@ from ParadoxTrading.Engine import SignalEvent, OrderEvent, FillEvent
 
 class FetchRecord:
     mongo_host = 'localhost'
-    mongo_database = 'FutureBacktest'
+    mongo_database = 'Backtest'
 
     @staticmethod
     def _fetchRecords(

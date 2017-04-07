@@ -1,7 +1,7 @@
 import typing
-
+import logging
 import ParadoxTrading.Engine
-from ParadoxTrading.Engine.Event import MarketEvent, SignalEvent
+from ParadoxTrading.Engine.Event import MarketEvent, SignalEvent, SignalType
 from ParadoxTrading.Fetch import RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -15,6 +15,7 @@ class StrategyAbstract:
         """
 
         self.name: typing.AnyStr = _name
+        self.last_signal: int = None
 
         # common variables
         self.engine: ParadoxTrading.Engine.Engine.EngineAbstract = None
@@ -101,8 +102,21 @@ class StrategyAbstract:
                 _datetime=self.engine.getDatetime(),
                 _signal_type=_signal_type,
                 _strength=_strength, ))
+        logging.info('Strategy({}) send {} when {}'.format(
+            self.name, SignalType.toStr(_signal_type), self.engine.getDatetime()
+        ))
+        self.last_signal = _signal_type
+
+    def getLastSignal(self) -> int:
+        return self.last_signal
 
     def getSymbolData(self, _symbol: str) -> DataStruct:
+        """
+        get data of one symbol from marketsupply through engine
+        
+        :param _symbol: 
+        :return: 
+        """
         return self.engine.getSymbolData(_symbol)
 
     def __repr__(self) -> str:
