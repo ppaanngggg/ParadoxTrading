@@ -1,6 +1,7 @@
-import typing
 from collections import deque
 from datetime import datetime
+
+import typing
 
 from ParadoxTrading.Engine.Event import EventAbstract
 from ParadoxTrading.Engine.Execution import ExecutionAbstract
@@ -90,6 +91,14 @@ class EngineAbstract:
         :return: datetime
         """
         return self.market_supply.getDatetime()
+
+    def getSymbolList(self) -> typing.List[str]:
+        """
+        get the symbol list
+        
+        :return: 
+        """
+        return self.market_supply.getSymbolList()
 
     def getSymbolData(self, _symbol: str) -> DataStruct:
         """

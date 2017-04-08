@@ -55,3 +55,17 @@ class BarPortfolio(PortfolioAbstract):
 
     def dealFill(self, _event: FillEvent):
         self.getPortfolioByIndex(_event.index).dealFillEvent(_event)
+
+    def dealSettlement(self, _tradingday, _next_tradingday):
+        assert _tradingday
+
+        symbol_price_dict = {}
+        for symbol in self.engine.getSymbolList():
+            symbol_price_dict[symbol] = \
+                self.engine.getSymbolData(symbol)[self.price_index][-1]
+
+        for v in self.strategy_portfolio_dict.values():
+            v.dealSettlement(
+                _tradingday, _next_tradingday,
+                symbol_price_dict
+            )

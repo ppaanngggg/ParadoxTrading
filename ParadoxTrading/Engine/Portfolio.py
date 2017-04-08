@@ -8,7 +8,7 @@ from pymongo.collection import Collection
 
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
-    DirectionType, FillEvent, OrderEvent, SignalEvent, EventAbstract
+    DirectionType, FillEvent, OrderEvent, SignalEvent, EventAbstract, EventType
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
 
 
@@ -18,6 +18,7 @@ class PortfolioPerStrategy:
         self.signal_record: typing.List[SignalEvent] = []
         self.order_record: typing.List[OrderEvent] = []
         self.fill_record: typing.List[FillEvent] = []
+        self.settlement_record: typing.List[typing.Dict] = []
 
         # cur order and position state
         self.position: typing.Dict[str, typing.Dict[str, int]] = {}
@@ -202,6 +203,22 @@ class PortfolioPerStrategy:
         else:
             raise Exception('unknown action')
 
+    def dealSettlement(
+            self, _tradingday, _next_tradingday,
+            _symbol_price_dict
+    ):
+        unfilled_fund = 0.0
+        for k, v in self.position.items():
+            if v[SignalType.LONG]:
+                unfilled_fund += _symbol_price_dict[k] * v[SignalType.LONG]
+            if v[SignalType.SHORT]:
+                unfilled_fund -= _symbol_price_dict[k] * v[SignalType.SHORT]
+        self.settlement_record.append({
+            'tradingday': _tradingday,
+            'type': EventType.SETTLEMENT,
+            'unfilled_fund': unfilled_fund,
+        })
+
     def storeRecords(self, _name: str, _coll: Collection):
         """
         store records into mongodb
@@ -210,12 +227,16 @@ class PortfolioPerStrategy:
         :param _coll:
         :return:
         """
+        logging.info('Portfolio({}) store records...'.format(_name))
         tmp_list: typing.List[EventAbstract] = []
         tmp_list += self.signal_record
         tmp_list += self.order_record
         tmp_list += self.fill_record
         for d in tmp_list:
             d = d.toDict()
+            d['strategy_name'] = _name
+            _coll.insert_one(d)
+        for d in self.settlement_record:
             d['strategy_name'] = _name
             _coll.insert_one(d)
 
@@ -244,7 +265,7 @@ class PortfolioPerStrategy:
                 [k, v[SignalType.LONG], v[SignalType.SHORT]])
         ret += tabulate.tabulate(table, ['symbol', 'LONG', 'SHORT'])
 
-        ret += '\n@@@ ORDER @@@\n'
+        ret += '\n@@@ UNFILLED ORDER @@@\n'
 
         table = []
         for k, v in self.unfilled_order.items():
@@ -391,6 +412,9 @@ class PortfolioAbstract:
         :return:
         """
         raise NotImplementedError('dealFill not implemented')
+
+    def dealSettlement(self, _tradingday, _next_tradingday):
+        raise NotImplementedError('dealSettlement not implemented')
 
     def getPortfolioByStrategy(
             self,

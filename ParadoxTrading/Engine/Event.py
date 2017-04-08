@@ -1,5 +1,6 @@
-import typing
 from datetime import datetime
+
+import typing
 
 from ParadoxTrading.Utils import DataStruct
 
@@ -9,6 +10,7 @@ class EventType:
     SIGNAL = 2
     ORDER = 3
     FILL = 4
+    SETTLEMENT = 5
 
     @staticmethod
     def toStr(_value: int) -> str:
@@ -20,6 +22,8 @@ class EventType:
             return 'ORDER'
         elif _value == EventType.FILL:
             return 'FILL'
+        elif _value == EventType.SETTLEMENT:
+            return 'SETTLEMENT'
         else:
             raise Exception('unknown event type')
 
@@ -119,10 +123,13 @@ class MarketEvent(EventAbstract):
         )
 
     def __repr__(self):
-        return 'MARKET: ' + '\n' + \
-               '\tkey: ' + self.market_register_key + '\n' + \
-               '\tstrategy: ' + self.strategy_name + '\n' + \
-               '\tsymbol: ' + self.symbol
+        return 'MARKET:\n' \
+               '\tkey: {}\n' \
+               '\tstrategy: {}\n' \
+               '\tsymbol: {}'.format(
+            self.market_register_key,
+            self.strategy_name, self.symbol
+        )
 
 
 class SignalEvent(EventAbstract):
@@ -164,13 +171,16 @@ class SignalEvent(EventAbstract):
             _strength=_dict['strength'])
 
     def __repr__(self):
-        return 'SIGNAL:' + '\n' + \
-               '\tsymbol: ' + self.symbol + '\n' + \
-               '\tstrategy: ' + self.strategy_name + '\n' + \
-               '\tsignal: ' + SignalType.toStr(self.signal_type) + '\n' + \
-               '\ttradingday: ' + self.tradingday + '\n' + \
-               '\tdatetime: ' + str(self.datetime) + '\n' + \
-               '\tstrength: ' + str(self.strength)
+        return 'SIGNAL:\n' \
+               '\tsymbol: {}\n' \
+               '\tstrategy: {}\n' \
+               '\tsignal: {}\n' \
+               '\ttradingday: {}\n' \
+               '\tdatetime: {}\n' \
+               '\tstrength: {}'.format(
+            self.symbol, self.strategy_name, SignalType.toStr(self.signal_type),
+            self.tradingday, self.datetime, self.strength
+        )
 
 
 class OrderEvent(EventAbstract):
@@ -224,16 +234,20 @@ class OrderEvent(EventAbstract):
             _price=_dict['price'], )
 
     def __repr__(self):
-        return 'ORDER:' + '\n' + \
-               "\tindex: " + str(self.index) + '\n' + \
-               "\tsymbol: " + self.symbol + '\n' + \
-               "\ttradingday: " + self.tradingday + '\n' + \
-               "\tdatetime: " + str(self.datetime) + '\n' + \
-               "\ttype: " + OrderType.toStr(self.order_type) + '\n' + \
-               "\taction: " + ActionType.toStr(self.action) + '\n' + \
-               "\tdirection: " + DirectionType.toStr(self.direction) + '\n' + \
-               "\tquantity: " + str(self.quantity) + '\n' + \
-               "\tprice: " + str(self.price)
+        return 'ORDER:\n' \
+               '\tindex: {}\n' \
+               '\tsymbol: {}\n' \
+               '\ttradingday: {}\n' \
+               '\tdatetime: {}\n' \
+               '\ttype: {}\n' \
+               '\taction: {}\n' \
+               '\tdirection: {}\n' \
+               '\tquantity: {}\n' \
+               '\tprice: {}'.format(
+            self.index, self.symbol, self.tradingday, self.datetime,
+            OrderType.toStr(self.order_type), ActionType.toStr(self.action),
+            DirectionType.toStr(self.direction), self.quantity, self.price
+        )
 
 
 class FillEvent(EventAbstract):
@@ -287,13 +301,50 @@ class FillEvent(EventAbstract):
             _commission=_dict['commission'], )
 
     def __repr__(self):
-        return 'Fill:' + '\n' + \
-               "\tindex: " + str(self.index) + '\n' + \
-               "\tsymbol: " + self.symbol + '\n' + \
-               "\ttradingday: " + self.tradingday + '\n' + \
-               "\tdatetime: " + str(self.datetime) + '\n' + \
-               "\tquantity: " + str(self.quantity) + '\n' + \
-               "\taction: " + ActionType.toStr(self.action) + '\n' + \
-               "\tdirection: " + DirectionType.toStr(self.action) + '\n' + \
-               "\tprice: " + str(self.price) + '\n' + \
-               "\tcommission: " + str(self.commission)
+        return 'FILL:\n' \
+               '\tindex: {}\n' \
+               '\tsymbol: {}\n' \
+               '\ttradingday: {}\n' \
+               '\tdatetime: {}\n' \
+               '\tquantity: {}\n' \
+               '\taction: {}\n' \
+               '\tdirection: {}\n' \
+               '\tprice: {}\n' \
+               '\tcommission: {}'.format(
+            self.index, self.symbol, self.tradingday, self.datetime,
+            self.quantity, ActionType.toStr(self.action),
+            DirectionType.toStr(self.direction), self.price,
+            self.commission
+        )
+
+
+class SettlementEvent(EventAbstract):
+    def __init__(self,
+                 _tradingday: str,
+                 _next_tradingday: str):
+        super().__init__()
+        self.type = EventType.SETTLEMENT
+        self.tradingday = _tradingday
+        self.next_tradingday = _next_tradingday
+
+    def toDict(self) -> dict:
+        return {
+            'type': self.type,
+            'tradingday': self.tradingday,
+            'next_tradingday': self.next_tradingday,
+        }
+
+    @staticmethod
+    def fromDict(_dict: dict) -> 'SettlementEvent':
+        return SettlementEvent(
+            _tradingday=_dict['tradingday'],
+            _next_tradingday=_dict['next_tradingday']
+        )
+
+    def __repr__(self):
+        return "SETTLEMENT:\n" \
+               "\ttradingday: {}\n" \
+               "\tnext_tradingday: {}".format(
+            self.tradingday,
+            self.next_tradingday
+        )

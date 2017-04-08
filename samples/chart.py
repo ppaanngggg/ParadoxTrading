@@ -1,7 +1,12 @@
-from ParadoxTrading.Performance import dailyReturn, sharpRatio, FetchRecord
-from ParadoxTrading.Fetch import FetchGuoJinDay
+from ParadoxTrading.Chart import Wizard
+from ParadoxTrading.Performance import dailyReturn, sharpRatio
 
+ret = dailyReturn('range_break', 'range_break')
+print(ret)
 
+wizard = Wizard('range_break_fund')
 
-signal_list = FetchRecord.fetchFillRecords('range_break', 'range_break')
-dailyReturn
+wizard.addView('fund')
+wizard.addLine('fund', ret.index(), ret['fund'], 'fund change')
+
+wizard.show()

@@ -1,9 +1,11 @@
+import logging
 import operator
 from datetime import datetime, timedelta
-import logging
+
 import typing
 
-from ParadoxTrading.Engine import MarketSupplyAbstract
+from ParadoxTrading.Engine import MarketSupplyAbstract, ReturnSettlement, \
+    ReturnMarket
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -62,6 +64,7 @@ class DataGenerator:
         """
 
         # get latest one of each symbol
+        assert self.data_dict and self.index_dict
         tmp = []
         for k, v in self.index_dict.items():
             d = self.data_dict[k]
@@ -106,6 +109,8 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         self.cur_day: str = self.begin_day
         self.end_day: str = _end_day
 
+        self.last_tradingday: str = None
+
         self.data_generator: DataGenerator = None
 
     def incDate(self) -> str:
@@ -119,42 +124,50 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         self.cur_day = tmp.strftime('%Y%m%d')
         return self.cur_day
 
-    def updateData(self) -> typing.Union[None, typing.Tuple[str, DataStruct]]:
+    def updateData(self) -> typing.Union[ReturnMarket, ReturnSettlement]:
         """
         update data tick by tick
 
         :return: whether there is data
         """
 
-        # reach end, so return false to end backtest
-        if self.cur_day > self.end_day:
-            return None
+        while True:
+            # reach end, so return false to end backtest
+            if self.cur_day > self.end_day:
+                # end now
+                return self.addSettlementEvent(
+                    self.last_tradingday, None
+                )
 
-        # if there is no data generator, create one
-        if self.data_generator is None:
-            self.data_generator = DataGenerator(
-                _tradingday=self.cur_day,
-                _register_dict=self.register_dict,
-                _symbol_dict=self.symbol_dict,
-                _fetcher=self.fetcher
-            )
+            # if there is no data generator, create one
+            if self.data_generator is None:
+                self.data_generator = DataGenerator(
+                    _tradingday=self.cur_day,
+                    _register_dict=self.register_dict,
+                    _symbol_dict=self.symbol_dict,
+                    _fetcher=self.fetcher
+                )
+                if not self.symbol_dict:
+                    # today is not a tradingday
+                    self.incDate()
+                    self.data_generator = None
+                    continue
+                else:
+                    # a new tradingday, send settlement event
+                    return self.addSettlementEvent(
+                        self.last_tradingday, self.cur_day
+                    )
 
-        # gen one tick data from data generator
-        ret = self.data_generator.gen()
-
-        if ret is None:
-            # if data is None:
-            # 1. this day is not a tradingday
-            # 2. all symbols reach the end
-            # how to deal:
-            # 1. inc cur date and reset data generator
-            # 2. try updateData again
-            self.incDate()
-            self.data_generator = None
-            return self.updateData()
-        else:
-            self.addEvent(*ret)
-            return ret
+            # gen one tick data from data generator
+            ret = self.data_generator.gen()
+            if ret is None:
+                # all symbols reach the end
+                self.last_tradingday = self.cur_day
+                self.incDate()
+                self.data_generator = None
+                continue
+            else:
+                return self.addMarketEvent(*ret)
 
     def getTradingDay(self) -> str:
         return self.cur_day

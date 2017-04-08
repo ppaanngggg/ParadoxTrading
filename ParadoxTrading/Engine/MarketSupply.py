@@ -2,14 +2,31 @@
 
 """
 
+import logging
 from datetime import datetime
 
 import typing
 
 import ParadoxTrading.Engine
-from ParadoxTrading.Engine.Event import MarketEvent
+from ParadoxTrading.Engine.Event import MarketEvent, SettlementEvent
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
+
+
+class ReturnMarket():
+    def __init__(self, _symbol: str, _data: DataStruct):
+        self.symbol = _symbol
+        self.data = _data
+
+
+class ReturnSettlement():
+    """
+    if _tradingday is None, it means the first day
+    if _next_tradingday is None, it means the last day
+    """
+    def __init__(self, _tradingday: str, _next_tradingday: str):
+        self.tradingday = _tradingday
+        self.next_tradingday = _next_tradingday
 
 
 class MarketSupplyAbstract:
@@ -23,6 +40,7 @@ class MarketSupplyAbstract:
         self.register_dict: typing.Dict[str, RegisterAbstract] = {}
         # map symbol to set of market register
         self.symbol_dict: typing.Dict[str, typing.Set[str]] = {}
+        # map symbol to datastruct
         self.data_dict: typing.Dict[str, DataStruct] = {}
 
         self.engine: ParadoxTrading.Engine.EngineAbstract = None
@@ -34,7 +52,7 @@ class MarketSupplyAbstract:
         """
         Add strategy into market supply
 
-        :param _strategy: strategy oject
+        :param _strategy: strategy object
         :return: None
         """
 
@@ -48,7 +66,15 @@ class MarketSupplyAbstract:
             self.register_dict[key].addStrategy(_strategy)
             _strategy.register_dict[key] = self.register_dict[key]
 
-    def addEvent(self, _symbol: str, _data: DataStruct):
+    def addSettlementEvent(self, _tradingday, _next_tradingday):
+        self.engine.addEvent(SettlementEvent(
+            _tradingday, _next_tradingday
+        ))
+        logging.info('Settlement - Prev: {}, Next: {}'.format(
+            _tradingday, _next_tradingday))
+        return ReturnSettlement(_tradingday, _next_tradingday)
+
+    def addMarketEvent(self, _symbol: str, _data: DataStruct):
         """
         add new tick data into market register, and add event
 
@@ -63,14 +89,18 @@ class MarketSupplyAbstract:
         for k in self.symbol_dict[_symbol]:
             # add event for each strategy if necessary
             for strategy in self.register_dict[k].strategy_set:
-                self.engine.addEvent(
-                    MarketEvent(k, strategy, _symbol, _data))
+                self.engine.addEvent(MarketEvent(k, strategy, _symbol, _data))
+        logging.debug('Data({}) {}'.format(_symbol, _data.toDict()))
+        return ReturnMarket(_symbol, _data)
 
     def getTradingDay(self) -> str:
         raise NotImplementedError('getTradingDay not implemented')
 
     def getDatetime(self) -> datetime:
         raise NotImplementedError('getDatetime not implemented')
+
+    def getSymbolList(self) -> typing.List[str]:
+        return sorted(self.data_dict.keys())
 
     def getSymbolData(self, _symbol: str) -> DataStruct:
         """
@@ -81,7 +111,7 @@ class MarketSupplyAbstract:
         """
         return self.data_dict[_symbol]
 
-    def updateData(self) -> typing.Union[None, typing.Tuple[str, DataStruct]]:
+    def updateData(self) -> typing.Union[ReturnMarket, ReturnSettlement]:
         raise NotImplementedError('updateData not implemented')
 
     def __repr__(self):

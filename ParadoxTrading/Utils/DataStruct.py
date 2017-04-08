@@ -1,9 +1,9 @@
+import typing
 from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta
 
 import numpy as np
 import tabulate
-import typing
 
 
 class DataStruct:

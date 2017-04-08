@@ -59,7 +59,7 @@ fetcher.psql_user = 'ubuntu'
 fetcher.mongo_host = '192.168.4.102'
 
 market_supply = BacktestMarketSupply(
-    '20160101', '20170101', fetcher)
+    '20160101', '20160131', fetcher)
 execution = BarBacktestExecution(_commission_rate=0.001)
 portfolio = BarPortfolio()
 

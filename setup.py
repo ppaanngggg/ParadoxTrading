@@ -14,6 +14,7 @@ setup(
         'ParadoxTrading/Indicator/General',
     ],
     install_requires=[
+        'numpy',
         'tabulate',
         'h5py',
         'psycopg2',
