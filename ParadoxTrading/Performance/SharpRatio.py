@@ -6,9 +6,10 @@ from ParadoxTrading.Utils import DataStruct
 def sharpRatio(
         _fund: DataStruct,
         _factor: int = 252,
-        _unrisk_return_ratio: float = 0.0
+        _unrisk_return_ratio: float = 0.0,
+        _fund_index: str ='fund'
 ):
-    fund = _fund.getColumn('Fund')
+    fund = _fund[_fund_index]
     return_ratio = np.array(fund[1:]) / np.array(
         fund[:-1]) - 1.0 - _unrisk_return_ratio
     return (
