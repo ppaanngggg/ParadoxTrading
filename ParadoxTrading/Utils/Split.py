@@ -1,6 +1,5 @@
-from datetime import datetime, timedelta
-
 import typing
+from datetime import datetime, timedelta
 
 from ParadoxTrading.Utils.DataStruct import DataStruct
 
@@ -40,7 +39,7 @@ class SplitAbstract:
         raise NotImplementedError('You need to implement _get_begin_end_time!')
 
     def _create_new_bar(self, _data: DataStruct, _cur_time: datetime):
-        self.cur_bar = _data
+        self.cur_bar = _data.clone()
         self.cur_bar_begin_time, self.cur_bar_end_time = \
             self._get_begin_end_time(_cur_time)
         self.bar_list.append(self.cur_bar)

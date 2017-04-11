@@ -3,9 +3,8 @@
 """
 
 import logging
-from datetime import datetime
-
 import typing
+from datetime import datetime
 
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import MarketEvent, SettlementEvent
@@ -24,6 +23,7 @@ class ReturnSettlement():
     if _tradingday is None, it means the first day
     if _next_tradingday is None, it means the last day
     """
+
     def __init__(self, _tradingday: str, _next_tradingday: str):
         self.tradingday = _tradingday
         self.next_tradingday = _next_tradingday
@@ -85,7 +85,7 @@ class MarketSupplyAbstract:
         try:
             self.data_dict[_symbol].merge(_data)
         except KeyError:
-            self.data_dict[_symbol] = _data.iloc[:]
+            self.data_dict[_symbol] = _data.clone()
         for k in self.symbol_dict[_symbol]:
             # add event for each strategy if necessary
             for strategy in self.register_dict[k].strategy_set:
@@ -105,9 +105,9 @@ class MarketSupplyAbstract:
     def getSymbolData(self, _symbol: str) -> DataStruct:
         """
         return data of one symbol
-        
-        :param _symbol: 
-        :return: 
+
+        :param _symbol:
+        :return:
         """
         return self.data_dict[_symbol]
 

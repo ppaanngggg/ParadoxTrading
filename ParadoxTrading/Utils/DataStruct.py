@@ -68,6 +68,9 @@ class DataStruct:
         tmp_rows, tmp_keys = self.toRows()
         return tabulate.tabulate(tmp_rows, headers=tmp_keys)
 
+    def clone(self):
+        return self.iloc[:]
+
     def merge(self, _struct: "DataStruct"):
         self.addRows(*_struct.toRows())
 
