@@ -2,45 +2,43 @@ import sys
 import typing
 from datetime import datetime
 
-from PyQt5.Qt import QColor, QPainter
-from PyQt5.QtChart import QBarCategoryAxis
-from PyQt5.QtWidgets import QApplication, QPushButton, QVBoxLayout
+from PyQt5.Qt import QColor
+from PyQt5.QtWidgets import QApplication, QVBoxLayout
 
 import ParadoxTrading.Chart.View
 import ParadoxTrading.Chart.Window
 
 
 class Wizard:
-
     ZOOM_STEP = 10.0
     SCROLL_STEP = 10.0
 
     def __init__(
-        self, _title: str='', _width: int=1440, _height: int=960,
+            self, _title: str = '', _width: int = 1440, _height: int = 960,
     ):
         self.title = _title
         self.width = _width
         self.height = _height
 
-        self.view_list = []
-        self.view_dict = {}  # typing.Dict
+        self.view_list: typing.List[str] = []
+        self.view_dict: typing.Dict = {}
 
         self.begin_idx = 0
         self.end_idx = 0
 
-    def addView(self, _name: str=None, _stretch: int=1):
+    def addView(self, _name: str, _stretch: int = 1, _view_stretch: int = 10):
         assert _name not in self.view_dict.keys()
         assert _stretch > 0
         self.view_list.append(_name)
         self.view_dict[_name] = {
-            'view': ParadoxTrading.Chart.View.View(_name),
+            'view': ParadoxTrading.Chart.View.View(_name, self, _view_stretch),
             'stretch': _stretch
         }
 
     def addLine(
-        self, _view_name: str,
-        _x_list: typing.List[datetime], _y_list: list,
-        _name: str, _color: typing.Union[typing.Any, QColor]=None
+            self, _view_name: str,
+            _x_list: typing.List[datetime], _y_list: list,
+            _name: str, _color: typing.Union[typing.Any, QColor] = None
     ):
         assert _view_name in self.view_dict.keys()
         self.view_dict[_view_name]['view'].addLine(
@@ -48,9 +46,9 @@ class Wizard:
             None if _color is None else QColor(_color))
 
     def addBar(
-        self, _view_name: str,
-        _x_list: typing.List[datetime], _y_list: list,
-        _name: str, _color: typing.Union[typing.Any, QColor]=None
+            self, _view_name: str,
+            _x_list: typing.List[datetime], _y_list: list,
+            _name: str, _color: typing.Union[typing.Any, QColor] = None
     ):
         assert _view_name in self.view_dict.keys()
         self.view_dict[_view_name]['view'].addBar(
@@ -58,16 +56,16 @@ class Wizard:
             None if _color is None else QColor(_color))
 
     def addScatter(
-        self, _view_name:str,
-        _x_list: typing.List[datetime], _y_list: list,
-        _name: str, _color: typing.Union[typing.Any, QColor]=None
+            self, _view_name: str,
+            _x_list: typing.List[datetime], _y_list: list,
+            _name: str, _color: typing.Union[typing.Any, QColor] = None
     ):
         assert _view_name in self.view_dict.keys()
         self.view_dict[_view_name]['view'].addScatter(
             _x_list, _y_list, _name,
             None if _color is None else QColor(_color))
 
-    def _calcSetX(self) -> (dict, dict):
+    def _calcSetX(self) -> (dict, list):
         tmp = set()
         for d in self.view_dict.values():
             tmp |= d['view'].calcSetX()
@@ -93,7 +91,7 @@ class Wizard:
         layout = QVBoxLayout()
 
         for d in [self.view_dict[name] for name in self.view_list]:
-            layout.addWidget(
+            layout.addLayout(
                 d['view'].createChartView(self.x2idx, self.idx2x),
                 d['stretch']
             )
@@ -157,3 +155,10 @@ class Wizard:
         self.end_idx = min(self.end_idx, len(self.idx2x) - 1)
 
         self._setAxisX(self.begin_idx, self.end_idx)
+
+    def mouseMove(self, _index):
+        _index = max(0, _index)
+        _index = min(len(self.idx2x) - 1, _index)
+        x = self.idx2x[_index]
+        for d in self.view_dict.values():
+            d['view'].updateValue(x)
