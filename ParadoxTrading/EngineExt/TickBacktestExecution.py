@@ -5,14 +5,14 @@ from ParadoxTrading.Utils import DataStruct
 
 class TickBacktestExecution(ExecutionAbstract):
     def __init__(
-        self, _commission_rate: float = 0.0,
-        _askprice_idx='askprice', _bidprice_idx='bidprice'
+            self, _commission_rate: float = 0.0,
+            _askprice_idx='askprice', _bidprice_idx='bidprice'
     ):
         super().__init__()
 
         self.commission_rate: float = _commission_rate
-        self.askprice_idx = _askprice_idx
-        self.bidprice_idx = _bidprice_idx
+        self.askprice_idx: str = _askprice_idx
+        self.bidprice_idx: str = _bidprice_idx
 
     def dealOrderEvent(self,
                        _order_event: OrderEvent):
@@ -46,12 +46,12 @@ class TickBacktestExecution(ExecutionAbstract):
             if order.symbol == _symbol:
                 if order.direction == DirectionType.BUY:
                     if (order.order_type == OrderType.MARKET or
-                            askprice <= order.price) and askprice > 0:
+                                askprice <= order.price) and askprice > 0:
                         self.addEvent(self._genEvent(askprice, order))
                         del self.order_dict[index]
                 elif order.direction == DirectionType.SELL:
                     if (order.order_type == OrderType.MARKET or
-                            bidprice >= order.price) and bidprice > 0:
+                                bidprice >= order.price) and bidprice > 0:
                         self.addEvent(self._genEvent(bidprice, order))
                         del self.order_dict[index]
                 else:

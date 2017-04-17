@@ -1,8 +1,7 @@
 import logging
 import operator
-from datetime import datetime, timedelta
-
 import typing
+from datetime import datetime, timedelta
 
 from ParadoxTrading.Engine import MarketSupplyAbstract, ReturnSettlement, \
     ReturnMarket

@@ -36,12 +36,14 @@ class MyStrategy(StrategyAbstract):
             last_highprice = self.highest_rb.getLastData()['high'][0]
             last_lowprice = self.lowest_rb.getLastData()['low'][0]
 
-            if lastprice > last_highprice and self.getLastSignal() != SignalType.LONG:
+            if lastprice > last_highprice and \
+                            self.getLastSignal() != SignalType.LONG:
                 self.addEvent(_market_event.symbol, SignalType.LONG)
                 logging.info('CLOSE: {}, HIGH: {}, LOW: {}'.format(
                     lastprice, last_highprice, last_lowprice
                 ))
-            if lastprice < last_lowprice and self.getLastSignal() != SignalType.SHORT:
+            if lastprice < last_lowprice and \
+                            self.getLastSignal() != SignalType.SHORT:
                 self.addEvent(_market_event.symbol, SignalType.SHORT)
                 logging.info('CLOSE: {}, HIGH: {}, LOW: {}'.format(
                     lastprice, last_highprice, last_lowprice
