@@ -1,11 +1,11 @@
 import json
+import typing
 
 import psycopg2
 import psycopg2.extensions
 import pymongo
 import pymongo.collection
 import pymongo.database
-import typing
 from pymongo import MongoClient
 
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
@@ -73,7 +73,7 @@ class RegisterFutureTick(RegisterAbstract):
 
 class FetchFutureTick(FetchAbstract):
     def __init__(self):
-        self.register_type = RegisterFutureTick
+        self.register_type: RegisterAbstract = RegisterFutureTick
 
         self.mongo_host: str = 'localhost'
         self.mongo_prod_db: str = 'FutureProd'

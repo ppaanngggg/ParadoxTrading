@@ -1,11 +1,11 @@
 import json
+import typing
 
 import psycopg2
 import psycopg2.extensions
 import pymongo
 import pymongo.collection
 import pymongo.database
-import typing
 from pymongo import MongoClient
 
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
@@ -77,12 +77,29 @@ class FetchOption50ETFTick(FetchAbstract):
                 self.mongo_contract_db]
         return self.mongo_contract
 
+    def fetchContractInfo(
+            self, _tradingday
+    ) -> typing.Union[None, DataStruct]:
+        coll: pymongo.collection.Collection = self._get_mongo_contract()['info']
+        data = coll.find_one({'TradingDay': _tradingday})
+        if data is None:
+            return None
+        values = list(data['ContractDict'].values())
+        return DataStruct(values[0].keys(), 'SecurityID', _dicts=values)
+
+
     def fetchSymbol(
             self, _tradingday: str, _contract: str = None
     ) -> typing.Union[None, str]:
         assert _contract is not None
 
-        return _contract
+        coll: pymongo.collection.Collection = self._get_mongo_contract()['info']
+        data = coll.find_one({'TradingDay': _tradingday})
+        if data is None:
+            return None
+        if _contract in data['ContractDict'].keys():
+            return _contract
+        return None
 
     def fetchData(
             self, _tradingday: str, _symbol: str, _cache: bool = True,

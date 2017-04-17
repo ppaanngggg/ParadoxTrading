@@ -29,7 +29,6 @@ class DataStruct:
             _rows: typing.Sequence[list] = None,
             _dicts: typing.Sequence[dict] = None
     ):
-
         assert _index_name in _keys
 
         self.data: typing.Dict[str, typing.List] = {}
