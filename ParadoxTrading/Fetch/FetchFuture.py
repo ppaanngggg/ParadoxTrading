@@ -86,11 +86,11 @@ class FetchFutureTick(FetchAbstract):
 
         self.cache_path = 'FutureTick.hdf5'
 
-        self.mongo_client: MongoClient = None
-        self.mongo_prod: pymongo.database.Database = None
-        self.mongo_inst: pymongo.database.Database = None
-        self.psql_con: psycopg2.extensions.connection = None
-        self.psql_cur: psycopg2.extensions.cursor = None
+        self._mongo_client: MongoClient = None
+        self._mongo_prod: pymongo.database.Database = None
+        self._mongo_inst: pymongo.database.Database = None
+        self._psql_con: psycopg2.extensions.connection = None
+        self._psql_cur: psycopg2.extensions.cursor = None
 
         self.columns = [
             'tradingday', 'lastprice', 'highestprice', 'lowestprice',
@@ -108,22 +108,22 @@ class FetchFutureTick(FetchAbstract):
         ]
 
     def _get_mongo_prod(self) -> pymongo.database.Database:
-        if not self.mongo_prod:
-            if not self.mongo_client:
-                self.mongo_client: MongoClient = MongoClient(
+        if not self._mongo_prod:
+            if not self._mongo_client:
+                self._mongo_client: MongoClient = MongoClient(
                     host=self.mongo_host)
-            self.mongo_prod: pymongo.database.Database = self.mongo_client[
+            self._mongo_prod: pymongo.database.Database = self._mongo_client[
                 self.mongo_prod_db]
-        return self.mongo_prod
+        return self._mongo_prod
 
     def _get_mongo_inst(self) -> pymongo.database.Database:
-        if not self.mongo_inst:
-            if not self.mongo_client:
-                self.mongo_client: MongoClient = MongoClient(
+        if not self._mongo_inst:
+            if not self._mongo_client:
+                self._mongo_client: MongoClient = MongoClient(
                     host=self.mongo_host)
-            self.mongo_inst: pymongo.database.Database = self.mongo_client[
+            self._mongo_inst: pymongo.database.Database = self._mongo_client[
                 self.mongo_inst_db]
-        return self.mongo_inst
+        return self._mongo_inst
 
     def productList(self) -> list:
         """

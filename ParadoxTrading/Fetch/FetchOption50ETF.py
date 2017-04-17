@@ -50,10 +50,10 @@ class FetchOption50ETFTick(FetchAbstract):
 
         self.cache_path = 'Option50ETFTick.hdf5'
 
-        self.mongo_client: MongoClient = None
-        self.mongo_contract: pymongo.database.Database = None
-        self.psql_con: psycopg2.extensions.connection = None
-        self.psql_cur: psycopg2.extensions.cursor = None
+        self._mongo_client: MongoClient = None
+        self._mongo_contract: pymongo.database.Database = None
+        self._psql_con: psycopg2.extensions.connection = None
+        self._psql_cur: psycopg2.extensions.cursor = None
 
         self.columns = [
             'tradingday', 'volume', 'turover',
@@ -69,13 +69,13 @@ class FetchOption50ETFTick(FetchAbstract):
             len(self.columns) - 2) + ['timestamp without time zone']
 
     def _get_mongo_contract(self) -> pymongo.database.Database:
-        if not self.mongo_contract:
-            if not self.mongo_client:
-                self.mongo_client: MongoClient = MongoClient(
+        if not self._mongo_contract:
+            if not self._mongo_client:
+                self._mongo_client: MongoClient = MongoClient(
                     host=self.mongo_host)
-            self.mongo_contract: pymongo.database.Database = self.mongo_client[
+            self._mongo_contract: pymongo.database.Database = self._mongo_client[
                 self.mongo_contract_db]
-        return self.mongo_contract
+        return self._mongo_contract
 
     def fetchContractInfo(
             self, _tradingday

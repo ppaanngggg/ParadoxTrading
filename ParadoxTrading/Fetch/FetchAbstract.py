@@ -57,17 +57,17 @@ class FetchAbstract:
     def _get_psql_con_cur(self) -> typing.Tuple[
         psycopg2.extensions.connection, psycopg2.extensions.cursor
     ]:
-        if not self.psql_con:
-            self.psql_con: psycopg2.extensions.connection = psycopg2.connect(
+        if not self._psql_con:
+            self._psql_con: psycopg2.extensions.connection = psycopg2.connect(
                 dbname=self.psql_dbname,
                 host=self.psql_host,
                 user=self.psql_user,
                 password=self.psql_password,
             )
-        if not self.psql_cur:
-            self.psql_cur: psycopg2.extensions.cursor = self.psql_con.cursor()
+        if not self._psql_cur:
+            self._psql_cur: psycopg2.extensions.cursor = self._psql_con.cursor()
 
-        return self.psql_con, self.psql_cur
+        return self._psql_con, self._psql_cur
 
     def cache2DataStruct(
             self, _symbol: str, _tradingday: str, _index: str
