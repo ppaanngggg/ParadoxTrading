@@ -1,11 +1,13 @@
-from ParadoxTrading.Engine import OrderType, OrderEvent, SignalType, \
-    ActionType, DirectionType, FillEvent, SignalEvent
-from ParadoxTrading.Engine import PortfolioAbstract
+from ParadoxTrading.Engine import (ActionType, DirectionType, FillEvent,
+                                   OrderEvent, OrderType, PortfolioAbstract,
+                                   SignalEvent, SignalType)
 
 
 class TickPortfolio(PortfolioAbstract):
-    def __init__(self):
+    def __init__(self, _price_index='lastprice'):
         super().__init__()
+
+        self.price_index = 'lastprice'
 
     def dealSignal(self, _event: SignalEvent):
         assert self.engine is not None
@@ -51,3 +53,17 @@ class TickPortfolio(PortfolioAbstract):
 
     def dealFill(self, _event: FillEvent):
         self.getPortfolioByIndex(_event.index).dealFillEvent(_event)
+
+    def dealSettlement(self, _tradingday, _next_tradingday):
+        assert _tradingday
+
+        symbol_price_dict = {}
+        for symbol in self.engine.getSymbolList():
+            symbol_price_dict[symbol] = \
+                self.engine.getSymbolData(symbol)[self.price_index][-1]
+
+        for v in self.strategy_portfolio_dict.values():
+            v.dealSettlement(
+                _tradingday, _next_tradingday,
+                symbol_price_dict
+            )

@@ -14,6 +14,9 @@ class SplitAbstract:
         self.bar_begin_time_list: typing.List[datetime] = []
         self.bar_end_time_list: typing.List[datetime] = []
 
+    def __len__(self) -> len:
+        return len(self.getBarList())
+
     def getLastData(self) -> DataStruct:
         return self.cur_bar.iloc[-1]
 
