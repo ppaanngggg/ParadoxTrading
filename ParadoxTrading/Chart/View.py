@@ -190,10 +190,10 @@ class View:
         return global_layout
 
     def updateValue(self, _x):
-        self.x_edit.setText(str(_x))
+        self.x_edit.setText('{}'.format(_x))
         for v in self.raw_data_dict.values():
             try:
                 value = v['x2y'][_x]
-                v['edit'].setText(str(value))
+                v['edit'].setText('{:f}'.format(value))
             except KeyError:
                 pass
