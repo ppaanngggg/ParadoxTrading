@@ -39,6 +39,16 @@ class RegisterAbstract:
 
 
 class FetchAbstract:
+    def __init__(self):
+        self.register_type: RegisterAbstract = None
+
+        self.psql_host: str = None
+        self.psql_dbname: str = None
+        self.psql_user: str = None
+        self.psql_password: str = None
+
+        self.cache_path: str = None
+
     def fetchSymbol(
             self, _tradingday: str, **kwargs
     ) -> typing.Union[None, str]:

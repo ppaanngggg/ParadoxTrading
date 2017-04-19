@@ -6,12 +6,15 @@ setup(
     author='hantian.pang',
     packages=[
         'ParadoxTrading',
+        'ParadoxTrading/Fetch',
         'ParadoxTrading/Chart',
         'ParadoxTrading/Engine',
+        'ParadoxTrading/EngineExt',
         'ParadoxTrading/Utils',
         'ParadoxTrading/Indicator',
         'ParadoxTrading/Indicator/Basic',
         'ParadoxTrading/Indicator/General',
+        'ParadoxTrading/Performance'
     ],
     install_requires=[
         'numpy',

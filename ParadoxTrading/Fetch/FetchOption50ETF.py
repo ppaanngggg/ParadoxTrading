@@ -38,6 +38,8 @@ class RegisterOption50ETFTick(RegisterAbstract):
 
 class FetchOption50ETFTick(FetchAbstract):
     def __init__(self):
+        super().__init__()
+
         self.register_type = RegisterOption50ETFTick
 
         self.mongo_host: str = 'localhost'
@@ -73,8 +75,9 @@ class FetchOption50ETFTick(FetchAbstract):
             if not self._mongo_client:
                 self._mongo_client: MongoClient = MongoClient(
                     host=self.mongo_host)
-            self._mongo_contract: pymongo.database.Database = self._mongo_client[
-                self.mongo_contract_db]
+            self._mongo_contract: pymongo.database.Database = \
+                self._mongo_client[
+                    self.mongo_contract_db]
         return self._mongo_contract
 
     def fetchContractInfo(
@@ -86,7 +89,6 @@ class FetchOption50ETFTick(FetchAbstract):
             return None
         values = list(data['ContractDict'].values())
         return DataStruct(values[0].keys(), 'SecurityID', _dicts=values)
-
 
     def fetchSymbol(
             self, _tradingday: str, _contract: str = None

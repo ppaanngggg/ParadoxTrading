@@ -73,6 +73,7 @@ class RegisterFutureTick(RegisterAbstract):
 
 class FetchFutureTick(FetchAbstract):
     def __init__(self):
+        super().__init__()
         self.register_type: RegisterAbstract = RegisterFutureTick
 
         self.mongo_host: str = 'localhost'
