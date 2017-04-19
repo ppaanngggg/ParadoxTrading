@@ -170,7 +170,7 @@ class FetchGuoJinDay(FetchFutureDay):
     def __init__(self):
         super().__init__()
 
-        self.register_type = FetchGuoJinDay
+        self.register_type = RegisterGuoJinDay
 
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
