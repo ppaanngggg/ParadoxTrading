@@ -46,6 +46,8 @@ def _daily_return(
     assert fill_dict.keys() <= settlement_dict.keys()
 
     for tradingday in sorted(settlement_dict.keys()):
+        if tradingday not in fill_dict.keys():
+            continue
         for d in fill_dict[tradingday]:
             cur_fund -= d['commission'][0]
             if d['direction'][0] == DirectionType.BUY:
