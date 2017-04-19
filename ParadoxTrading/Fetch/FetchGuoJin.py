@@ -192,7 +192,7 @@ class FetchGuoJinDayIndex(FetchFutureDayIndex):
     def __init__(self):
         super().__init__()
 
-        self.register_type = FetchGuoJinDayIndex
+        self.register_type = RegisterGuoJinDayIndex
 
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
