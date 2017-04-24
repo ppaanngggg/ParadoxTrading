@@ -12,13 +12,13 @@ from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class ReturnMarket():
+class ReturnMarket:
     def __init__(self, _symbol: str, _data: DataStruct):
         self.symbol = _symbol
         self.data = _data
 
 
-class ReturnSettlement():
+class ReturnSettlement:
     """
     if _tradingday is None, it means the first day
     if _next_tradingday is None, it means the last day

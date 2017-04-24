@@ -1,5 +1,6 @@
-import typing
 import logging
+import typing
+
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import MarketEvent, SignalEvent, SignalType
 from ParadoxTrading.Fetch import RegisterAbstract
@@ -103,8 +104,12 @@ class StrategyAbstract:
                 _signal_type=_signal_type,
                 _strength=_strength, ))
         logging.info('Strategy({}) send {} when {}'.format(
-            self.name, SignalType.toStr(_signal_type), self.engine.getDatetime()
+            self.name, SignalType.toStr(
+                _signal_type), self.engine.getDatetime()
         ))
+        self.setLastSignal(_signal_type)
+
+    def setLastSignal(self, _signal_type: int):
         self.last_signal = _signal_type
 
     def getLastSignal(self) -> int:
@@ -113,9 +118,9 @@ class StrategyAbstract:
     def getSymbolData(self, _symbol: str) -> DataStruct:
         """
         get data of one symbol from marketsupply through engine
-        
-        :param _symbol: 
-        :return: 
+
+        :param _symbol:
+        :return:
         """
         return self.engine.getSymbolData(_symbol)
 

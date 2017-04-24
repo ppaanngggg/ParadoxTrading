@@ -1,8 +1,8 @@
 import logging
+import typing
 
 import pymongo
 import tabulate
-import typing
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
@@ -307,9 +307,9 @@ class PortfolioAbstract:
     def addStrategy(self, _strategy: StrategyAbstract):
         """
         add strategy in to portfolio
-        
-        :param _strategy: 
-        :return: 
+
+        :param _strategy:
+        :return:
         """
 
         # check unique
@@ -431,8 +431,8 @@ class PortfolioAbstract:
     def getPortfolioByIndex(self, _index: int) -> PortfolioPerStrategy:
         """
         get the portfolio by order's index
-        
-        :param _index: 
-        :return: 
+
+        :param _index:
+        :return:
         """
         return self.getPortfolioByStrategy(self.order_strategy_dict[_index])
