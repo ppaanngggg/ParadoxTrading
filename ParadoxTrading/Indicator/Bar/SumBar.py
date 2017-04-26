@@ -25,4 +25,7 @@ class SumBar(BarIndicatorAbstract):
             _idx: typing.Union[str, datetime] = None
     ):
         tmp_value = sum(_data_struct.getColumn(self.use_key))
-        self.data.addRow([_idx, tmp_value], [self.idx_key, self.ret_key])
+        self.data.addRow(
+            (_idx, tmp_value),
+            (self.idx_key, self.ret_key)
+        )

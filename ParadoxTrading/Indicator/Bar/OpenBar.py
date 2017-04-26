@@ -24,4 +24,7 @@ class OpenBar(BarIndicatorAbstract):
             _idx: typing.Union[str, datetime] = None
     ):
         tmp_value = _data_struct.getColumn(self.use_key)[0]
-        self.data.addRow([_idx, tmp_value], [self.idx_key, self.ret_key])
+        self.data.addRow(
+            (_idx, tmp_value),
+            (self.idx_key, self.ret_key)
+        )

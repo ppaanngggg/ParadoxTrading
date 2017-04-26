@@ -1,4 +1,4 @@
-from ParadoxTrading.Indicator import CloseBar, HighBar, LowBar, OpenBar, SumBar
+from ParadoxTrading.Indicator import CloseBar, HighBar, LowBar, OpenBar, SumBar, Diff, MA
 from ParadoxTrading.Fetch import FetchGuoJinTick
 from ParadoxTrading.Utils import SplitIntoMinute
 from datetime import datetime
@@ -35,5 +35,13 @@ bar_data.expand(low_bar.getAllData())
 sum_bar = SumBar('askvolume', _ret_key='askvolume')
 sum_bar.addMany(spliter.getBarList(), spliter.getBarBeginTimeList())
 bar_data.expand(sum_bar.getAllData())
+
+diff = Diff('close')
+diff.addMany(bar_data)
+bar_data.expand(diff.getAllData())
+
+ma = MA(5, 'close')
+ma.addMany(bar_data)
+bar_data.expand(ma.getAllData())
 
 print(bar_data)

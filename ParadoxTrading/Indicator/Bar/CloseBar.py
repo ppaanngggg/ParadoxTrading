@@ -25,4 +25,7 @@ class CloseBar(BarIndicatorAbstract):
             _idx: typing.Union[str, datetime] = None
     ):
         tmp_value = _data_struct[self.use_key][-1]
-        self.data.addRow([_idx, tmp_value], [self.idx_key, self.ret_key])
+        self.data.addRow(
+            (_idx, tmp_value),
+            (self.idx_key, self.ret_key)
+        )

@@ -14,18 +14,17 @@ class IndicatorAbstract:
     def getAllData(self) -> DataStruct:
         return self.data
 
-    def addOne(self, _data_struct: DataStruct, **kwargs) -> "IndicatorAbstract":
+    def addOne(self, _data_struct: DataStruct) -> "IndicatorAbstract":
         assert len(_data_struct) == 1
-        self._addOne(_data_struct, **kwargs)
+        self._addOne(_data_struct)
         return self
 
-    def _addOne(self, _data: DataStruct, **kwargs):
+    def _addOne(self, _data: DataStruct):
         raise NotImplementedError('You should implement addOne!')
 
     def addMany(
             self,
             _data_list: typing.Union[DataStruct, typing.List[DataStruct]],
-            **kwargs
     ) -> "IndicatorAbstract":
         for data in _data_list:
             self.addOne(data)

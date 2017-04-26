@@ -25,4 +25,7 @@ class HighBar(BarIndicatorAbstract):
             _idx: typing.Union[str, datetime] = None
     ):
         tmp_value = max(_data_struct[self.use_key])
-        self.data.addRow([_idx, tmp_value], [self.idx_key, self.ret_key])
+        self.data.addRow(
+            (_idx, tmp_value),
+            (self.idx_key, self.ret_key)
+        )
