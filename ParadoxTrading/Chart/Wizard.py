@@ -26,7 +26,7 @@ class Wizard:
         self.begin_idx = 0
         self.end_idx = 0
 
-    def addView(self, _name: str, _stretch: int = 1, _view_stretch: int = 10):
+    def addView(self, _name: str, _stretch: int = 1, _view_stretch: int = 10) -> str:
         assert _name not in self.view_dict.keys()
         assert _stretch > 0
         self.view_list.append(_name)
@@ -34,6 +34,7 @@ class Wizard:
             'view': ParadoxTrading.Chart.View.View(_name, self, _view_stretch),
             'stretch': _stretch
         }
+        return _name
 
     def addLine(
             self, _view_name: str,
