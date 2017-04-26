@@ -12,7 +12,7 @@ setup(
         'ParadoxTrading/EngineExt',
         'ParadoxTrading/Utils',
         'ParadoxTrading/Indicator',
-        'ParadoxTrading/Indicator/Basic',
+        'ParadoxTrading/Indicator/Bar',
         'ParadoxTrading/Indicator/General',
         'ParadoxTrading/Performance'
     ],
