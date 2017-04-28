@@ -114,6 +114,11 @@ class DataStruct:
     def toRows(
             self, _keys=None
     ) -> (typing.List[typing.List[typing.Any]], typing.List[str]):
+        """
+        
+        :param _keys: the columns to return
+        :return: rows and keys
+        """
         rows = []
         keys: typing.List[str] = _keys
         if keys is None:

@@ -3,9 +3,9 @@ from datetime import datetime
 
 import numpy as np
 from PyQt5.Qt import QColor, QMouseEvent, QPainter
-from PyQt5.QtChart import (QBarSeries, QBarSet, QChart, QCandlestickSeries,
+from PyQt5.QtChart import (QBarSeries, QBarSet, QChart, QCandlestickSeries, QCandlestickSet,
                            QChartView, QLineSeries, QScatterSeries, QValueAxis)
-from PyQt5.QtWidgets import QHBoxLayout, QFormLayout, QLineEdit, QGroupBox
+from PyQt5.QtWidgets import QHBoxLayout, QFormLayout, QLineEdit, QGroupBox, QLabel
 
 import ParadoxTrading.Chart
 
@@ -165,7 +165,7 @@ class View:
             value = _v['x2y'][_x]
             _v['edit'].setText('{:f}'.format(value))
         except KeyError:
-            pass
+            _v['edit'].setText('')
 
     @staticmethod
     def _addBarSeries(
@@ -205,7 +205,7 @@ class View:
             value = _v['x2y'][_x]
             _v['edit'].setText('{:f}'.format(value))
         except KeyError:
-            pass
+            _v['edit'].setText('')
 
     @staticmethod
     def _addScatterSeries(
@@ -242,13 +242,68 @@ class View:
         except KeyError:
             _v['edit'].setText('')
 
+    @staticmethod
     def _addCandleSeries(
-            self, _x2idx: dict, _idx2x: list, _v: dict, _chart: QChart,
+            _x2idx: dict, _idx2x: list, _v: dict, _chart: QChart,
             _axis_x: QValueAxis, _axis_y: QValueAxis
     ):
-        serise = QCandlestickSeries()
-        serise.setName(_v['name'])
-        # for
+        series = QCandlestickSeries()
+        series.setName(_v['name'])
+        for x, y in zip(_v['x'], _v['y']):
+            series.append(QCandlestickSet(*y, _x2idx[x]))
+        if _v['inc_color'] is not None:
+            series.setIncreasingColor(_v['inc_color'])
+        else:
+            series.setIncreasingColor(QColor('#c41919'))
+        if _v['dec_color'] is not None:
+            series.setDecreasingColor(_v['dec_color'])
+        else:
+            series.setDecreasingColor(QColor('#009f13'))
+
+        _chart.addSeries(series)
+        _chart.setAxisX(_axis_x, series)
+        _chart.setAxisY(_axis_y, series)
+
+        group = QGroupBox()
+        group.setTitle(_v['name'])
+        open_edit = QLineEdit()
+        open_edit.setDisabled(True)
+        high_edit = QLineEdit()
+        high_edit.setDisabled(True)
+        low_edit = QLineEdit()
+        low_edit.setDisabled(True)
+        close_edit = QLineEdit()
+        close_edit.setDisabled(True)
+        layout = QFormLayout()
+        layout.addWidget(QLabel('openprice'))
+        layout.addWidget(open_edit)
+        layout.addWidget(QLabel('highprice'))
+        layout.addWidget(high_edit)
+        layout.addWidget(QLabel('lowprice'))
+        layout.addWidget(low_edit)
+        layout.addWidget(QLabel('closeprice'))
+        layout.addWidget(close_edit)
+        group.setLayout(layout)
+
+        _v['group'] = group
+        _v['open_edit'] = open_edit
+        _v['high_edit'] = high_edit
+        _v['low_edit'] = low_edit
+        _v['close_edit'] = close_edit
+
+    @staticmethod
+    def __updateCandleValue(_x: typing.Any, _v: dict):
+        try:
+            value = _v['x2y'][_x]
+            _v['open_edit'].setText('{:f}'.format(value[0]))
+            _v['high_edit'].setText('{:f}'.format(value[1]))
+            _v['low_edit'].setText('{:f}'.format(value[2]))
+            _v['close_edit'].setText('{:f}'.format(value[3]))
+        except KeyError:
+            _v['open_edit'].setText('')
+            _v['high_edit'].setText('')
+            _v['low_edit'].setText('')
+            _v['close_edit'].setText('')
 
     def setAxisX(self, _begin: float, _end: float):
         self.axis_x.setRange(_begin, _end)
@@ -287,6 +342,9 @@ class View:
             elif v['type'] == self.SCATTER:
                 View._addScatterSeries(
                     _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
+            elif v['type'] == self.CANDLE:
+                View._addCandleSeries(
+                    _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
             else:
                 raise Exception('Unknown type!')
 
@@ -311,8 +369,8 @@ class View:
             elif v['type'] == View.BAR:
                 View._updateBarValue(_x, v)
             elif v['type'] == View.SCATTER:
-                value = View._updateScatterValue(_x, v)
+                View._updateScatterValue(_x, v)
             elif v['type'] == View.CANDLE:
-                pass
+                View.__updateCandleValue(_x, v)
             else:
                 raise Exception('Unknown type!')

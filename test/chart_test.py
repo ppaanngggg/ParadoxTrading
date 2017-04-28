@@ -11,9 +11,14 @@ buy_price_list = [data['closeprice'][i] for i in range(0, len(data), 5)]
 wizard = Wizard('test')
 
 view_price = wizard.addView('price', 3)
+wizard.addCandle(
+    view_price, data.index(),
+    data.toRows(
+        ['openprice', 'highprice', 'lowprice', 'closeprice']
+    )[0], 'K')
 wizard.addLine(view_price, data.index(), data['closeprice'], 'closeprice')
-wizard.addScatter(view_price, buy_time_list, buy_price_list, 'buy', 'red')
+wizard.addScatter(view_price, buy_time_list, buy_price_list, 'buy', 'orange')
 view_volume = wizard.addView('volume')
-wizard.addBar(view_volume, data.index(), data['volume'], 'volume', 'orange')
+wizard.addBar(view_volume, data.index(), data['volume'], 'volume')
 
 wizard.show()
