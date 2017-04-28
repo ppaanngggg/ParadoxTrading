@@ -25,12 +25,12 @@ class MyStrategy(StrategyAbstract):
                 self.split_rb.getBarList()) > 1:
             # create a new 5 min bar
             self.highest_rb.addOne(
+                self.split_rb.getBarList()[-2],
                 self.split_rb.getBarEndTimeList()[-2],
-                self.split_rb.getBarList()[-2]
             )
             self.lowest_rb.addOne(
+                self.split_rb.getBarList()[-2],
                 self.split_rb.getBarEndTimeList()[-2],
-                self.split_rb.getBarList()[-2]
             )
         if len(self.highest_rb.getAllData()):
             cur_closeprice = _market_event.data['closeprice'][0]

@@ -23,15 +23,25 @@ class Wizard:
         self.view_list: typing.List[str] = []
         self.view_dict: typing.Dict = {}
 
-        self.begin_idx = 0
-        self.end_idx = 0
+        # map x to axis idx
+        self.x2idx: typing.Dict[typing.Any, int] = None
+        # map axis idx to x
+        self.idx2x: typing.List[typing.Any] = None
 
-    def addView(self, _name: str, _stretch: int = 1, _view_stretch: int = 10) -> str:
+        self.begin_idx: int = 0
+        self.end_idx: int = 0
+
+    def addView(
+            self, _name: str, _stretch: int = 1,
+            _view_stretch: int = 15
+    ) -> str:
         assert _name not in self.view_dict.keys()
         assert _stretch > 0
         self.view_list.append(_name)
         self.view_dict[_name] = {
-            'view': ParadoxTrading.Chart.View.View(_name, self, _view_stretch),
+            'view': ParadoxTrading.Chart.View.View(
+                _name, self, _view_stretch
+            ),
             'stretch': _stretch
         }
         return _name
@@ -44,41 +54,64 @@ class Wizard:
         assert _view_name in self.view_dict.keys()
         self.view_dict[_view_name]['view'].addLine(
             _x_list, _y_list, _name,
-            None if _color is None else QColor(_color))
+            None if _color is None else QColor(_color)
+        )
 
     def addBar(
             self, _view_name: str,
-            _x_list: typing.List[datetime], _y_list: list,
+            _x_list: typing.List[typing.Any], _y_list: list,
             _name: str, _color: typing.Union[typing.Any, QColor] = None
     ):
         assert _view_name in self.view_dict.keys()
         self.view_dict[_view_name]['view'].addBar(
             _x_list, _y_list, _name,
-            None if _color is None else QColor(_color))
+            None if _color is None else QColor(_color)
+        )
 
     def addScatter(
             self, _view_name: str,
-            _x_list: typing.List[datetime], _y_list: list,
+            _x_list: typing.List[typing.Any], _y_list: list,
             _name: str, _color: typing.Union[typing.Any, QColor] = None
     ):
         assert _view_name in self.view_dict.keys()
         self.view_dict[_view_name]['view'].addScatter(
             _x_list, _y_list, _name,
-            None if _color is None else QColor(_color))
+            None if _color is None else QColor(_color)
+        )
+
+    def addCandle(
+            self, _view_name: str,
+            _x_list: typing.List[typing.Any],
+            _y_list: typing.Sequence[typing.Sequence],
+            _name: str,
+            _inc_color: typing.Union[typing.Any, QColor] = None,
+            _dec_color: typing.Union[typing.Any, QColor] = None,
+    ):
+        assert _view_name in self.view_dict.keys()
+        self.view_dict[_view_name]['view'].addCandle(
+            _x_list, _y_list, _name,
+            None if _inc_color is None else QColor(_inc_color),
+            None if _dec_color is None else QColor(_dec_color),
+        )
 
     def _calcSetX(self) -> (dict, list):
+        # join all x
         tmp = set()
         for d in self.view_dict.values():
             tmp |= d['view'].calcSetX()
         tmp = sorted(list(tmp))
+        # reset x range
+        self.begin_idx = 0
+        self.end_idx = len(tmp) - 1
+
         return dict(zip(tmp, range(len(tmp)))), tmp
 
-    def _calcAxisX(self, _list: list):
-        tmp = [str(d) for d in _list]
+    def _setAxisX(self, _begin: int, _end: int):
+        tmp_begin = _begin - 1
+        tmp_end = _end + 1
+
         for d in self.view_dict.values():
-            d['view'].appendAxisX(tmp)
-        self.begin_idx = 0
-        self.end_idx = len(_list) - 1
+            d['view'].setAxisX(tmp_begin, tmp_end)
 
     def show(self):
         if not self.view_dict:
@@ -86,11 +119,12 @@ class Wizard:
 
         app = QApplication(sys.argv)
 
+        # get the axis info, and reset it
         self.x2idx, self.idx2x = self._calcSetX()
-        self._calcAxisX(self.idx2x)
+        self._setAxisX(self.begin_idx, self.end_idx)
 
         layout = QVBoxLayout()
-
+        # keep the sort when inserted
         for d in [self.view_dict[name] for name in self.view_list]:
             layout.addLayout(
                 d['view'].createChartView(self.x2idx, self.idx2x),
@@ -106,13 +140,6 @@ class Wizard:
         window.show()
 
         return app.exec()
-
-    def _setAxisX(self, _begin: int, _end: int):
-        tmp_begin = str(self.idx2x[_begin])
-        tmp_end = str(self.idx2x[_end])
-
-        for d in self.view_dict.values():
-            d['view'].setAxisX(tmp_begin, tmp_end)
 
     def zoomIn(self):
         mid = (self.begin_idx + self.end_idx) / 2.0
