@@ -24,5 +24,6 @@ setup(
         'pymongo',
         'PyQt5',
         'PyQtChart',
+        'arrow'
     ]
 )

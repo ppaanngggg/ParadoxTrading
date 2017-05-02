@@ -9,5 +9,4 @@
 """
 
 from .DataStruct import DataStruct
-from .Split import SplitIntoHour, SplitIntoMinute, SplitIntoSecond, \
-    SplitAbstract
+from .Split import SplitIntoHour, SplitIntoMinute, SplitIntoSecond, SplitIntoWeek, SplitIntoMonth
