@@ -26,7 +26,7 @@ class DataStruct:
             self,
             _keys: typing.Sequence[str],
             _index_name: str,
-            _rows: typing.Sequence[list] = None,
+            _rows: typing.Sequence = None,
             _dicts: typing.Sequence[dict] = None
     ):
         assert _index_name in _keys
@@ -40,11 +40,9 @@ class DataStruct:
         self.iloc: ILoc = ILoc(self)
 
         if _rows is not None:
-            assert isinstance(_rows, list)
             self.addRows(_rows, _keys)
 
         if _dicts is not None:
-            assert isinstance(_dicts, list)
             self.addDicts(_dicts)
 
     def __getitem__(self, _item: str) -> typing.List[typing.Any]:
@@ -107,7 +105,7 @@ class DataStruct:
         for k, v in _dict.items():
             self.data[k].insert(insert_idx, v)
 
-    def addDicts(self, _dicts: typing.List[dict]):
+    def addDicts(self, _dicts: typing.Sequence[dict]):
         for _dict in _dicts:
             self.addDict(_dict)
 

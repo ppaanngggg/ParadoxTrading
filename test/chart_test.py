@@ -10,7 +10,7 @@ buy_price_list = [data['closeprice'][i] for i in range(0, len(data), 5)]
 
 wizard = Wizard('test')
 
-view_price = wizard.addView('price', 3)
+view_price = wizard.addView('price', 3, _adaptive=True)
 wizard.addCandle(
     view_price, data.index(),
     data.toRows(

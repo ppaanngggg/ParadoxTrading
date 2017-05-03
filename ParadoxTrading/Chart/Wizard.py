@@ -33,14 +33,14 @@ class Wizard:
 
     def addView(
             self, _name: str, _stretch: int = 1,
-            _view_stretch: int = 15
+            _adaptive=False, _view_stretch: int = 15
     ) -> str:
         assert _name not in self.view_dict.keys()
         assert _stretch > 0
         self.view_list.append(_name)
         self.view_dict[_name] = {
             'view': ParadoxTrading.Chart.View.View(
-                _name, self, _view_stretch
+                _name, self, _adaptive, _view_stretch
             ),
             'stretch': _stretch
         }
@@ -113,6 +113,13 @@ class Wizard:
         for d in self.view_dict.values():
             d['view'].setAxisX(tmp_begin, tmp_end)
 
+    def _setAxisY(self, _begin: int, _end: int):
+        for d in self.view_dict.values():
+            tmp_view: ParadoxTrading.Chart.View.View = d['view']
+            if tmp_view.adaptive:
+                tmp_view.calcRangeY(self.idx2x[_begin], self.idx2x[_end])
+                tmp_view.setAxisY(tmp_view.begin_y, tmp_view.end_y)
+
     def show(self):
         if not self.view_dict:
             return
@@ -142,7 +149,6 @@ class Wizard:
         return app.exec()
 
     def zoomIn(self):
-        mid = (self.begin_idx + self.end_idx) / 2.0
         diff = max(
             int((self.end_idx - self.begin_idx) / 2.0 / self.ZOOM_STEP),
             1)
@@ -151,9 +157,9 @@ class Wizard:
             self.end_idx -= diff
 
         self._setAxisX(self.begin_idx, self.end_idx)
+        self._setAxisY(self.begin_idx, self.end_idx)
 
     def zoomOut(self):
-        mid = (self.begin_idx + self.end_idx) / 2.0
         diff = max(
             int((self.end_idx - self.begin_idx) / 2.0 / self.ZOOM_STEP),
             1)
@@ -161,6 +167,7 @@ class Wizard:
         self.end_idx = min(self.end_idx + diff, len(self.idx2x) - 1)
 
         self._setAxisX(self.begin_idx, self.end_idx)
+        self._setAxisY(self.begin_idx, self.end_idx)
 
     def scrollLeft(self):
         diff = max(
@@ -172,6 +179,7 @@ class Wizard:
         self.end_idx = max(self.end_idx, 0)
 
         self._setAxisX(self.begin_idx, self.end_idx)
+        self._setAxisY(self.begin_idx, self.end_idx)
 
     def scrollRight(self):
         diff = max(
@@ -183,6 +191,7 @@ class Wizard:
         self.end_idx = min(self.end_idx, len(self.idx2x) - 1)
 
         self._setAxisX(self.begin_idx, self.end_idx)
+        self._setAxisY(self.begin_idx, self.end_idx)
 
     def mouseMove(self, _index):
         _index = max(0, _index)

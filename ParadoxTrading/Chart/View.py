@@ -8,6 +8,7 @@ from PyQt5.QtChart import (QBarSeries, QBarSet, QChart, QCandlestickSeries, QCan
 from PyQt5.QtWidgets import QHBoxLayout, QFormLayout, QLineEdit, QGroupBox, QLabel
 
 import ParadoxTrading.Chart
+from ParadoxTrading.Utils import DataStruct
 
 
 class ChartView(QChartView):
@@ -33,6 +34,7 @@ class View:
     def __init__(
             self, _name: str,
             _wizard: "ParadoxTrading.Chart.Wizard",
+            _adaptive: bool = False,
             _stretch: int = 10
     ):
         """
@@ -45,6 +47,7 @@ class View:
 
         self.name = _name
         self.wizard = _wizard
+        self.adaptive = _adaptive
         self.stretch = _stretch
 
         self.raw_data_dict = {}
@@ -54,6 +57,8 @@ class View:
         self.axis_y = QValueAxis()
         # set name to axis_y, price for price, volume for volume, etc
         self.axis_y.setTitleText(self.name)
+        self.begin_y: float = None
+        self.end_y: float = None
 
         self.x_edit: QLineEdit = None
 
@@ -67,7 +72,7 @@ class View:
         self.raw_data_dict[_name] = {
             'x': _x_list, 'y': _y_list, 'name': _name,
             'color': _color, 'type': _type,
-            'x2y': dict(zip(_x_list, _y_list)),
+            'x2y': DataStruct(['x', 'y'], 'x', list(zip(_x_list, _y_list)))
         }
 
     def addBar(
@@ -110,7 +115,7 @@ class View:
             tmp |= set(v['x'])
         return tmp
 
-    def calcRangeY(self) -> typing.Tuple:
+    def calcRangeY(self, _begin_x=None, _end_x=None):
         """
         get range of y for this view
         
@@ -119,18 +124,24 @@ class View:
         tmp_min_list = []
         tmp_max_list = []
         for v in self.raw_data_dict.values():
+            tmp_y = v['x2y'].loc[_begin_x:_end_x]['y']
+            if len(tmp_y) == 0:
+                continue
             if v['type'] == View.LINE or v['type'] == View.BAR or \
                             v['type'] == View.SCATTER:
-                tmp_min_list.append(min(v['y']))
-                tmp_max_list.append(max(v['y']))
+                tmp_min_list.append(min(tmp_y))
+                tmp_max_list.append(max(tmp_y))
             elif v['type'] == View.CANDLE:
-                tmp_y = np.array(v['y'])
+                tmp_y = np.array(tmp_y)
                 tmp_min_list.append(tmp_y.min())
                 tmp_max_list.append(tmp_y.max())
             else:
                 raise Exception('unknown type')
 
-        return min(tmp_min_list), max(tmp_max_list),
+        if tmp_min_list:
+            self.begin_y = min(tmp_min_list)
+        if tmp_max_list:
+            self.end_y = max(tmp_max_list)
 
     @staticmethod
     def _addLineSeries(
@@ -161,11 +172,12 @@ class View:
 
     @staticmethod
     def _updateLineValue(_x: typing.Any, _v: dict):
-        try:
-            value = _v['x2y'][_x]
-            _v['edit'].setText('{:f}'.format(value))
-        except KeyError:
+        value = _v['x2y'].loc[_x]
+        if value is None:
             _v['edit'].setText('')
+        else:
+            value = value['y'][0]
+            _v['edit'].setText('{:f}'.format(value))
 
     @staticmethod
     def _addBarSeries(
@@ -201,11 +213,12 @@ class View:
 
     @staticmethod
     def _updateBarValue(_x: typing.Any, _v: dict):
-        try:
-            value = _v['x2y'][_x]
-            _v['edit'].setText('{:f}'.format(value))
-        except KeyError:
+        value = _v['x2y'].loc[_x]
+        if value is None:
             _v['edit'].setText('')
+        else:
+            value = value['y'][0]
+            _v['edit'].setText('{:f}'.format(value))
 
     @staticmethod
     def _addScatterSeries(
@@ -236,11 +249,12 @@ class View:
 
     @staticmethod
     def _updateScatterValue(_x: typing.Any, _v: dict):
-        try:
-            value = _v['x2y'][_x]
-            _v['edit'].setText('{:f}'.format(value))
-        except KeyError:
+        value = _v['x2y'].loc[_x]
+        if value is None:
             _v['edit'].setText('')
+        else:
+            value = value['y'][0]
+            _v['edit'].setText('{:f}'.format(value))
 
     @staticmethod
     def _addCandleSeries(
@@ -293,17 +307,18 @@ class View:
 
     @staticmethod
     def __updateCandleValue(_x: typing.Any, _v: dict):
-        try:
-            value = _v['x2y'][_x]
-            _v['open_edit'].setText('{:f}'.format(value[0]))
-            _v['high_edit'].setText('{:f}'.format(value[1]))
-            _v['low_edit'].setText('{:f}'.format(value[2]))
-            _v['close_edit'].setText('{:f}'.format(value[3]))
-        except KeyError:
+        value = _v['x2y'].loc[_x]
+        if value is None:
             _v['open_edit'].setText('')
             _v['high_edit'].setText('')
             _v['low_edit'].setText('')
             _v['close_edit'].setText('')
+        else:
+            value = value['y'][0]
+            _v['open_edit'].setText('{:f}'.format(value[0]))
+            _v['high_edit'].setText('{:f}'.format(value[1]))
+            _v['low_edit'].setText('{:f}'.format(value[2]))
+            _v['close_edit'].setText('{:f}'.format(value[3]))
 
     def setAxisX(self, _begin: float, _end: float):
         self.axis_x.setRange(_begin, _end)
@@ -329,7 +344,8 @@ class View:
         value_layout.addWidget(group)
 
         # assign y range
-        self.setAxisY(*self.calcRangeY())
+        self.calcRangeY()
+        self.setAxisY(self.begin_y, self.end_y)
 
         # add each series
         for k, v in self.raw_data_dict.items():
