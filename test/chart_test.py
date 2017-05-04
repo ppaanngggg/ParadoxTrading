@@ -2,6 +2,10 @@ from ParadoxTrading.Chart import Wizard
 from ParadoxTrading.Fetch import FetchSHFEDay
 
 fetcher = FetchSHFEDay()
+fetcher.psql_host = '192.168.4.103'
+fetcher.psql_user = 'ubuntu'
+fetcher.mongo_host = '192.168.4.103'
+
 data = fetcher.fetchDayData('20170101', '20170401', 'rb1705')
 print(data)
 
