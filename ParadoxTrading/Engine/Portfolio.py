@@ -315,7 +315,9 @@ class PortfolioAbstract:
         # check unique
         assert _strategy.name not in self.strategy_portfolio_dict.keys()
         # create a portfolio for this strategy
-        self.strategy_portfolio_dict[_strategy.name] = PortfolioPerStrategy()
+        tmp = PortfolioPerStrategy()
+        _strategy.setPortfolio(tmp)
+        self.strategy_portfolio_dict[_strategy.name] = tmp
 
     def setEngine(self, _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
