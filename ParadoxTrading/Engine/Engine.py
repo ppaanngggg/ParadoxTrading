@@ -12,13 +12,28 @@ from ParadoxTrading.Utils import DataStruct
 
 
 class EngineAbstract:
-    def __init__(self):
+    def __init__(
+            self,
+            _market_supply: MarketSupplyAbstract,
+            _execution: ExecutionAbstract,
+            _portfolio: PortfolioAbstract,
+            _strategy: typing.Union[StrategyAbstract, typing.Iterable[StrategyAbstract]]
+    ):
         self.event_queue: deque = deque()  # store event
         self.strategy_dict: typing.Dict[str, StrategyAbstract] = {}
 
         self.market_supply: MarketSupplyAbstract = None
         self.execution: ExecutionAbstract = None
         self.portfolio: PortfolioAbstract = None
+
+        self._addMarketSupply(_market_supply)
+        self._addExecution(_execution)
+        self._addPortfolio(_portfolio)
+        if isinstance(_strategy, StrategyAbstract):
+            self._addStrategy(_strategy)
+        else:
+            for s in _strategy:
+                self._addStrategy(s)
 
     def addEvent(self, _event: EventAbstract):
         """
@@ -30,12 +45,19 @@ class EngineAbstract:
         assert isinstance(_event, EventAbstract)
         self.event_queue.append(_event)
 
-    def addMarketSupply(self, _market_supply: MarketSupplyAbstract):
+    def _addMarketSupply(self, _market_supply: MarketSupplyAbstract):
+        """
+        set marketsupply
+        
+        :param _market_supply: 
+        :return: 
+        """
         assert self.market_supply is None
+
         self.market_supply = _market_supply
         _market_supply.setEngine(self)
 
-    def addExecution(self, _execution: ExecutionAbstract):
+    def _addExecution(self, _execution: ExecutionAbstract):
         """
         set execution
 
@@ -47,7 +69,7 @@ class EngineAbstract:
         self.execution = _execution
         _execution.setEngine(self)
 
-    def addPortfolio(self, _portfolio: PortfolioAbstract):
+    def _addPortfolio(self, _portfolio: PortfolioAbstract):
         """
         set portfolio
 
@@ -59,7 +81,7 @@ class EngineAbstract:
         self.portfolio = _portfolio
         _portfolio.setEngine(self)
 
-    def addStrategy(self, _strategy: StrategyAbstract):
+    def _addStrategy(self, _strategy: StrategyAbstract):
         """
         Register strategy to engine
 

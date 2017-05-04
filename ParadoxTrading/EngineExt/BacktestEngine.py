@@ -1,15 +1,22 @@
 import logging
 
+import typing
 from ParadoxTrading.Engine import EngineAbstract, EventType, ReturnMarket, \
-    ReturnSettlement
+    ReturnSettlement, MarketSupplyAbstract, ExecutionAbstract, PortfolioAbstract, StrategyAbstract
 
 
 class BacktestEngine(EngineAbstract):
-    def __init__(self):
+    def __init__(
+            self,
+            _market_supply: MarketSupplyAbstract,
+            _execution: ExecutionAbstract,
+            _portfolio: PortfolioAbstract,
+            _strategy: typing.Union[StrategyAbstract, typing.Iterable[StrategyAbstract]]
+    ):
         """
         Engine used for backtest
         """
-        super().__init__()
+        super().__init__(_market_supply, _execution, _portfolio, _strategy)
 
     def run(self):
         """

@@ -65,11 +65,12 @@ market_supply = BacktestMarketSupply(
 execution = BarBacktestExecution(_commission_rate=0.001)
 portfolio = BarPortfolio()
 
-engine = BacktestEngine()
-engine.addMarketSupply(market_supply)
-engine.addExecution(execution)
-engine.addPortfolio(portfolio)
-engine.addStrategy(strategy)
+engine = BacktestEngine(
+    market_supply,
+    execution,
+    portfolio,
+    strategy,
+)
 
 engine.run()
 
