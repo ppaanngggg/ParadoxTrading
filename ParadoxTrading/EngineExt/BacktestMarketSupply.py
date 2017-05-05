@@ -104,9 +104,9 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         """
         super().__init__(_fetcher)
 
-        self.begin_day: str = _begin_day
-        self.cur_day: str = self.begin_day
-        self.end_day: str = _end_day
+        self.begin_day = _begin_day
+        self.cur_day = self.begin_day
+        self.end_day = _end_day
 
         self.last_tradingday: str = None
 

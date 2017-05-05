@@ -20,7 +20,6 @@ class DataStruct:
     """
 
     EXPAND_STRICT = 'strict'
-    """strict type expand"""
 
     def __init__(
             self,
@@ -31,10 +30,10 @@ class DataStruct:
     ):
         assert _index_name in _keys
 
+        self.index_name = _index_name
         self.data: typing.Dict[str, typing.List] = {}
         for key in _keys:
             self.data[key] = []
-        self.index_name = _index_name
 
         self.loc: Loc = Loc(self)
         self.iloc: ILoc = ILoc(self)

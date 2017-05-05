@@ -1,15 +1,14 @@
 import logging
 import typing
 
+import ParadoxTrading.Engine
 import pymongo
 import tabulate
-from pymongo import MongoClient
-from pymongo.collection import Collection
-
-import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
     DirectionType, FillEvent, OrderEvent, SignalEvent, EventAbstract, EventType
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
+from pymongo import MongoClient
+from pymongo.collection import Collection
 
 
 class PortfolioPerStrategy:
@@ -205,7 +204,7 @@ class PortfolioPerStrategy:
 
     def dealSettlement(
             self, _tradingday, _next_tradingday,
-            _symbol_price_dict
+            _symbol_price_dict: typing.Dict[str, float]
     ):
         unfilled_fund = 0.0
         for k, v in self.position.items():
