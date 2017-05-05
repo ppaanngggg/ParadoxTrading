@@ -4,10 +4,22 @@ from ParadoxTrading.Engine import (ActionType, DirectionType, FillEvent,
 
 
 class TickPortfolio(PortfolioAbstract):
+    """
+    this simple portfolio is suitable for tick level backtest.
+    
+    1. when it receives a signal event, it will check the status of signal's source, and 
+    send a order according the signal type and positions.
+    
+    2. when it receives a fill event, it will call the portfolio of strategy to deal it
+    directly.
+    
+    3. 
+    
+    """
     def __init__(self, _price_index='lastprice'):
         super().__init__()
 
-        self.price_index = 'lastprice'
+        self.price_index = _price_index
 
     def dealSignal(self, _event: SignalEvent):
         assert self.engine is not None

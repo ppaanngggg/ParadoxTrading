@@ -125,15 +125,16 @@ class BacktestMarketSupply(MarketSupplyAbstract):
 
     def updateData(self) -> typing.Union[ReturnMarket, ReturnSettlement]:
         """
-        update data tick by tick
+        update data tick by tick, or bar by bar
 
-        :return: whether there is data
+        :return: ReturnMarket - return market data
+            ReturnSettlement - return settlement signal
         """
 
         while True:
             # reach end, so return false to end backtest
             if self.cur_day > self.end_day:
-                # end now
+                # return end backtest
                 return self.addSettlementEvent(
                     self.last_tradingday, None
                 )

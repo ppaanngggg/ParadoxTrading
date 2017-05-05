@@ -1,6 +1,6 @@
 import logging
-
 import typing
+
 from ParadoxTrading.Engine import EngineAbstract, EventType, ReturnMarket, \
     ReturnSettlement, MarketSupplyAbstract, ExecutionAbstract, PortfolioAbstract, StrategyAbstract
 
@@ -33,6 +33,8 @@ class BacktestEngine(EngineAbstract):
             ret = self.market_supply.updateData()
             if isinstance(ret, ReturnMarket):
                 while True:
+                    # loop until finished all the events
+
                     # match market for each tick, maybe there will be order to fill.
                     # If filled, execution will add fill event into queue
                     self.execution.matchMarket(ret.symbol, ret.data)

@@ -1,6 +1,5 @@
-from datetime import datetime
-
 import typing
+from datetime import datetime
 
 from ParadoxTrading.Utils import DataStruct
 

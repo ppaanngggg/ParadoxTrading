@@ -1,7 +1,3 @@
-"""该模块
-
-"""
-
 import logging
 import typing
 from datetime import datetime
@@ -112,6 +108,12 @@ class MarketSupplyAbstract:
         return self.data_dict[_symbol]
 
     def updateData(self) -> typing.Union[ReturnMarket, ReturnSettlement]:
+        """
+        update data tick by tick, or bar by bar
+
+        :return: ReturnMarket - return market data
+            ReturnSettlement - return settlement signal
+        """
         raise NotImplementedError('updateData not implemented')
 
     def __repr__(self):
