@@ -1,6 +1,6 @@
 import logging
 
-from ParadoxTrading.Engine import MarketEvent, SignalType, StrategyAbstract
+from ParadoxTrading.Engine import MarketEvent, SignalType, StrategyAbstract, SettlementEvent
 from ParadoxTrading.EngineExt import (BacktestEngine, BacktestMarketSupply,
                                       BarBacktestExecution, BarPortfolio)
 from ParadoxTrading.Fetch import FetchGuoJinMin, RegisterGuoJinMin
@@ -49,6 +49,9 @@ class MyStrategy(StrategyAbstract):
                 logging.info('CLOSE: {}, HIGH: {}, LOW: {}'.format(
                     cur_closeprice, last_highprice, last_lowprice
                 ))
+
+    def settlement(self, _settlement_event: SettlementEvent):
+        pass
 
 
 logging.basicConfig(level=logging.INFO)

@@ -31,35 +31,38 @@ class BacktestEngine(EngineAbstract):
         logging.info('Begin RUN!')
         while True:
             ret = self.market_supply.updateData()
-            if isinstance(ret, ReturnMarket):
-                while True:
-                    # loop until finished all the events
 
-                    # match market for each tick, maybe there will be order to fill.
+            # loop until finished all the events
+            while True:
+                if isinstance(ret, ReturnMarket):
+                    # !!! the trigger must be ReturnMarket !!!
+                    # match market for each tick, maybe there are orders to be filled.
                     # If filled, execution will add fill event into queue
+                    # in fact, this is the simulation of exchange
                     self.execution.matchMarket(ret.symbol, ret.data)
 
-                    if len(self.event_queue):  # deal all event at that moment
-                        event = self.event_queue.popleft()
-                        if event.type == EventType.MARKET:
-                            self.strategy_dict[event.strategy_name].deal(event)
-                        elif event.type == EventType.SIGNAL:
-                            self.portfolio.dealSignal(event)
-                        elif event.type == EventType.ORDER:
-                            self.execution.dealOrderEvent(event)
-                        elif event.type == EventType.FILL:
-                            self.portfolio.dealFill(event)
-                        elif event.type == EventType.SETTLEMENT:
-                            pass
-                        else:
-                            raise Exception('Unknown event type!')
+                if len(self.event_queue):  # deal all event at that moment
+                    event = self.event_queue.popleft()
+                    if event.type == EventType.MARKET:
+                        self.strategy_dict[event.strategy_name].deal(event)
+                    elif event.type == EventType.SIGNAL:
+                        self.portfolio.dealSignal(event)
+                    elif event.type == EventType.ORDER:
+                        self.execution.dealOrderEvent(event)
+                    elif event.type == EventType.FILL:
+                        self.portfolio.dealFill(event)
+                    elif event.type == EventType.SETTLEMENT:
+                        for s in self.strategy_dict.values():
+                            s.settlement(event)
                     else:
-                        break
-            elif isinstance(ret, ReturnSettlement):
+                        raise Exception('Unknown event type!')
+                else:
+                    break
+
+            if isinstance(ret, ReturnSettlement):
                 if ret.tradingday:
                     self.portfolio.dealSettlement(
-                        ret.tradingday, ret.next_tradingday)
+                        ret.tradingday, ret.next_tradingday
+                    )
                 if not ret.next_tradingday:
                     break
-            else:
-                raise Exception('Unknown ret type!')

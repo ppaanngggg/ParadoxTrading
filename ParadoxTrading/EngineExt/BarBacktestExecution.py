@@ -7,7 +7,7 @@ class BarBacktestExecution(ExecutionAbstract):
     def __init__(self, _commission_rate: float = 0.0):
         super().__init__()
 
-        self.commission_rate: float = _commission_rate
+        self.commission_rate = _commission_rate
 
     def dealOrderEvent(self,
                        _order_event: OrderEvent):

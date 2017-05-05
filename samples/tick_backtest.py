@@ -1,6 +1,6 @@
 import logging
 
-from ParadoxTrading.Engine import MarketEvent, SignalType, StrategyAbstract
+from ParadoxTrading.Engine import MarketEvent, SignalType, StrategyAbstract, SettlementEvent
 from ParadoxTrading.EngineExt import (BacktestEngine, BacktestMarketSupply,
                                       TickBacktestExecution, TickPortfolio)
 from ParadoxTrading.Fetch import FetchGuoJinTick, RegisterGuoJinTick

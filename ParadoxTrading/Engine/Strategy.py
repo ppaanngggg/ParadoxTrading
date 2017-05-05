@@ -2,7 +2,7 @@ import logging
 import typing
 
 import ParadoxTrading.Engine
-from ParadoxTrading.Engine.Event import MarketEvent, SignalEvent, SignalType
+from ParadoxTrading.Engine.Event import MarketEvent, SignalEvent, SignalType, SettlementEvent
 from ParadoxTrading.Fetch import RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -55,10 +55,20 @@ class StrategyAbstract:
         user defined deal, it will be called when there is
         market event for this strategy
 
-        :param _market_event: key for market register
+        :param _market_event:
         :return:
         """
         raise NotImplementedError('deal not implemented!')
+
+    def settlement(self, _settlement_event: SettlementEvent):
+        """
+        user defined settlement, it will be called when there is
+        a settlement event
+        
+        :param _settlement_event: 
+        :return: 
+        """
+        raise NotImplementedError('settlement not implemented!')
 
     def addMarketRegister(
             self,
