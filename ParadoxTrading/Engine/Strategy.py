@@ -64,9 +64,9 @@ class StrategyAbstract:
         """
         user defined settlement, it will be called when there is
         a settlement event
-        
-        :param _settlement_event: 
-        :return: 
+
+        :param _settlement_event:
+        :return:
         """
         raise NotImplementedError('settlement not implemented!')
 
@@ -120,9 +120,10 @@ class StrategyAbstract:
                 _datetime=self.engine.getDatetime(),
                 _signal_type=_signal_type,
                 _strength=_strength, ))
-        logging.info('Strategy({}) send {} when {}'.format(
-            self.name, SignalType.toStr(
-                _signal_type), self.engine.getDatetime()
+        logging.info('Strategy({}) send {} {} when {}'.format(
+            self.name, _symbol,
+            SignalType.toStr(_signal_type),
+            self.engine.getDatetime()
         ))
         self.setLastSignal(_signal_type)
 

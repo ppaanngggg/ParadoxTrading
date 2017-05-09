@@ -93,7 +93,8 @@ class DataGenerator:
 
 class BacktestMarketSupply(MarketSupplyAbstract):
     def __init__(
-            self, _begin_day: str, _end_day: str,
+            self: 'BacktestMarketSupply',
+            _begin_day: str, _end_day: str,
             _fetcher: FetchAbstract
     ):
         """
@@ -104,12 +105,12 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         """
         super().__init__(_fetcher)
 
-        self.begin_day = _begin_day
-        self.cur_day = self.begin_day
-        self.end_day = _end_day
+        self.begin_day: str = _begin_day
+        self.cur_day: str = self.begin_day
+        self.end_day: str = _end_day
 
         self.last_tradingday: str = None
-
+        self.datetime: typing.Union[str, datetime] = None
         self.data_generator: DataGenerator = None
 
     def incDate(self) -> str:
@@ -141,7 +142,7 @@ class BacktestMarketSupply(MarketSupplyAbstract):
 
             # if there is no data generator, create one
             if self.data_generator is None:
-                self.data_generator = DataGenerator(
+                self.data_generator: DataGenerator = DataGenerator(
                     _tradingday=self.cur_day,
                     _register_dict=self.register_dict,
                     _symbol_dict=self.symbol_dict,
@@ -164,18 +165,17 @@ class BacktestMarketSupply(MarketSupplyAbstract):
                 # all symbols reach the end
                 self.last_tradingday = self.cur_day
                 self.incDate()
-                self.data_generator = None
+                self.data_generator: DataGenerator = None
                 continue
             else:
+                self.datetime: typing.Union[str, datetime] = self.data_generator.cur_datetime
                 return self.addMarketEvent(*ret)
 
     def getTradingDay(self) -> str:
         return self.cur_day
 
-    def getDatetime(self) -> typing.Union[None, datetime]:
+    def getDatetime(self) -> typing.Union[None, datetime, str]:
         """
         :return: latest market happentime
         """
-        if self.data_generator is not None:
-            return self.data_generator.cur_datetime
-        return None
+        return self.datetime
