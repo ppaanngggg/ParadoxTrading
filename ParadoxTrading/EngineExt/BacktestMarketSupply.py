@@ -106,9 +106,10 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         super().__init__(_fetcher)
 
         self.begin_day: str = _begin_day
-        self.cur_day: str = self.begin_day
+        self.next_day: str = self.begin_day
         self.end_day: str = _end_day
 
+        self.tradingday: str = None
         self.last_tradingday: str = None
         self.datetime: typing.Union[str, datetime] = None
         self.data_generator: DataGenerator = None
@@ -119,10 +120,10 @@ class BacktestMarketSupply(MarketSupplyAbstract):
 
         :return: cur date
         """
-        tmp = datetime.strptime(self.cur_day, '%Y%m%d')
+        tmp = datetime.strptime(self.next_day, '%Y%m%d')
         tmp += timedelta(days=1)
-        self.cur_day = tmp.strftime('%Y%m%d')
-        return self.cur_day
+        self.next_day = tmp.strftime('%Y%m%d')
+        return self.next_day
 
     def updateData(self) -> typing.Union[ReturnMarket, ReturnSettlement]:
         """
@@ -134,16 +135,16 @@ class BacktestMarketSupply(MarketSupplyAbstract):
 
         while True:
             # reach end, so return false to end backtest
-            if self.cur_day > self.end_day:
+            if self.next_day > self.end_day:
                 # return end backtest
                 return self.addSettlementEvent(
-                    self.last_tradingday, None
+                    self.tradingday, None
                 )
 
             # if there is no data generator, create one
             if self.data_generator is None:
                 self.data_generator: DataGenerator = DataGenerator(
-                    _tradingday=self.cur_day,
+                    _tradingday=self.next_day,
                     _register_dict=self.register_dict,
                     _symbol_dict=self.symbol_dict,
                     _fetcher=self.fetcher
@@ -152,27 +153,25 @@ class BacktestMarketSupply(MarketSupplyAbstract):
                     # today is not a tradingday
                     self.incDate()
                     self.data_generator = None
-                    continue
                 else:
                     # a new tradingday, send settlement event
                     return self.addSettlementEvent(
-                        self.last_tradingday, self.cur_day
+                        self.tradingday, self.next_day
                     )
-
-            # gen one tick data from data generator
-            ret = self.data_generator.gen()
-            if ret is None:
-                # all symbols reach the end
-                self.last_tradingday = self.cur_day
-                self.incDate()
-                self.data_generator: DataGenerator = None
-                continue
             else:
-                self.datetime: typing.Union[str, datetime] = self.data_generator.cur_datetime
-                return self.addMarketEvent(*ret)
+                # gen one tick data from data generator
+                ret = self.data_generator.gen()
+                if ret is None:
+                    # all symbols reach the end
+                    self.incDate()
+                    self.data_generator: DataGenerator = None
+                else:
+                    self.tradingday: str = self.next_day
+                    self.datetime: typing.Union[str, datetime] = self.data_generator.cur_datetime
+                    return self.addMarketEvent(*ret)
 
     def getTradingDay(self) -> str:
-        return self.cur_day
+        return self.tradingday
 
     def getDatetime(self) -> typing.Union[None, datetime, str]:
         """
