@@ -38,8 +38,8 @@ class View:
             _stretch: int = 10
     ):
         """
-        
-        
+
+
         :param _name: name for this view, this will be shown as axis y
         :param _wizard: ref to wizard
         :param _stretch: screen rate for chart / value
@@ -69,6 +69,7 @@ class View:
     ):
         assert _name not in self.raw_data_dict.keys()
         assert len(_x_list) == len(_y_list)
+        assert len(_x_list) > 0
         self.raw_data_dict[_name] = {
             'x': _x_list, 'y': _y_list, 'name': _name,
             'color': _color, 'type': _type,
@@ -107,7 +108,7 @@ class View:
     def calcSetX(self) -> typing.Set:
         """
         get the set of x, to get x range for wizard
-        
+
         :return: the set of all x value
         """
         tmp = set()
@@ -118,7 +119,7 @@ class View:
     def calcRangeY(self, _begin_x=None, _end_x=None):
         """
         get range of y for this view
-        
+
         :return: (min, max)
         """
         tmp_min_list = []
