@@ -112,7 +112,7 @@ class DataStruct:
             self, _keys=None
     ) -> (typing.List[typing.List[typing.Any]], typing.List[str]):
         """
-        
+
         :param _keys: the columns to return
         :return: rows and keys
         """
@@ -180,7 +180,7 @@ class DataStruct:
         assert _key in self.data.keys()
         del self.data[_key]
 
-    def createColumn(self, _key: str, _column: typing.List[typing.Any]):
+    def createColumn(self, _key: str, _column: typing.Sequence[typing.Any]):
         assert _key not in self.data.keys()
         assert len(_column) == len(self)
         self.data[_key] = _column

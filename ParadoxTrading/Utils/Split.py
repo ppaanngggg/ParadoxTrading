@@ -151,3 +151,13 @@ class SplitIntoMonth(SplitAbstract):
         begin_datetime = cur_date.replace(day=1)
         end_datetime = begin_datetime.shift(months=1)
         return begin_datetime.format('YYYYMMDD'), end_datetime.format('YYYYMMDD')
+
+
+class SplitIntoYear(SplitAbstract):
+    def _get_begin_end_time(
+            self, _cur_time: DATETIME_TYPE
+    ) -> (DATETIME_TYPE, DATETIME_TYPE):
+        cur_date = arrow.get(_cur_time, 'YYYYMMDD')
+        begin_datetime = cur_date.replace(day=1)
+        end_datetime = begin_datetime.shift(years=1)
+        return begin_datetime.format('YYYYMMDD'), end_datetime.format('YYYYMMDD')
