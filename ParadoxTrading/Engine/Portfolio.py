@@ -1,14 +1,15 @@
 import logging
 import typing
 
-import ParadoxTrading.Engine
 import pymongo
 import tabulate
+from pymongo import MongoClient
+from pymongo.collection import Collection
+
+import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
     DirectionType, FillEvent, OrderEvent, SignalEvent, EventAbstract, EventType
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
-from pymongo import MongoClient
-from pymongo.collection import Collection
 
 
 class PortfolioPerStrategy:
@@ -20,10 +21,10 @@ class PortfolioPerStrategy:
         self.settlement_record: typing.List[typing.Dict] = []
 
         # cur order and position state
-        self.position: typing.Dict[str, typing.Dict[str, int]] = {}
+        self.position: typing.Dict[str, typing.Dict[int, int]] = {}
         self.unfilled_order: typing.Dict[int, OrderEvent] = {}
 
-    def incPosition(self, _symbol: str, _type: str, _quantity: int = 1):
+    def incPosition(self, _symbol: str, _type: int, _quantity: int = 1):
         """
         inc position of symbol
 
@@ -45,7 +46,7 @@ class PortfolioPerStrategy:
             }
             self.position[_symbol][_type] = _quantity
 
-    def decPosition(self, _symbol: str, _type: str, _quantity: int = 1):
+    def decPosition(self, _symbol: str, _type: int, _quantity: int = 1):
         """
         dec position of symbol
 
@@ -183,20 +184,32 @@ class PortfolioPerStrategy:
         del self.unfilled_order[_fill_event.index]
         if _fill_event.action == ActionType.OPEN:
             if _fill_event.direction == DirectionType.BUY:
-                self.incPosition(_fill_event.symbol, SignalType.LONG,
-                                 _fill_event.quantity)
+                self.incPosition(
+                    _fill_event.symbol,
+                    SignalType.LONG,
+                    _fill_event.quantity
+                )
             elif _fill_event.direction == DirectionType.SELL:
-                self.incPosition(_fill_event.symbol,
-                                 SignalType.SHORT, _fill_event.quantity)
+                self.incPosition(
+                    _fill_event.symbol,
+                    SignalType.SHORT,
+                    _fill_event.quantity
+                )
             else:
                 raise Exception('unknown direction')
         elif _fill_event.action == ActionType.CLOSE:
             if _fill_event.direction == DirectionType.BUY:
-                self.decPosition(_fill_event.symbol,
-                                 SignalType.SHORT, _fill_event.quantity)
+                self.decPosition(
+                    _fill_event.symbol,
+                    SignalType.SHORT,
+                    _fill_event.quantity
+                )
             elif _fill_event.direction == DirectionType.SELL:
-                self.decPosition(_fill_event.symbol, SignalType.LONG,
-                                 _fill_event.quantity)
+                self.decPosition(
+                    _fill_event.symbol,
+                    SignalType.LONG,
+                    _fill_event.quantity
+                )
             else:
                 raise Exception('unknown direction')
         else:

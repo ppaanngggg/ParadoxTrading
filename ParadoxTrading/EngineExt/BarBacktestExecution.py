@@ -4,6 +4,15 @@ from ParadoxTrading.Utils import DataStruct
 
 
 class BarBacktestExecution(ExecutionAbstract):
+    """
+    This is a simple and !!dangerous!! execution.
+    It only accept limit order with price.
+    And it will send fill event according to the order's 
+    price directly.
+    
+    :param _commission_rate: 
+    """
+
     def __init__(self, _commission_rate: float = 0.0):
         super().__init__()
 

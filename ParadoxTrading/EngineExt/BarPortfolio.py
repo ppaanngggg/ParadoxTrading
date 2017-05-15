@@ -6,10 +6,16 @@ from ParadoxTrading.Engine import PortfolioAbstract
 
 
 class BarPortfolio(PortfolioAbstract):
+    """
+    It is a simple portfolio management mod.
+    When it receive a signal event, it will send a 1 hand limit order,
+    and the limit price will be set as the latest closeprice. And it will
+    check the portfolio of strategy which sends the event, it will close 
+    positions if possible
+    
+    :param _price_index: the index of price which will be used to deal
+    """
     def __init__(self, _price_index: str = 'closeprice'):
-        """
-        :param _price_index: the index of price which will be used to deal
-        """
         super().__init__()
 
         self.price_index = _price_index
@@ -18,6 +24,12 @@ class BarPortfolio(PortfolioAbstract):
         self.price_index = _index
 
     def dealSignal(self, _event: SignalEvent):
+        """
+        deal with the signal        
+        
+        :param _event: 
+        :return: 
+        """
         logging.debug('Portfolio recv {}'.format(_event.toDict()))
         portfolio = self.getPortfolioByStrategy(_event.strategy_name)
 
