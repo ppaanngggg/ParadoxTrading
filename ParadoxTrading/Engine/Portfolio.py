@@ -61,7 +61,7 @@ class PortfolioPerStrategy:
         self.position[_symbol][_type] -= _quantity
         assert self.position[_symbol][_type] >= 0
 
-    def getPosition(self, _symbol: str, _type: str) -> int:
+    def getPosition(self, _symbol: str, _type: int) -> int:
         """
         get _type position of symbol
 
