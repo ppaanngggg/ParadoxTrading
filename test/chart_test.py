@@ -1,12 +1,9 @@
 from ParadoxTrading.Chart import Wizard
-from ParadoxTrading.Fetch import FetchSHFEDay
+from ParadoxTrading.Fetch import FetchSHFEDayIndex
 
-fetcher = FetchSHFEDay()
-fetcher.psql_host = '192.168.4.103'
-fetcher.psql_user = 'ubuntu'
-fetcher.mongo_host = '192.168.4.103'
+fetcher = FetchSHFEDayIndex()
 
-data = fetcher.fetchDayData('20170101', '20170401', 'rb1705')
+data = fetcher.fetchDayData('20160101', '20170401', 'rb')
 print(data)
 
 buy_time_list = [data.index()[i] for i in range(0, len(data), 5)]

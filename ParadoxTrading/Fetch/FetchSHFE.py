@@ -52,11 +52,10 @@ class FetchSHFEDayIndex(FetchFutureDayIndex):
 
         self.columns = [
             'tradingday',
+            'openprice',
             'highprice',
             'lowprice',
-            'averageprice',
+            'closeprice',
             'volume',
-            'turnover',
-            'yearvolume',
-            'yearturnover',
+            'openinterest',
         ]
