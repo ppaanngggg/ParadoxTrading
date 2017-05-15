@@ -15,10 +15,12 @@ class BarPortfolio(PortfolioAbstract):
     
     :param _price_index: the index of price which will be used to deal
     """
-    def __init__(self, _price_index: str = 'closeprice'):
+
+    def __init__(self, _price_index: str = 'closeprice', _use_market: bool = False):
         super().__init__()
 
         self.price_index = _price_index
+        self.use_market = _use_market
 
     def setPriceIndex(self, _index: str):
         self.price_index = _index
@@ -38,7 +40,7 @@ class BarPortfolio(PortfolioAbstract):
             _symbol=_event.symbol,
             _tradingday=self.engine.getTradingDay(),
             _datetime=self.engine.getDatetime(),
-            _order_type=OrderType.LIMIT,
+            _order_type=OrderType.MARKET if self.use_market else OrderType.LIMIT,
         )
         if _event.signal_type == SignalType.LONG:
             if portfolio.getShortPosition(_event.symbol) - \
@@ -57,8 +59,9 @@ class BarPortfolio(PortfolioAbstract):
         else:
             raise Exception('unknown signal')
 
-        data = self.engine.getSymbolData(_event.symbol)
-        order_event.price = data[self.price_index][-1]
+        if not self.use_market:
+            data = self.engine.getSymbolData(_event.symbol)
+            order_event.price = data[self.price_index][-1]
 
         self.addEvent(order_event, _event.strategy_name)
 
