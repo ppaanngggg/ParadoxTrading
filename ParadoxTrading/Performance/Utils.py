@@ -1,8 +1,22 @@
 import pymongo
 import typing
 
-from ParadoxTrading.Engine import EventType
+from ParadoxTrading.Engine import EventType, DirectionType
+from ParadoxTrading.Utils import DataStruct
 
+def fillRecordToBuySell(
+        _fill_list: typing.Sequence[typing.Dict]
+) -> (DataStruct, DataStruct):
+    buy_ret = DataStruct(['datetime', 'price'], 'datetime')
+    sell_ret = DataStruct(['datetime', 'price'], 'datetime')
+
+    for d in _fill_list:
+        if d['direction'] == DirectionType.BUY:
+            buy_ret.addDict(d)
+        if d['direction'] == DirectionType.SELL:
+            sell_ret.addDict(d)
+
+    return buy_ret, sell_ret
 
 class FetchRecord:
     def __init__(self):

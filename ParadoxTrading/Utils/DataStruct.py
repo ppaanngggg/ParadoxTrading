@@ -101,8 +101,8 @@ class DataStruct:
     def addDict(self, _dict: typing.Dict[str, typing.Any]):
         index_value = _dict[self.index_name]
         insert_idx = bisect_right(self.index(), index_value)
-        for k, v in _dict.items():
-            self.data[k].insert(insert_idx, v)
+        for k in self.data.keys():
+            self.data[k].insert(insert_idx, _dict[k])
 
     def addDicts(self, _dicts: typing.Sequence[dict]):
         for _dict in _dicts:
