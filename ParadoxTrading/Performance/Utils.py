@@ -1,14 +1,19 @@
 import pymongo
 import typing
 
-from ParadoxTrading.Engine import EventType, DirectionType
+from ParadoxTrading.Engine import EventType, DirectionType, SignalType
 from ParadoxTrading.Utils import DataStruct
 
 def fillRecordToBuySell(
         _fill_list: typing.Sequence[typing.Dict]
 ) -> (DataStruct, DataStruct):
-    buy_ret = DataStruct(['datetime', 'price'], 'datetime')
-    sell_ret = DataStruct(['datetime', 'price'], 'datetime')
+    keys = [
+        'type', 'index', 'symbol', 'tradingday',
+        'datetime', 'quantity', 'action', 'direction',
+        'price', 'commission', 'strategy_name'
+    ]
+    buy_ret = DataStruct(keys, 'datetime')
+    sell_ret = DataStruct(keys, 'datetime')
 
     for d in _fill_list:
         if d['direction'] == DirectionType.BUY:
@@ -17,6 +22,24 @@ def fillRecordToBuySell(
             sell_ret.addDict(d)
 
     return buy_ret, sell_ret
+
+def signalRecordToLongShort(
+        _signal_list: typing.Sequence[typing.Dict]
+) -> (DataStruct, DataStruct):
+    keys = [
+        'type', 'symbol', 'strategy_name', 'signal_type',
+        'tradingday', 'datetime', 'strength'
+    ]
+    long_ret = DataStruct(keys, 'datetime')
+    short_ret = DataStruct(keys, 'datetime')
+
+    for d in _signal_list:
+        if d['signal_type'] == SignalType.LONG:
+            long_ret.addDict(d)
+        if d['signal_type'] == SignalType.SHORT:
+            short_ret.addDict(d)
+
+    return long_ret, short_ret
 
 class FetchRecord:
     def __init__(self):

@@ -15,12 +15,12 @@ class BarBacktestExecution(ExecutionAbstract):
 
     def __init__(
             self, _commission_rate: float = 0.0,
-            _openprice_idx='openprice'
+            _price_idx='openprice'
     ):
         super().__init__()
 
         self.commission_rate = _commission_rate
-        self.openprice_idx = _openprice_idx
+        self.price_idx = _price_idx
 
     def dealOrderEvent(self,
                        _order_event: OrderEvent):
@@ -46,11 +46,12 @@ class BarBacktestExecution(ExecutionAbstract):
     def matchMarket(self, _symbol: str, _data: DataStruct):
         assert len(_data) == 1
 
-        openprice: float = _data[self.openprice_idx][0]
+        time = _data.index()[0]
+        openprice: float = _data[self.price_idx][0]
 
         for index in sorted(self.order_dict.keys()):
             order = self.order_dict[index]
-            if order.symbol == _symbol:
+            if order.symbol == _symbol and time > order.datetime:
                 self.addEvent(FillEvent(
                     _index=order.index,
                     _symbol=order.symbol,
