@@ -53,10 +53,10 @@ class FetchDCEDayIndex(FetchFutureDayIndex):
 
         self.columns = [
             'tradingday',
+            'openprice',
             'highprice',
             'lowprice',
-            'averageprice',
+            'closeprice',
             'volume',
             'openinterest',
-            'turnover',
         ]

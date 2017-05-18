@@ -1,2 +1,2 @@
 from .Bar import CloseBar, OpenBar, SumBar, HighBar, LowBar
-from .General import Diff, MA, STD, BBands, AdaBBands
+from .General import Diff, MA, STD, BBands, AdaBBands, Kalman
