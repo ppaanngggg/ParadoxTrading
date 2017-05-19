@@ -3,7 +3,7 @@ import logging
 from ParadoxTrading.Engine import OrderType, OrderEvent, SignalType, \
     ActionType, DirectionType, FillEvent, SignalEvent
 from ParadoxTrading.Engine import PortfolioAbstract
-
+from ParadoxTrading.Utils import DataStruct
 
 class BarPortfolio(PortfolioAbstract):
     """
@@ -84,3 +84,6 @@ class BarPortfolio(PortfolioAbstract):
                 _tradingday, _next_tradingday,
                 symbol_price_dict
             )
+
+    def dealMarket(self, _symbol: str, _data: DataStruct):
+        pass

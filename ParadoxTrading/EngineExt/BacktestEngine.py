@@ -66,3 +66,7 @@ class BacktestEngine(EngineAbstract):
                     )
                 if not ret.next_tradingday:
                     break
+            elif isinstance(ret, ReturnMarket):
+                self.portfolio.dealMarket(ret.symbol, ret.data)
+            else:
+                raise Exception('unknown ret instance')

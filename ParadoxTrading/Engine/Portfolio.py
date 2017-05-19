@@ -10,6 +10,7 @@ import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
     DirectionType, FillEvent, OrderEvent, SignalEvent, EventAbstract, EventType
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
+from ParadoxTrading.Utils import DataStruct
 
 
 class PortfolioPerStrategy:
@@ -427,8 +428,11 @@ class PortfolioAbstract:
         """
         raise NotImplementedError('dealFill not implemented')
 
-    def dealSettlement(self, _tradingday, _next_tradingday):
+    def dealSettlement(self, _tradingday: str, _next_tradingday: str):
         raise NotImplementedError('dealSettlement not implemented')
+
+    def dealMarket(self, _symbol: str, _data: DataStruct):
+        raise NotImplementedError('dealMarket not implemented')
 
     def getPortfolioByStrategy(
             self,

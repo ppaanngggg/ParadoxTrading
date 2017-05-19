@@ -138,7 +138,7 @@ class SignalEvent(EventAbstract):
                  _signal_type: int,
                  _tradingday: str,
                  _datetime: datetime,
-                 _strength: float = None):
+                 _strength: typing.Any = None):
         super().__init__()
         self.type = EventType.SIGNAL
         self.symbol = _symbol

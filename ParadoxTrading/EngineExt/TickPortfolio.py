@@ -1,7 +1,7 @@
 from ParadoxTrading.Engine import (ActionType, DirectionType, FillEvent,
                                    OrderEvent, OrderType, PortfolioAbstract,
                                    SignalEvent, SignalType)
-
+from ParadoxTrading.Utils import DataStruct
 
 class TickPortfolio(PortfolioAbstract):
     """
@@ -79,3 +79,6 @@ class TickPortfolio(PortfolioAbstract):
                 _tradingday, _next_tradingday,
                 symbol_price_dict
             )
+
+    def dealMarket(self, _symbol: str, _data: DataStruct):
+        pass

@@ -13,6 +13,9 @@ class ReturnMarket:
         self.symbol = _symbol
         self.data = _data
 
+    def __repr__(self) -> str:
+        return "ReturnMarket:\n\tSymbol {}".format(self.symbol)
+
 
 class ReturnSettlement:
     """
@@ -23,6 +26,11 @@ class ReturnSettlement:
     def __init__(self, _tradingday: str, _next_tradingday: str):
         self.tradingday = _tradingday
         self.next_tradingday = _next_tradingday
+
+    def __repr__(self) -> str:
+        return "ReturnSettlement:\n\ttradingday {}\n\tnext_tradingday {}".format(
+            self.tradingday, self.next_tradingday
+        )
 
 
 class MarketSupplyAbstract:

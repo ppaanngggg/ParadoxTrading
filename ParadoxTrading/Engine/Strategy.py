@@ -25,8 +25,8 @@ class StrategyAbstract:
         # store the portfolio for this strategy
         self.portfolio: ParadoxTrading.Engine.Portfolio.PortfolioPerStrategy = None
 
-        # run user define init
-        self.init()
+        # # run user define init
+        # self.init()
 
     def setEngine(self,
                   _engine: 'ParadoxTrading.Engine.EngineAbstract'):
@@ -42,13 +42,13 @@ class StrategyAbstract:
                      _portfolio: 'ParadoxTrading.Engine.Portfolio.PortfolioPerStrategy'):
         self.portfolio = _portfolio
 
-    def init(self):
-        """
-        user defined init, it will be called when create object
-
-        :return:
-        """
-        raise NotImplementedError('init not implemented!')
+    # def init(self):
+    #     """
+    #     user defined init, it will be called when create object
+    #
+    #     :return:
+    #     """
+    #     raise NotImplementedError('init not implemented!')
 
     def deal(self, _market_event: MarketEvent):
         """
@@ -103,7 +103,7 @@ class StrategyAbstract:
     def addEvent(self,
                  _symbol: str,
                  _signal_type: int,
-                 _strength: float = None):
+                 _strength: typing.Any = None):
         """
         add signal event to event queue.
 

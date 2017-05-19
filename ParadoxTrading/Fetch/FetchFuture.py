@@ -6,10 +6,9 @@ import psycopg2.extensions
 import pymongo
 import pymongo.collection
 import pymongo.database
-from pymongo import MongoClient
-
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
+from pymongo import MongoClient
 
 
 class RegisterFutureTick(RegisterAbstract):
