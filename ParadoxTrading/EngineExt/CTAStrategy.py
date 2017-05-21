@@ -3,6 +3,15 @@ import typing
 from ParadoxTrading.Engine import StrategyAbstract
 
 
+class ProductStength:
+    def __init__(self, _product, _strength):
+        self.product = _product
+        self.strength = _strength
+
+    def __repr__(self) -> str:
+        return '{}:{}'.format(self.product, self.strength)
+
+
 class CTAStrategy(StrategyAbstract):
     def addEvent(
             self, _symbol: str, _signal_type: int,
@@ -12,5 +21,7 @@ class CTAStrategy(StrategyAbstract):
 
         super().addEvent(
             _symbol, _signal_type,
-            _strength={_product: _strength}
+            _strength=ProductStength(
+                _product, _strength
+            )
         )

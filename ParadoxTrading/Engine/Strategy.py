@@ -120,9 +120,10 @@ class StrategyAbstract:
                 _datetime=self.engine.getDatetime(),
                 _signal_type=_signal_type,
                 _strength=_strength, ))
-        logging.info('Strategy({}) send {} {} when {}'.format(
+        logging.info('Strategy({}) send {} {} {} when {}'.format(
             self.name, _symbol,
             SignalType.toStr(_signal_type),
+            _strength,
             self.engine.getDatetime()
         ))
         self.setLastSignal(_signal_type)

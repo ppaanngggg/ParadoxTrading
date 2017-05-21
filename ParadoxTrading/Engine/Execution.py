@@ -2,7 +2,7 @@ import logging
 import typing
 
 import ParadoxTrading.Engine
-from ParadoxTrading.Engine.Event import OrderEvent, FillEvent, DirectionType
+from ParadoxTrading.Engine.Event import OrderEvent, FillEvent, DirectionType, ActionType
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -24,7 +24,11 @@ class ExecutionAbstract:
 
     def addEvent(self, _fill_event: FillEvent):
         self.engine.addEvent(_fill_event)
-        logging.info('Execution {} {} at {} when {}'.format(
+        logging.info('Execution send {} {} {} {} at {} when {}'.format(
+            ActionType.toStr(_fill_event.action),
             DirectionType.toStr(_fill_event.direction),
-            _fill_event.symbol, _fill_event.price, _fill_event.datetime
+            _fill_event.quantity,
+            _fill_event.symbol,
+            _fill_event.price,
+            _fill_event.datetime
         ))

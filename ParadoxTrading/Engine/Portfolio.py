@@ -372,9 +372,13 @@ class PortfolioAbstract:
         self.order_strategy_dict[_order_event.index] = _strategy
         # add it into event queue
         self.engine.addEvent(_order_event)
-        logging.info('Portfolio {} {} at {} when {}'.format(
+        logging.info('Portfolio send: {} {} {} {} at {} when {}'.format(
+            ActionType.toStr(_order_event.action),
             DirectionType.toStr(_order_event.direction),
-            _order_event.symbol, _order_event.price, _order_event.datetime
+            _order_event.quantity,
+            _order_event.symbol,
+            _order_event.price,
+            _order_event.datetime
         ))
 
     def storeRecords(

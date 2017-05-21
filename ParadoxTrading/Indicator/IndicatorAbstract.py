@@ -8,6 +8,9 @@ class IndicatorAbstract:
     def __init__(self):
         self.data: DataStruct = None
 
+    def __len__(self):
+        return len(self.data)
+
     def getLastData(self) -> DataStruct:
         return self.data.iloc[-1]
 
