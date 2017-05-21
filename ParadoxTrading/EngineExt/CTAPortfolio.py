@@ -16,9 +16,9 @@ class ProductPosition:
         self.detail: typing.Dict[str, int] = {}
 
     def dealSignal(self, _event: SignalEvent):
-        self.product = _event.strength.product
+        self.product = _event.symbol
         self.next_instrument = _event.symbol
-        self.next_quantity = int(_event.strength.strength * 10.)
+        self.next_quantity = int(_event.strength * 10.)
 
     def dealFill(self, _event: FillEvent):
         if _event.direction == DirectionType.BUY:
@@ -55,7 +55,7 @@ class StrategyProduct:
         self.product_table: typing.Dict[str, ProductPosition] = {}
 
     def dealSignal(self, _event: SignalEvent) -> ProductPosition:
-        product = _event.strength.product
+        product = _event.symbol
         try:
             product_position = self.product_table[product]
         except KeyError:
@@ -98,20 +98,17 @@ class CTAPortfolio(PortfolioAbstract):
     """
 
     :param _fetcher:
-    :param _fill_price_index:
     :param _settlement_price_index:
     """
 
     def __init__(
             self,
             _fetcher,
-            _fill_price_index: str = 'openprice',
             _settlement_price_index: str = 'closeprice',
     ):
         super().__init__()
 
         self.fetcher = _fetcher
-        self.fill_price_index = _fill_price_index
         self.settlement_price_index = _settlement_price_index
 
         self.strategy_table: typing.Dict[str, StrategyProduct] = {}
@@ -147,37 +144,31 @@ class CTAPortfolio(PortfolioAbstract):
 
         self.getPortfolioByIndex(_event.index).dealFillEvent(_event)
 
-    def _update_dominant(self, _p: ProductPosition, _tradingday: str):
-        # p had been update, and the next_instrument must be dominant
-        if _p.next_instrument is not None:
-            return
-        # there is no position, no need to change dominant
-        if _p.cur_quantity == 0:
-            return
-        instrument = self.fetcher.fetchSymbol(
-            _tradingday, _p.product
-        )
-        _p.next_instrument = instrument
-        _p.next_quantity = _p.cur_quantity
+    def _update_next_instrument(self, _p: ProductPosition, _tradingday: str):
+        # p had been update, and the next_instrument will be set to dominant
+        if _p.next_instrument:
+            _p.next_instrument = self.fetcher.fetchSymbol(
+                _tradingday, _p.product
+            )
+        else: # has no signal
+            if _p.cur_quantity: # if cur has position, continue
+                _p.next_instrument = self.fetcher.fetchSymbol(
+                    _tradingday, _p.product
+                )
+                _p.next_quantity = _p.cur_quantity
 
     def _create_order(self, _inst, _action, _direction, _quantity) -> OrderEvent:
         assert _quantity > 0
 
-        tradingday = self.engine.getTradingDay()
-        next_day = self.fetcher.instrumentNextTradingDay(
-            _inst, tradingday
-        )
-        data = self.fetcher.fetchData(next_day, _inst).toDict()
         order = OrderEvent(
             _index=self.incOrderIndex(),
             _symbol=_inst,
-            _tradingday=tradingday,
+            _tradingday=self.engine.getTradingDay(),
             _datetime=self.engine.getDatetime(),
-            _order_type=OrderType.LIMIT,
+            _order_type=OrderType.MARKET,
             _action=_action,
             _direction=_direction,
             _quantity=_quantity,
-            _price=data['openprice']
         )
 
         return order
@@ -311,7 +302,7 @@ class CTAPortfolio(PortfolioAbstract):
                 # update position according to fill event
                 self._update_position(p)
                 # check the next dominant instrument
-                self._update_dominant(p, _tradingday)
+                self._update_next_instrument(p, _tradingday)
                 # send orders according to instrument and quantity chg
                 orders = self._gen_orders(p)
                 for o in orders:
@@ -319,15 +310,21 @@ class CTAPortfolio(PortfolioAbstract):
                         o.index, s.strategy_name, p.product
                     )
                     self.addEvent(o, s.strategy_name)
+                    # input(p)
                     self.getPortfolioByStrategy(s.strategy_name).dealOrderEvent(o)
                 # reset next status
                 self._reset_pp(p)
 
         # get price dict for each portfolio
         symbol_price_dict = {}
-        for symbol in self.engine.getSymbolList():
-            symbol_price_dict[symbol] = \
-                self.engine.getSymbolData(symbol)[self.settlement_price_index][-1]
+        for s in self.strategy_table.values():
+            for p in s:
+                if p.cur_instrument:
+                    symbol_price_dict[p.cur_instrument] = 0.0
+        for k in symbol_price_dict.keys():
+            symbol_price_dict[k] = self.fetcher.fetchData(
+                _tradingday, k
+            )[self.settlement_price_index][0]
 
         # update each portfolio settlement
         for v in self.strategy_portfolio_dict.values():

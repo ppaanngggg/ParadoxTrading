@@ -5,4 +5,4 @@ from .BarPortfolio import BarPortfolio
 from .TickBacktestExecution import TickBacktestExecution
 from .TickPortfolio import TickPortfolio
 from .CTAPortfolio import CTAPortfolio
-from .CTAStrategy import CTAStrategy
+from .CTABacktestExecution import CTABacktestExecution
