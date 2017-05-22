@@ -6,8 +6,8 @@ import ParadoxTrading.Chart
 
 
 class Window(QWidget):
-
-    def setWizard(self, _wizard: "ParadoxTrading.Chart.Wizard"):
+    def __init__(self, _wizard: "ParadoxTrading.Chart.Wizard"):
+        super().__init__()
         self.wizard = _wizard
 
     def keyReleaseEvent(self, _event: QKeyEvent):

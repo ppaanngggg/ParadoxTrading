@@ -1,14 +1,15 @@
 import typing
-from datetime import datetime
 
-import numpy as np
-from PyQt5.Qt import QColor, QMouseEvent, QPainter
-from PyQt5.QtChart import (QBarSeries, QBarSet, QChart, QCandlestickSeries, QCandlestickSet,
-                           QChartView, QLineSeries, QScatterSeries, QValueAxis)
-from PyQt5.QtWidgets import QHBoxLayout, QFormLayout, QLineEdit, QGroupBox, QLabel
+from PyQt5.Qt import QMouseEvent, QPainter
+from PyQt5.QtChart import (QChart, QChartView, QValueAxis)
+from PyQt5.QtWidgets import QHBoxLayout, QFormLayout
 
 import ParadoxTrading.Chart
-from ParadoxTrading.Utils import DataStruct
+from ParadoxTrading.Chart.BarSeries import BarSeries
+from ParadoxTrading.Chart.CandleSeries import CandleSeries
+from ParadoxTrading.Chart.LineSeries import LineSeries
+from ParadoxTrading.Chart.ScatterSeries import ScatterSeries
+from ParadoxTrading.Chart.SeriesAbstract import SeriesAbstract
 
 
 class ChartView(QChartView):
@@ -26,33 +27,25 @@ class ChartView(QChartView):
 
 
 class View:
-    BAR = 'bar'
-    LINE = 'line'
-    SCATTER = 'scatter'
-    CANDLE = 'candle'
-
     def __init__(
             self, _name: str,
             _wizard: "ParadoxTrading.Chart.Wizard",
-            _adaptive: bool = False,
-            _stretch: int = 10
+            _adaptive: bool,
+            _view_stretch: int,
+            _chart_stretch: int,
+            _index: int,
     ):
-        """
-
-
-        :param _name: name for this view, this will be shown as axis y
-        :param _wizard: ref to wizard
-        :param _stretch: screen rate for chart / value
-        """
-
         self.name = _name
         self.wizard = _wizard
         self.adaptive = _adaptive
-        self.stretch = _stretch
+        self.view_stretch = _view_stretch
+        self.chart_stretch = _chart_stretch
+        self.index = _index
 
-        self.raw_data_dict = {}
+        self.series_table: typing.Dict[str, SeriesAbstract] = {}
 
         self.axis_x = QValueAxis()
+        # show x will slow down chart
         self.axis_x.setVisible(False)
         self.axis_y = QValueAxis()
         # set name to axis_y, price for price, volume for volume, etc
@@ -60,50 +53,48 @@ class View:
         self.begin_y: float = None
         self.end_y: float = None
 
-        self.x_edit: QLineEdit = None
-
-    def _add(
-            self, _x_list: typing.List[datetime],
-            _y_list: typing.Sequence, _name: str,
-            _color: typing.Union[QColor, None], _type: str
-    ):
-        assert _name not in self.raw_data_dict.keys()
-        assert len(_x_list) == len(_y_list)
-        assert len(_x_list) > 0
-        self.raw_data_dict[_name] = {
-            'x': _x_list, 'y': _y_list, 'name': _name,
-            'color': _color, 'type': _type,
-            'x2y': DataStruct(['x', 'y'], 'x', list(zip(_x_list, _y_list)))
-        }
-
     def addBar(
-            self, _x_list: typing.List[datetime], _y_list: list,
-            _name: str, _color: QColor = None
+            self, _name: str,
+            _x_list: typing.Sequence, _y_list: typing.Sequence,
+            _color: typing.Any = None, _show_value: bool = True,
     ):
-        self._add(_x_list, _y_list, _name, _color, self.BAR)
+        assert _name not in self.series_table.keys()
+        self.series_table[_name] = BarSeries(
+            _name, _x_list, _y_list, _color, _show_value
+        )
 
     def addLine(
-            self, _x_list: typing.List[datetime], _y_list: list,
-            _name: str, _color: QColor = None
+            self, _name: str,
+            _x_list: typing.Sequence, _y_list: typing.Sequence,
+            _color: typing.Any = None, _show_value: bool = True,
     ):
-        self._add(_x_list, _y_list, _name, _color, self.LINE)
+        assert _name not in self.series_table.keys()
+        self.series_table[_name] = LineSeries(
+            _name, _x_list, _y_list, _color, _show_value
+        )
 
     def addScatter(
-            self, _x_list: typing.List[datetime], _y_list: list,
-            _name: str, _color: QColor = None
+            self, _name: str,
+            _x_list: typing.Sequence, _y_list: typing.Sequence,
+            _color: typing.Any = None, _show_value: bool = True
     ):
-        self._add(_x_list, _y_list, _name, _color, self.SCATTER)
+        assert _name not in self.series_table.keys()
+        self.series_table[_name] = ScatterSeries(
+            _name, _x_list, _y_list, _color, _show_value
+        )
 
     def addCandle(
-            self,
-            _x_list: typing.List[typing.Any],
+            self, _name: str,
+            _x_list: typing.Sequence,
             _y_list: typing.Sequence[typing.Sequence],
-            _name: str,
-            _inc_color: QColor = None, _dec_color: QColor = None,
+            _inc_color: typing.Any = None,
+            _dec_color: typing.Any = None,
+            _show_value: bool = True
     ):
-        self._add(_x_list, _y_list, _name, None, self.CANDLE)
-        self.raw_data_dict[_name]['inc_color'] = _inc_color
-        self.raw_data_dict[_name]['dec_color'] = _dec_color
+        assert _name not in self.series_table.keys()
+        self.series_table[_name] = CandleSeries(
+            _name, _x_list, _y_list, _inc_color, _dec_color, _show_value
+        )
 
     def calcSetX(self) -> typing.Set:
         """
@@ -112,8 +103,8 @@ class View:
         :return: the set of all x value
         """
         tmp = set()
-        for v in self.raw_data_dict.values():
-            tmp |= set(v['x'])
+        for v in self.series_table.values():
+            tmp |= set(v.calcSetX())
         return tmp
 
     def calcRangeY(self, _begin_x=None, _end_x=None):
@@ -124,187 +115,16 @@ class View:
         """
         tmp_min_list = []
         tmp_max_list = []
-        for v in self.raw_data_dict.values():
-            tmp_y = v['x2y'].loc[_begin_x:_end_x]['y']
-            if len(tmp_y) == 0:
-                continue
-            if v['type'] == View.LINE or v['type'] == View.BAR or \
-                            v['type'] == View.SCATTER:
-                tmp_min_list.append(min(tmp_y))
-                tmp_max_list.append(max(tmp_y))
-            elif v['type'] == View.CANDLE:
-                tmp_y = np.array(tmp_y)
-                tmp_min_list.append(tmp_y.min())
-                tmp_max_list.append(tmp_y.max())
-            else:
-                raise Exception('unknown type')
+        for v in self.series_table.values():
+            min_y, max_y = v.calcRangeY(_begin_x, _end_x)
+            if min_y and max_y:
+                tmp_min_list.append(min_y)
+                tmp_max_list.append(max_y)
 
         if tmp_min_list:
             self.begin_y = min(tmp_min_list)
         if tmp_max_list:
             self.end_y = max(tmp_max_list)
-
-    @staticmethod
-    def _addLineSeries(
-            _x2idx: dict, _idx2x: list, _v: dict, _chart: QChart,
-            _axis_x: QValueAxis, _axis_y: QValueAxis
-    ):
-        series = QLineSeries()
-        series.setName(_v['name'])
-        for x, y in zip(_v['x'], _v['y']):
-            series.append(_x2idx[x], y)
-        if _v['color'] is not None:
-            series.setColor(_v['color'])
-
-        _chart.addSeries(series)
-        _chart.setAxisX(_axis_x, series)
-        _chart.setAxisY(_axis_y, series)
-
-        group = QGroupBox()
-        group.setTitle(_v['name'])
-        edit = QLineEdit()
-        edit.setDisabled(True)
-        layout = QFormLayout()
-        layout.addWidget(edit)
-        group.setLayout(layout)
-
-        _v['group'] = group
-        _v['edit'] = edit
-
-    @staticmethod
-    def _updateLineValue(_x: typing.Any, _v: dict):
-        value = _v['x2y'].loc[_x]
-        if value is None:
-            _v['edit'].setText('')
-        else:
-            value = value['y'][0]
-            _v['edit'].setText('{:f}'.format(value))
-
-    @staticmethod
-    def _addBarSeries(
-            _x2idx: dict, _idx2x: list, _v: dict, _chart: QChart,
-            _axis_x: QValueAxis, _axis_y: QValueAxis
-    ):
-        barset = QBarSet(_v['name'])
-        tmp_dict = dict(zip(_v['x'], _v['y']))
-        for k in _idx2x:
-            if k in tmp_dict.keys():
-                barset.append(tmp_dict[k])
-            else:
-                barset.append(0)
-        if _v['color'] is not None:
-            barset.setColor(_v['color'])
-
-        barseries = QBarSeries()
-        barseries.append(barset)
-        _chart.addSeries(barseries)
-        _chart.setAxisX(_axis_x, barseries)
-        _chart.setAxisY(_axis_y, barseries)
-
-        group = QGroupBox()
-        group.setTitle(_v['name'])
-        edit = QLineEdit()
-        edit.setDisabled(True)
-        layout = QFormLayout()
-        layout.addWidget(edit)
-        group.setLayout(layout)
-
-        _v['group'] = group
-        _v['edit'] = edit
-
-    @staticmethod
-    def _updateBarValue(_x: typing.Any, _v: dict):
-        value = _v['x2y'].loc[_x]
-        if value is None:
-            _v['edit'].setText('')
-        else:
-            value = value['y'][0]
-            _v['edit'].setText('{:f}'.format(value))
-
-    @staticmethod
-    def _addScatterSeries(
-            _x2idx: dict, _idx2x: list, _v: dict, _chart: QChart,
-            _axis_x: QValueAxis, _axis_y: QValueAxis
-    ):
-        series = QScatterSeries()
-        series.setName(_v['name'])
-        for x, y in zip(_v['x'], _v['y']):
-            series.append(_x2idx[x], y)
-        if _v['color'] is not None:
-            series.setColor(_v['color'])
-
-        _chart.addSeries(series)
-        _chart.setAxisX(_axis_x, series)
-        _chart.setAxisY(_axis_y, series)
-
-        group = QGroupBox()
-        group.setTitle(_v['name'])
-        edit = QLineEdit()
-        edit.setDisabled(True)
-        layout = QFormLayout()
-        layout.addWidget(edit)
-        group.setLayout(layout)
-
-        _v['group'] = group
-        _v['edit'] = edit
-
-    @staticmethod
-    def _updateScatterValue(_x: typing.Any, _v: dict):
-        value = _v['x2y'].loc[_x]
-        if value is None:
-            _v['edit'].setText('')
-        else:
-            value = value['y'][0]
-            _v['edit'].setText('{:f}'.format(value))
-
-    @staticmethod
-    def _addCandleSeries(
-            _x2idx: dict, _idx2x: list, _v: dict, _chart: QChart,
-            _axis_x: QValueAxis, _axis_y: QValueAxis
-    ):
-        series = QCandlestickSeries()
-        series.setName(_v['name'])
-        for x, y in zip(_v['x'], _v['y']):
-            series.append(QCandlestickSet(*y, _x2idx[x]))
-        if _v['inc_color'] is not None:
-            series.setIncreasingColor(_v['inc_color'])
-        else:
-            series.setIncreasingColor(QColor('#c41919'))
-        if _v['dec_color'] is not None:
-            series.setDecreasingColor(_v['dec_color'])
-        else:
-            series.setDecreasingColor(QColor('#009f13'))
-
-        _chart.addSeries(series)
-        _chart.setAxisX(_axis_x, series)
-        _chart.setAxisY(_axis_y, series)
-
-        group = QGroupBox()
-        group.setTitle(_v['name'])
-        open_edit = QLineEdit()
-        open_edit.setDisabled(True)
-        high_edit = QLineEdit()
-        high_edit.setDisabled(True)
-        low_edit = QLineEdit()
-        low_edit.setDisabled(True)
-        close_edit = QLineEdit()
-        close_edit.setDisabled(True)
-        layout = QFormLayout()
-        layout.addWidget(QLabel('openprice'))
-        layout.addWidget(open_edit)
-        layout.addWidget(QLabel('highprice'))
-        layout.addWidget(high_edit)
-        layout.addWidget(QLabel('lowprice'))
-        layout.addWidget(low_edit)
-        layout.addWidget(QLabel('closeprice'))
-        layout.addWidget(close_edit)
-        group.setLayout(layout)
-
-        _v['group'] = group
-        _v['open_edit'] = open_edit
-        _v['high_edit'] = high_edit
-        _v['low_edit'] = low_edit
-        _v['close_edit'] = close_edit
 
     @staticmethod
     def __updateCandleValue(_x: typing.Any, _v: dict):
@@ -332,62 +152,28 @@ class View:
     ) -> QHBoxLayout:
         chart = QChart()
 
-        # add value widget for x
-        group = QGroupBox()
-        group.setTitle('x')
-        self.x_edit = QLineEdit()
-        self.x_edit.setDisabled(True)
-        layout = QFormLayout()
-        layout.addWidget(self.x_edit)
-        group.setLayout(layout)
-
-        value_layout = QFormLayout()
-        value_layout.addWidget(group)
-
         # assign y range
         self.calcRangeY()
         self.setAxisY(self.begin_y, self.end_y)
 
+        value_layout = QFormLayout()
         # add each series
-        for k, v in self.raw_data_dict.items():
-            if v['type'] == self.LINE:
-                View._addLineSeries(
-                    _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
-            elif v['type'] == self.BAR:
-                View._addBarSeries(
-                    _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
-            elif v['type'] == self.SCATTER:
-                View._addScatterSeries(
-                    _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
-            elif v['type'] == self.CANDLE:
-                View._addCandleSeries(
-                    _x2idx, _idx2x, v, chart, self.axis_x, self.axis_y)
-            else:
-                raise Exception('Unknown type!')
-
-            # add value widget for each series
-            value_layout.addWidget(v['group'])
+        for v in self.series_table.values():
+            v.addSeries(_x2idx, _idx2x, chart, self.axis_x, self.axis_y)
+            if v.show_value:
+                value_layout.addWidget(v.show_group)
 
         # create chartview and layout for view and value
         chartview = ChartView(chart, self.wizard)
         chartview.setRenderHint(QPainter.Antialiasing)
 
         global_layout = QHBoxLayout()
-        global_layout.addWidget(chartview, self.stretch)
+        global_layout.addWidget(chartview, self.chart_stretch)
         global_layout.addLayout(value_layout)
 
         return global_layout
 
     def updateValue(self, _x):
-        self.x_edit.setText('{}'.format(_x))
-        for v in self.raw_data_dict.values():
-            if v['type'] == View.LINE:
-                View._updateLineValue(_x, v)
-            elif v['type'] == View.BAR:
-                View._updateBarValue(_x, v)
-            elif v['type'] == View.SCATTER:
-                View._updateScatterValue(_x, v)
-            elif v['type'] == View.CANDLE:
-                View.__updateCandleValue(_x, v)
-            else:
-                raise Exception('Unknown type!')
+        for v in self.series_table.values():
+            if v.show_value:
+                v.updateValue(_x)

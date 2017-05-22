@@ -1,8 +1,6 @@
 import sys
 import typing
-from datetime import datetime
 
-from PyQt5.Qt import QColor
 from PyQt5.QtWidgets import QApplication, QVBoxLayout
 
 import ParadoxTrading.Chart.View
@@ -13,15 +11,8 @@ class Wizard:
     ZOOM_STEP = 10.0
     SCROLL_STEP = 10.0
 
-    def __init__(
-            self, _title: str = '', _width: int = 1440, _height: int = 960,
-    ):
-        self.title = _title
-        self.width = _width
-        self.height = _height
-
-        self.view_list: typing.List[str] = []
-        self.view_dict: typing.Dict = {}
+    def __init__(self, _width: int = 1440, _height: int = 720):
+        self.view_dict: typing.Dict[str, ParadoxTrading.Chart.View.View] = {}
 
         # map x to axis idx
         self.x2idx: typing.Dict[typing.Any, int] = None
@@ -31,75 +22,32 @@ class Wizard:
         self.begin_idx: int = 0
         self.end_idx: int = 0
 
+        self.window: ParadoxTrading.Chart.Window = None
+        self.width = _width
+        self.height = _height
+
     def addView(
-            self, _name: str, _stretch: int = 1,
-            _adaptive=False, _view_stretch: int = 15
-    ) -> str:
+            self, _name: str, _view_stretch: int = 1,
+            _adaptive=False, _chart_stretch: int = 15
+    ):
         assert _name not in self.view_dict.keys()
-        assert _stretch > 0
-        self.view_list.append(_name)
-        self.view_dict[_name] = {
-            'view': ParadoxTrading.Chart.View.View(
-                _name, self, _adaptive, _view_stretch
-            ),
-            'stretch': _stretch
-        }
-        return _name
-
-    def addLine(
-            self, _view_name: str,
-            _x_list: typing.List[datetime], _y_list: list,
-            _name: str, _color: typing.Union[typing.Any, QColor] = None
-    ):
-        assert _view_name in self.view_dict.keys()
-        self.view_dict[_view_name]['view'].addLine(
-            _x_list, _y_list, _name,
-            None if _color is None else QColor(_color)
+        assert _view_stretch > 0
+        assert _chart_stretch > 0
+        self.view_dict[_name] = ParadoxTrading.Chart.View.View(
+            _name, self, _adaptive, _view_stretch, _chart_stretch, len(self.view_dict)
         )
-
-    def addBar(
-            self, _view_name: str,
-            _x_list: typing.List[typing.Any], _y_list: list,
-            _name: str, _color: typing.Union[typing.Any, QColor] = None
-    ):
-        assert _view_name in self.view_dict.keys()
-        self.view_dict[_view_name]['view'].addBar(
-            _x_list, _y_list, _name,
-            None if _color is None else QColor(_color)
-        )
-
-    def addScatter(
-            self, _view_name: str,
-            _x_list: typing.List[typing.Any], _y_list: list,
-            _name: str, _color: typing.Union[typing.Any, QColor] = None
-    ):
-        assert _view_name in self.view_dict.keys()
-        self.view_dict[_view_name]['view'].addScatter(
-            _x_list, _y_list, _name,
-            None if _color is None else QColor(_color)
-        )
-
-    def addCandle(
-            self, _view_name: str,
-            _x_list: typing.List[typing.Any],
-            _y_list: typing.Sequence[typing.Sequence],
-            _name: str,
-            _inc_color: typing.Union[typing.Any, QColor] = None,
-            _dec_color: typing.Union[typing.Any, QColor] = None,
-    ):
-        assert _view_name in self.view_dict.keys()
-        self.view_dict[_view_name]['view'].addCandle(
-            _x_list, _y_list, _name,
-            None if _inc_color is None else QColor(_inc_color),
-            None if _dec_color is None else QColor(_dec_color),
-        )
+        return self.view_dict[_name]
 
     def _calcSetX(self) -> (dict, list):
+        """
+        
+        :return: x2idx and idx2x, because idx is int, then idx2x is list 
+        """
         # join all x
         tmp = set()
         for d in self.view_dict.values():
-            tmp |= d['view'].calcSetX()
-        tmp = sorted(list(tmp))
+            tmp |= d.calcSetX()
+        tmp = sorted(tmp)
         # reset x range
         self.begin_idx = 0
         self.end_idx = len(tmp) - 1
@@ -111,14 +59,13 @@ class Wizard:
         tmp_end = _end + 1
 
         for d in self.view_dict.values():
-            d['view'].setAxisX(tmp_begin, tmp_end)
+            d.setAxisX(tmp_begin, tmp_end)
 
     def _setAxisY(self, _begin: int, _end: int):
         for d in self.view_dict.values():
-            tmp_view: ParadoxTrading.Chart.View.View = d['view']
-            if tmp_view.adaptive:
-                tmp_view.calcRangeY(self.idx2x[_begin], self.idx2x[_end])
-                tmp_view.setAxisY(tmp_view.begin_y, tmp_view.end_y)
+            if d.adaptive:
+                d.calcRangeY(self.idx2x[_begin], self.idx2x[_end])
+                d.setAxisY(d.begin_y, d.end_y)
 
     def show(self):
         if not self.view_dict:
@@ -132,19 +79,17 @@ class Wizard:
 
         layout = QVBoxLayout()
         # keep the sort when inserted
-        for d in [self.view_dict[name] for name in self.view_list]:
+        for d in sorted(self.view_dict.values(), key=lambda x: x.index):
             layout.addLayout(
-                d['view'].createChartView(self.x2idx, self.idx2x),
-                d['stretch']
+                d.createChartView(self.x2idx, self.idx2x),
+                d.view_stretch
             )
 
-        window = ParadoxTrading.Chart.Window.Window()
-        window.setWizard(self)
-        window.setWindowTitle(self.title)
-        window.resize(self.width, self.height)
-        window.setLayout(layout)
+        self.window = ParadoxTrading.Chart.Window.Window(self)
+        self.window.resize(self.width, self.height)
+        self.window.setLayout(layout)
 
-        window.show()
+        self.window.show()
 
         return app.exec()
 
@@ -197,5 +142,6 @@ class Wizard:
         _index = max(0, _index)
         _index = min(len(self.idx2x) - 1, _index)
         x = self.idx2x[_index]
+        self.window.setWindowTitle(str(x))
         for d in self.view_dict.values():
-            d['view'].updateValue(x)
+            d.updateValue(x)
