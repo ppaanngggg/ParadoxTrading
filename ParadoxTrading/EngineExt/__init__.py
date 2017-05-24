@@ -6,3 +6,4 @@ from .TickBacktestExecution import TickBacktestExecution
 from .TickPortfolio import TickPortfolio
 from .CTAPortfolio import CTAPortfolio
 from .CTABacktestExecution import CTABacktestExecution
+from .CTAStrategy import CTAStrategy

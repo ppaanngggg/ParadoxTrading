@@ -1,7 +1,8 @@
-from ParadoxTrading.Indicator import CloseBar, HighBar, LowBar, OpenBar, SumBar, Diff, MA
-from ParadoxTrading.Fetch import FetchGuoJinTick
-from ParadoxTrading.Utils import SplitIntoMinute
 from datetime import datetime
+
+from ParadoxTrading.Fetch import FetchGuoJinTick
+from ParadoxTrading.Indicator import CloseBar, HighBar, LowBar, OpenBar, SumBar, Diff, MA, OHLC
+from ParadoxTrading.Utils import SplitIntoMinute
 
 fetcher = FetchGuoJinTick()
 fetcher.psql_host = '192.168.4.102'
@@ -15,6 +16,10 @@ print(data)
 
 spliter = SplitIntoMinute(5)
 spliter.addMany(data)
+
+ohlc = OHLC('lastprice')
+ohlc.addMany(spliter.getBarList(), spliter.getBarBeginTimeList())
+print(ohlc.getAllData())
 
 open_bar = OpenBar('lastprice')
 open_bar.addMany(spliter.getBarList(), spliter.getBarBeginTimeList())

@@ -7,8 +7,8 @@ from ParadoxTrading.Utils import DataStruct
 class AdaBBands(IndicatorAbstract):
     def __init__(
             self, _period: int, _use_key: str,
-            _init_n: int = 20, _min_n: int =20, _max_n: int=60,
-            _rate: float= 2.0, _idx_key: str = 'time'
+            _init_n: int = 20, _min_n: int = 20, _max_n: int = 60,
+            _rate: float = 2.0, _idx_key: str = 'time'
     ):
         super().__init__()
 
@@ -30,9 +30,9 @@ class AdaBBands(IndicatorAbstract):
         self.min_n = _min_n
         self.max_n = _max_n
 
-    def _addOne(self, _data: DataStruct):
-        index_value = _data.index()[0]
-        self.buf.append(_data.getColumn(self.use_key)[0])
+    def _addOne(self, _data_struct: DataStruct):
+        index_value = _data_struct.index()[0]
+        self.buf.append(_data_struct.getColumn(self.use_key)[0])
 
         if len(self.data) > self.period:
             const_std = np.std(self.buf[-self.period:])
@@ -46,7 +46,7 @@ class AdaBBands(IndicatorAbstract):
 
             self.data.addRow(
                 [index_value, mean + self.rate * std,
-                    mean, mean - self.rate * std],
+                 mean, mean - self.rate * std],
                 self.keys
             )
 

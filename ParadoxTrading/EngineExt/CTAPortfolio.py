@@ -150,8 +150,8 @@ class CTAPortfolio(PortfolioAbstract):
             _p.next_instrument = self.fetcher.fetchSymbol(
                 _tradingday, _p.product
             )
-        else: # has no signal
-            if _p.cur_quantity: # if cur has position, continue
+        else:  # has no signal
+            if _p.cur_quantity:  # if cur has position, continue
                 _p.next_instrument = self.fetcher.fetchSymbol(
                     _tradingday, _p.product
                 )

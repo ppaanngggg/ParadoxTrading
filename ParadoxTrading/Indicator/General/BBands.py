@@ -9,7 +9,7 @@ from ParadoxTrading.Utils import DataStruct
 class BBands(IndicatorAbstract):
     def __init__(
             self, _period: int, _use_key: str,
-            _rate: float= 2.0, _idx_key: str = 'time'
+            _rate: float = 2.0, _idx_key: str = 'time'
     ):
         super().__init__()
 
@@ -25,9 +25,9 @@ class BBands(IndicatorAbstract):
         self.rate = _rate
         self.buf = deque(maxlen=self.period)
 
-    def _addOne(self, _data: DataStruct):
-        index_value = _data.index()[0]
-        self.buf.append(_data.getColumn(self.use_key)[0])
+    def _addOne(self, _data_struct: DataStruct):
+        index_value = _data_struct.index()[0]
+        self.buf.append(_data_struct.getColumn(self.use_key)[0])
         mean = np.mean(self.buf)
         std = np.std(self.buf)
         self.data.addRow(

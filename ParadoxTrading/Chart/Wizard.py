@@ -1,10 +1,9 @@
 import sys
 import typing
 
-from PyQt5.QtWidgets import QApplication, QVBoxLayout
-
 import ParadoxTrading.Chart.View
 import ParadoxTrading.Chart.Window
+from PyQt5.QtWidgets import QApplication, QVBoxLayout
 
 
 class Wizard:

@@ -1,15 +1,11 @@
-from collections import deque
-
-import numpy as np
-
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class MA(IndicatorAbstract):
+class EMA(IndicatorAbstract):
     def __init__(
             self, _period: int, _use_key: str,
-            _idx_key: str = 'time', _ret_key: str = 'ma'
+            _idx_key: str = 'time', _ret_key: str = 'ema'
     ):
         super().__init__()
 
@@ -22,10 +18,12 @@ class MA(IndicatorAbstract):
         )
 
         self.period = _period
-        self.buf = deque(maxlen=self.period)
 
     def _addOne(self, _data_struct: DataStruct):
         index_value = _data_struct.index()[0]
-        self.buf.append(_data_struct.getColumn(self.use_key)[0])
-        tmp_value = np.mean(self.buf)
+        tmp_value = _data_struct[self.use_key][0]
+        if len(self) > 0:
+            last_ret = self.getLastData().toDict()[self.ret_key]
+            tmp_value = (tmp_value - last_ret) / self.period + last_ret
+
         self.data.addRow([index_value, tmp_value], [self.idx_key, self.ret_key])

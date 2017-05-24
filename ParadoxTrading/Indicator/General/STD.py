@@ -24,8 +24,8 @@ class STD(IndicatorAbstract):
         self.period = _period
         self.buf = deque(maxlen=self.period)
 
-    def _addOne(self, _data: DataStruct):
-        index_value = _data.index()[0]
-        self.buf.append(_data.getColumn(self.use_key)[0])
+    def _addOne(self, _data_struct: DataStruct):
+        index_value = _data_struct.index()[0]
+        self.buf.append(_data_struct.getColumn(self.use_key)[0])
         tmp_value = np.std(self.buf)
         self.data.addRow([index_value, tmp_value], [self.idx_key, self.ret_key])

@@ -1,7 +1,7 @@
 import typing
 from datetime import datetime
 
-from ParadoxTrading.Indicator.IndicatorAbstract import BarIndicatorAbstract
+from ParadoxTrading.Indicator.Bar.BarIndicatorAbstract import BarIndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 

@@ -5,10 +5,10 @@ from ParadoxTrading.Indicator.Bar.BarIndicatorAbstract import BarIndicatorAbstra
 from ParadoxTrading.Utils import DataStruct
 
 
-class SumBar(BarIndicatorAbstract):
+class OHLC(BarIndicatorAbstract):
     def __init__(
-            self, _use_key: str,
-            _idx_key: str = 'time', _ret_key: str = 'sum'
+            self, _use_key: str, _idx_key: str = 'time',
+            _ret_key: typing.Sequence[str] = ('open', 'high', 'low', 'close')
     ):
         super().__init__()
 
@@ -16,7 +16,7 @@ class SumBar(BarIndicatorAbstract):
         self.idx_key = _idx_key
         self.ret_key = _ret_key
         self.data = DataStruct(
-            [self.idx_key, self.ret_key],
+            [self.idx_key] + list(self.ret_key),
             self.idx_key
         )
 
@@ -24,8 +24,8 @@ class SumBar(BarIndicatorAbstract):
             self, _data_struct: DataStruct,
             _idx: typing.Union[str, datetime] = None
     ):
-        tmp_value = sum(_data_struct.getColumn(self.use_key))
+        tmp = _data_struct[self.use_key]
         self.data.addRow(
-            (_idx, tmp_value),
-            (self.idx_key, self.ret_key)
+            (_idx, tmp[0], max(tmp), min(tmp), tmp[-1]),
+            [self.idx_key] + list(self.ret_key)
         )

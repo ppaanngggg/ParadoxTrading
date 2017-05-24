@@ -1,14 +1,10 @@
-from collections import deque
-
-import numpy as np
-
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
 class Kalman(IndicatorAbstract):
     def __init__(
-            self, _use_key: str, _R: float=0.1**2, _Q: float=1e-5,
+            self, _use_key: str, _R: float = 0.1 ** 2, _Q: float = 1e-5,
             _idx_key: str = 'time', _ret_key: str = 'kalman'
     ):
         super().__init__()
@@ -27,11 +23,9 @@ class Kalman(IndicatorAbstract):
         self.xhat = 0.0
         self.P = 1.0
 
-    def _addOne(self, _data: DataStruct):
-        assert len(_data) == 1
-
-        index = _data.index()[0]
-        value = _data[self.use_key][0]
+    def _addOne(self, _data_struct: DataStruct):
+        index = _data_struct.index()[0]
+        value = _data_struct[self.use_key][0]
 
         xhatminus = self.xhat
         pminus = self.P + self.Q
