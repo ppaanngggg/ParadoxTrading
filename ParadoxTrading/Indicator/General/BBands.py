@@ -9,13 +9,14 @@ from ParadoxTrading.Utils import DataStruct
 class BBands(IndicatorAbstract):
     def __init__(
             self, _period: int, _use_key: str,
-            _rate: float = 2.0, _idx_key: str = 'time'
+            _rate: float = 2.0, _idx_key: str = 'time',
+            _ret_key=('upband', 'midband', 'downband')
     ):
         super().__init__()
 
         self.use_key = _use_key
         self.idx_key = _idx_key
-        self.keys = [self.idx_key, 'upband', 'midband', 'downband']
+        self.keys = [self.idx_key] + list(_ret_key)
 
         self.data = DataStruct(
             self.keys, self.idx_key

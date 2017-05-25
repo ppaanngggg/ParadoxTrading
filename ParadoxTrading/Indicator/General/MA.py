@@ -1,14 +1,13 @@
 from collections import deque
 
 import numpy as np
-
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
 class MA(IndicatorAbstract):
     def __init__(
-            self, _period: int, _use_key: str,
+            self, _period: int, _use_key: str = 'closeprice',
             _idx_key: str = 'time', _ret_key: str = 'ma'
     ):
         super().__init__()

@@ -84,6 +84,8 @@ class StepDrawdownStop(StopIndicatorAbstract):
         self._set_best_price(price)
 
         profit_rate = self._profit_rate(price)
+        # if self.stop_type == SignalType.SHORT:
+        #     input((profit_rate, self.status))
         self._update_status(profit_rate)
 
         self.data.addDict({
