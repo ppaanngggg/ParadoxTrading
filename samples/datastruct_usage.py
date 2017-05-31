@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from ParadoxTrading.Fetch import FetchGuoJinTick
+from ParadoxTrading.Fetch import FetchGuoJinMin
 from ParadoxTrading.Utils import DataStruct
 
-fetcher = FetchGuoJinTick()
+fetcher = FetchGuoJinMin()
 # adjust it by yourself
 # fetcher.psql_host = '192.168.4.102'
 # fetcher.psql_user = 'ubuntu'
@@ -28,8 +28,8 @@ print(data.index_name)
 # get values of index
 print(data.index())
 # get values of one column
-print(data['askprice'])
-print(data.getColumn('askprice'))
+print(data['closeprice'])
+print(data.getColumn('closeprice'))
 
 # you can get rows by number, [start, end)
 print(data.iloc[:10])
@@ -49,16 +49,16 @@ a.merge(b)
 print(a)
 
 # turn datastruct to list of row
-v, k = a.toRows(['askprice', 'askvolume'])
+v, k = a.toRows(['highprice', 'lowprice'])
 print(v)
 print(k)
 # turn datastruct to list of dict
 print(a.toDicts())
 
-# # iter each line in data
-# for d in data:
-#     print(d)
+# iter each line in data
+for d in data:
+    print(d)
 
 # change index
-data_new = data.changeIndex('lastprice')
+data_new = data.changeIndex('closeprice')
 print(data_new)

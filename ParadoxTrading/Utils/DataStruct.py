@@ -9,13 +9,12 @@ import tabulate
 class DataStruct:
     """
 
-    ParadoxTrading的基本数据结构，仿照Pandas的DataFrame接口设计。
-    剪裁了DataFrame的一些特性，并且加入了一些针对需求的特性。
+    the core data struct of ParadoxTrading
 
-    :param _keys:
-    :param _index_name:
-    :param _rows:
-    :param _dicts:
+    :param _keys: the keys of this datastruct
+    :param _index_name: the index of this datastruct
+    :param _rows: init data, add as rows
+    :param _dicts: init data, add as dicts
 
     """
 
@@ -35,7 +34,9 @@ class DataStruct:
         for key in _keys:
             self.data[key] = []
 
+        # this is the slice by index value
         self.loc: Loc = Loc(self)
+        # this is the slice by number
         self.iloc: ILoc = ILoc(self)
 
         if _rows is not None:
@@ -45,17 +46,36 @@ class DataStruct:
             self.addDicts(_dicts)
 
     def __getitem__(self, _item: str) -> typing.List[typing.Any]:
+        """
+        get one column of data
+
+        :param _item: which column to pick
+        :return: column of _item
+        """
         assert type(_item) == str
         return self.data[_item]
 
     def __len__(self) -> int:
+        """
+        get the lenght of data
+
+        :return: length
+        """
         return len(self.index())
 
     def __iter__(self):
+        """
+        iter the row one by one
+        """
         for i in range(len(self.index())):
             yield self.iloc[i]
 
     def __repr__(self):
+        """
+        print the data as a table by tabulate
+
+        :return: the str of this table
+        """
         if len(self) > 20:
             tmp_rows, tmp_keys = self.iloc[:8].toRows()
             tmp_rows.append(['...' for _ in tmp_keys])
@@ -65,12 +85,36 @@ class DataStruct:
         return tabulate.tabulate(tmp_rows, headers=tmp_keys)
 
     def clone(self):
+        """
+        copy all the data to a new datasturct,
+        !!! WARN !!!: if the value in data is a reference to
+        a object, it will just copy a reference to the same
+        object
+
+        :return: the new datastruct
+        """
         return self.iloc[:]
 
     def merge(self, _struct: "DataStruct"):
+        """
+        merge one struct into self, and sorted by index
+
+        :param _struct: another datastruct
+        """
         self.addRows(*_struct.toRows())
 
     def expand(self, _struct: "DataStruct", _type: str = 'strict'):
+        """
+        expand columns by another datastruct
+            - strict:
+                1. two datastructs have the totally same index
+                2. names in the other datastruct dont exist in self
+                3. copy columns to self
+            - ...
+
+        :param _struct: another datastruct
+        :param _type: expand type
+        """
         if _type == self.EXPAND_STRICT:
             assert len(self) == len(_struct)
             for idx1, idx2 in zip(self.index(), _struct.index()):
@@ -87,6 +131,12 @@ class DataStruct:
             _row: typing.Sequence[typing.Any],
             _keys: typing.Sequence[str]
     ):
+        """
+        add a row into self, the sort of row should be kept as keys
+
+        :param _row: list of data to be added
+        :param _keys: list of key
+        """
         assert len(_row) == len(_keys)
         self.addDict(dict(zip(_keys, _row)))
 
@@ -95,23 +145,46 @@ class DataStruct:
             _rows: typing.Sequence[typing.Sequence],
             _keys: typing.Sequence[str]
     ):
+        """
+        add mulit rows like addRow
+
+        :param _rows:
+        :param _keys:
+        """
         for row in _rows:
             self.addRow(row, _keys)
 
     def addDict(self, _dict: typing.Dict[str, typing.Any]):
+        """
+        add dict into self
+
+        :param _dict: map key to value
+        :return:
+        """
         index_value = _dict[self.index_name]
         insert_idx = bisect_right(self.index(), index_value)
         for k in self.data.keys():
             self.data[k].insert(insert_idx, _dict[k])
 
     def addDicts(self, _dicts: typing.Sequence[dict]):
+        """
+        add dicts into self, like addDict
+
+        :param _dicts:
+        :return:
+        """
         for _dict in _dicts:
             self.addDict(_dict)
 
     def toRows(
             self, _keys=None
-    ) -> (typing.List[typing.List[typing.Any]], typing.List[str]):
+    ) -> (typing.Sequence[typing.Sequence[typing.Any]], typing.List[str]):
         """
+        Turn data into rows, and the first return is the list of row,
+        the second return is the keys.
+
+        And you can set the keys to return by setting _keys,
+        if not set, keys will be the whole keys in self.data
 
         :param _keys: the columns to return
         :return: rows and keys
@@ -126,7 +199,15 @@ class DataStruct:
 
     def toRow(
             self, _index: int = 0, _keys=None
-    ) -> (typing.List[typing.Any], typing.List[str]):
+    ) -> (typing.Sequence[typing.Any], typing.List[str]):
+        """
+        Turn one row into row, default it will turn the first line,
+        _keys is the same as toRows
+
+        :param _index:
+        :param _keys:
+        :return:
+        """
         keys: typing.List[str] = _keys
         if keys is None:
             keys = self.getColumnNames()
@@ -134,6 +215,11 @@ class DataStruct:
         return row, keys
 
     def toDicts(self) -> (typing.List[typing.Dict[str, typing.Any]]):
+        """
+        turn all the data into dicts
+
+        :return:
+        """
         dicts = []
         rows, keys = self.toRows()
         for d in rows:
@@ -141,18 +227,42 @@ class DataStruct:
         return dicts
 
     def toDict(self, _index: int = 0) -> (typing.Dict[str, typing.Any]):
+        """
+        turn one row to the dict, default the first line
+
+        :param _index:
+        :return:
+        """
         row, keys = self.toRow(_index)
         return dict(zip(keys, row))
 
     def toHDF5(self, _f_name: str):
+        """
+        not implemented yet
+
+        :param _f_name:
+        :return:
+        """
         pass
 
     def index(self) -> list:
+        """
+        return the column of index
+
+        :return:
+        """
         return self.data[self.index_name]
 
     def getColumnNames(
             self, _include_index_name: bool = True
     ) -> typing.Sequence[str]:
+        """
+        return sorted keys, if _include_index_name is False,
+        return sorted keys but index_name
+
+        :param _include_index_name:
+        :return:
+        """
         if _include_index_name:
             return sorted(self.data.keys())
         else:
@@ -160,13 +270,25 @@ class DataStruct:
             return sorted(self.data.keys() - tmp)
 
     def changeIndex(self, _new_index: str) -> 'DataStruct':
+        """
+        change index_name, and return a new datastruct with index changed
+
+        :param _new_index:
+        :return:
+        """
         assert _new_index in self.data.keys()
         tmp = DataStruct(self.getColumnNames(), _new_index)
-        for d in self:
-            tmp.merge(d)
+        tmp.merge(self)
         return tmp
 
     def changeColumnName(self, _old_name: str, _new_name: str):
+        """
+        change column name
+
+        :param _old_name:
+        :param _new_name:
+        :return:
+        """
         assert _old_name != _new_name
         if self.index_name == _old_name:
             self.index_name = _new_name
@@ -174,24 +296,57 @@ class DataStruct:
         del self.data[_old_name]
 
     def getColumn(self, _key: str) -> list:
+        """
+        return one column by key
+
+        :param _key:
+        :return:
+        """
         return self.data[_key]
 
     def dropColumn(self, _key: str):
+        """
+        del one column
+
+        :param _key:
+        :return:
+        """
+        assert _key != self.index_name
         assert _key in self.data.keys()
         del self.data[_key]
 
     def createColumn(self, _key: str, _column: typing.Sequence[typing.Any]):
+        """
+        add one column into self, check the len of new column,
+        !!! WARN !!! you should keep the sort by yourself
+
+        :param _key:
+        :param _column:
+        :return:
+        """
         assert _key not in self.data.keys()
         assert len(_column) == len(self)
         self.data[_key] = _column
 
     def any2str(self, _key: str = None):
+        """
+        turn one column from any typing to str, simply use str()
+
+        :param _key: default use index
+        :return:
+        """
         k = _key
         if k is None:
             k = self.index_name
         self.data[k] = [str(d) for d in self.data[k]]
 
     def datetime2float(self, _key: str = None):
+        """
+        turn one column from datetime to float
+
+        :param _key:
+        :return:
+        """
         k = _key
         if k is None:
             k = self.index_name
@@ -199,6 +354,12 @@ class DataStruct:
                         for d in self.data[k]]
 
     def float2datetime(self, _key: str = None):
+        """
+        turn float back to datetime
+
+        :param _key:
+        :return:
+        """
         k = _key
         if k is None:
             k = self.index_name
@@ -206,18 +367,36 @@ class DataStruct:
                         for d in self.data[k]]
 
     def str2float(self, _key: str = None):
+        """
+        turn one column from str to float, simply use float()
+
+        :param _key:
+        :return:
+        """
         k = _key
         if k is None:
             k = self.index_name
-        self.data[k] = np.array(self.data[k]).astype(np.float).tolist()
+        self.data[k] = [float(d) for d in self.data[k]]
 
     def str2int(self, _key: str = None):
+        """
+        turn one column from str to int, simply use int()
+
+        :param _key:
+        :return:
+        """
         k = _key
         if k is None:
             k = self.index_name
-        self.data[k] = np.array(self.data[k]).astype(np.int).tolist()
+        self.data[k] = [int(d) for d in self.data[k]]
 
     def str2datetime(self, _key: str = None):
+        """
+        turn one column from str to datetime
+
+        :param _key:
+        :return:
+        """
         k = _key
         if k is None:
             k = self.index_name
@@ -229,7 +408,17 @@ class Loc:
     def __init__(self, _struct: DataStruct):
         self.struct = _struct
 
-    def __getitem__(self, _item: slice):
+    def __getitem__(self, _item: typing.Union[typing.Any, slice]):
+        """
+        if getitem by the index value, return the result if index value found
+        else return None,
+
+        if getitem by a range of index value, return the range of values by find
+        the number of start and stop, (start is included, stop excluded)
+
+        :param _item:
+        :return:
+        """
         if isinstance(_item, slice):
             new_start = None
             if _item.start is not None:
@@ -252,7 +441,14 @@ class ILoc:
         self.struct = _struct
 
     def __getitem__(self, _item: typing.Union[int, slice]) -> DataStruct:
-        ret = DataStruct(list(self.struct.data.keys()), self.struct.index_name)
+        """
+        create a new datastruct according to self,
+        and add the data according to _item
+
+        :param _item:
+        :return:
+        """
+        ret = DataStruct(self.struct.getColumnNames(), self.struct.index_name)
         if isinstance(_item, slice):
             for k, v in self.struct.data.items():
                 ret.data[k] = v.__getitem__(_item)
