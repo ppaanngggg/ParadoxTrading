@@ -1,16 +1,12 @@
 import typing
 
-import h5py
-import psycopg2
-import psycopg2.extensions
-
 from ParadoxTrading.Utils import DataStruct
 
 
 class RegisterAbstract:
     def __init__(self):
         # strategies linked to this market register
-        self.strategy_set: typing.Set[typing.AnyStr] = set()
+        self.strategy_set: typing.Set = set()
 
     def addStrategy(self, _strategy):
         """
@@ -22,13 +18,29 @@ class RegisterAbstract:
         self.strategy_set.add(_strategy.name)
 
     def toJson(self) -> str:
+        """
+        turn market register to json, as the key of market register
+
+        :return:
+        """
         raise NotImplementedError('toJson')
 
     def toKwargs(self) -> dict:
+        """
+        turn register to args as dict
+
+        :return:
+        """
         raise NotImplementedError('toKwargs')
 
     @staticmethod
     def fromJson(_json_str: str) -> 'RegisterAbstract':
+        """
+        create a register from json
+
+        :param _json_str:
+        :return:
+        """
         raise NotImplementedError('fromJson')
 
     def __repr__(self):
@@ -42,89 +54,43 @@ class FetchAbstract:
     def __init__(self):
         self.register_type: RegisterAbstract = None
 
-        self.psql_host: str = None
-        self.psql_dbname: str = None
-        self.psql_user: str = None
-        self.psql_password: str = None
-
-        self.cache_path: str = None
-
     def fetchSymbol(
             self, _tradingday: str, **kwargs
     ) -> typing.Union[None, str]:
+        """
+        fetch symbol from database
+        for example, get the dominant instrument of product,
+        !!! kwargs equals with register.toKwargs
+
+        :param _tradingday:
+        :param kwargs:
+        :return:
+        """
         raise NotImplementedError('fetchSymbol')
 
     def fetchData(
             self, _tradingday: str, _symbol: str, **kwargs
     ) -> typing.Union[None, DataStruct]:
+        """
+        get one day data from database
+
+        :param _tradingday:
+        :param _symbol:
+        :param kwargs:
+        :return:
+        """
         raise NotImplementedError('fetchData')
 
     def fetchDayData(
             self, _begin_day: str, _end_day: str, _symbol: str, **kwargs
     ) -> DataStruct:
+        """
+        get several days' data from database
+
+        :param _begin_day: the begin day, included
+        :param _end_day: the end day, included
+        :param _symbol:
+        :param kwargs:
+        :return:
+        """
         raise NotImplementedError('fetchDayData')
-
-    def _get_psql_con_cur(self) -> typing.Tuple[
-        psycopg2.extensions.connection, psycopg2.extensions.cursor
-    ]:
-        if not self._psql_con:
-            self._psql_con: psycopg2.extensions.connection = psycopg2.connect(
-                dbname=self.psql_dbname,
-                host=self.psql_host,
-                user=self.psql_user,
-                password=self.psql_password,
-            )
-        if not self._psql_cur:
-            self._psql_cur: psycopg2.extensions.cursor = self._psql_con.cursor()
-
-        return self._psql_con, self._psql_cur
-
-    def cache2DataStruct(
-            self, _symbol: str, _tradingday: str, _index: str
-    ) -> typing.Union[None, DataStruct]:
-        f = h5py.File(self.cache_path, 'a')
-        try:
-            grp = f[_symbol.lower() + '/' + _tradingday]
-        except KeyError:
-            return None
-
-        datastruct = DataStruct(list(grp.keys()), _index.lower())
-        for k in grp.keys():
-            dataset = grp[k]
-            datastruct.data[k] = dataset[:].tolist()
-            if 'timestamp' in dataset.attrs['type']:
-                datastruct.float2datetime(k)
-
-        f.close()
-        return datastruct
-
-    def DataStruct2cache(
-            self, _symbol: str, _tradingday: str,
-            _columns: typing.List[str], _types: typing.List[str],
-            _datastruct: DataStruct
-    ):
-        f = h5py.File(self.cache_path, 'a')
-
-        for c, t in zip(_columns, _types):
-            if 'int' in t:
-                dtype = 'int32'
-            elif 'char' in t:
-                dtype = h5py.special_dtype(vlen=str)
-            else:
-                dtype = 'float64'
-
-            if 'timestamp' in t:
-                _datastruct.datetime2float(c)
-
-            dataset = f.create_dataset(
-                _symbol.lower() + '/' + _tradingday + '/' + c,
-                (len(_datastruct),),
-                dtype=dtype,
-            )
-            dataset[:] = _datastruct.data[c]
-            dataset.attrs['type'] = t
-
-            if 'timestamp' in t:
-                _datastruct.float2datetime(c)
-
-        f.close()

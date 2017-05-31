@@ -1,14 +1,16 @@
 import json
 import typing
 
+import h5py
 import psycopg2
 import psycopg2.extensions
 import pymongo
 import pymongo.collection
 import pymongo.database
+from pymongo import MongoClient
+
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
-from pymongo import MongoClient
 
 
 class RegisterFutureTick(RegisterAbstract):
@@ -48,6 +50,11 @@ class RegisterFutureTick(RegisterAbstract):
         ))
 
     def toKwargs(self) -> dict:
+        """
+        turn self to dict, used by fetchSymbol()
+
+        :return:
+        """
         return {
             '_product': self.product,
             '_instrument': self.instrument,
@@ -124,6 +131,71 @@ class FetchFutureTick(FetchAbstract):
             self._mongo_inst: pymongo.database.Database = self._mongo_client[
                 self.mongo_inst_db]
         return self._mongo_inst
+
+    def _get_psql_con_cur(self) -> typing.Tuple[
+        psycopg2.extensions.connection, psycopg2.extensions.cursor
+    ]:
+        if not self._psql_con:
+            self._psql_con: psycopg2.extensions.connection = psycopg2.connect(
+                dbname=self.psql_dbname,
+                host=self.psql_host,
+                user=self.psql_user,
+                password=self.psql_password,
+            )
+        if not self._psql_cur:
+            self._psql_cur: psycopg2.extensions.cursor = self._psql_con.cursor()
+
+        return self._psql_con, self._psql_cur
+
+    def cache2DataStruct(
+            self, _symbol: str, _tradingday: str, _index: str
+    ) -> typing.Union[None, DataStruct]:
+        f = h5py.File(self.cache_path, 'a')
+        try:
+            grp = f[_symbol.lower() + '/' + _tradingday]
+        except KeyError:
+            return None
+
+        datastruct = DataStruct(list(grp.keys()), _index.lower())
+        for k in grp.keys():
+            dataset = grp[k]
+            datastruct.data[k] = dataset[:].tolist()
+            if 'timestamp' in dataset.attrs['type']:
+                datastruct.float2datetime(k)
+
+        f.close()
+        return datastruct
+
+    def DataStruct2cache(
+            self, _symbol: str, _tradingday: str,
+            _columns: typing.List[str], _types: typing.List[str],
+            _datastruct: DataStruct
+    ):
+        f = h5py.File(self.cache_path, 'a')
+
+        for c, t in zip(_columns, _types):
+            if 'int' in t:
+                dtype = 'int32'
+            elif 'char' in t:
+                dtype = h5py.special_dtype(vlen=str)
+            else:
+                dtype = 'float64'
+
+            if 'timestamp' in t:
+                _datastruct.datetime2float(c)
+
+            dataset = f.create_dataset(
+                _symbol.lower() + '/' + _tradingday + '/' + c,
+                (len(_datastruct),),
+                dtype=dtype,
+            )
+            dataset[:] = _datastruct.data[c]
+            dataset.attrs['type'] = t
+
+            if 'timestamp' in t:
+                _datastruct.float2datetime(c)
+
+        f.close()
 
     def productList(self) -> list:
         """
@@ -268,6 +340,15 @@ class FetchFutureTick(FetchAbstract):
             _product: str = None, _instrument: str = None,
             _sub_dominant: bool = False,
     ) -> typing.Union[None, str]:
+        """
+        get symbol from database
+
+        :param _tradingday: the tradingday
+        :param _product: the product to fetch
+        :param _instrument: the instrument to fetch, if _product is None, then use this
+        :param _sub_dominant: whether to use sub dominant
+        :return:
+        """
         assert _product is not None or _instrument is not None
 
         if isinstance(_product, str):
@@ -297,8 +378,8 @@ class FetchFutureTick(FetchAbstract):
 
         :param _tradingday:
         :param _symbol:
-        :param _cache:
-        :param _index:
+        :param _cache: whether to cache by hdf5
+        :param _index: use which column to index
         :return:
         """
         if _symbol is None:
@@ -344,6 +425,11 @@ class FetchFutureTick(FetchAbstract):
 
 class RegisterFutureTickIndex(RegisterAbstract):
     def __init__(self, _product: str):
+        """
+        because it is index, there is only product as parameter
+
+        :param _product:
+        """
         super().__init__()
 
         self.product = _product
