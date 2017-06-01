@@ -117,7 +117,7 @@ class View:
         tmp_max_list = []
         for v in self.series_table.values():
             min_y, max_y = v.calcRangeY(_begin_x, _end_x)
-            if min_y and max_y:
+            if min_y is not None and max_y is not None:
                 tmp_min_list.append(min_y)
                 tmp_max_list.append(max_y)
 
@@ -125,21 +125,6 @@ class View:
             self.begin_y = min(tmp_min_list)
         if tmp_max_list:
             self.end_y = max(tmp_max_list)
-
-    @staticmethod
-    def __updateCandleValue(_x: typing.Any, _v: dict):
-        value = _v['x2y'].loc[_x]
-        if value is None:
-            _v['open_edit'].setText('')
-            _v['high_edit'].setText('')
-            _v['low_edit'].setText('')
-            _v['close_edit'].setText('')
-        else:
-            value = value['y'][0]
-            _v['open_edit'].setText('{:f}'.format(value[0]))
-            _v['high_edit'].setText('{:f}'.format(value[1]))
-            _v['low_edit'].setText('{:f}'.format(value[2]))
-            _v['close_edit'].setText('{:f}'.format(value[3]))
 
     def setAxisX(self, _begin: float, _end: float):
         self.axis_x.setRange(_begin, _end)
