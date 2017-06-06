@@ -4,8 +4,17 @@ from ParadoxTrading.Utils import DataStruct
 
 class Diff(IndicatorAbstract):
     def __init__(
-            self, _use_key: str, _idx_key: str = 'time', _ret_key: str = 'diff'
+            self, _use_key: str, _init_value: float = None,
+            _idx_key: str = 'time', _ret_key: str = 'diff'
     ):
+        """
+
+
+        :param _use_key:
+        :param _init_value: if init_value set, the first ret will be complated, else 0
+        :param _idx_key:
+        :param _ret_key:
+        """
         super().__init__()
 
         self.use_key = _use_key
@@ -16,7 +25,7 @@ class Diff(IndicatorAbstract):
             self.idx_key
         )
 
-        self.last_value = None
+        self.last_value = _init_value
 
     def _addOne(self, _data_struct: DataStruct):
         index_value = _data_struct.index()[0]
