@@ -1,4 +1,6 @@
 from .FetchAbstract import FetchAbstract, RegisterAbstract
+from .FetchExchangeMarket import (FetchExchangeMarket, FetchExchangeMarketIndex,
+                                  RegisterExchangeMarket, RegisterExchangeMarketIndex)
 from .FetchGuoJin import (FetchGuoJinDay, FetchGuoJinDayIndex, FetchGuoJinHour,
                           FetchGuoJinHourIndex, FetchGuoJinMin,
                           FetchGuoJinMinIndex, FetchGuoJinTick,
@@ -7,5 +9,3 @@ from .FetchGuoJin import (FetchGuoJinDay, FetchGuoJinDayIndex, FetchGuoJinHour,
                           RegisterGuoJinHourIndex, RegisterGuoJinMin,
                           RegisterGuoJinMinIndex, RegisterGuoJinTick,
                           RegisterGuoJinTickIndex)
-from .FetchSHFE import (FetchSHFEDay, FetchSHFEDayIndex, RegisterSHFEDay,
-                        RegisterSHFEDayIndex)
