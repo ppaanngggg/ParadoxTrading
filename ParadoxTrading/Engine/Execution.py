@@ -19,7 +19,7 @@ class ExecutionAbstract:
     def dealOrderEvent(self, _order_event: OrderEvent):
         raise NotImplementedError('deal not implemented')
 
-    def matchMarket(self, _instrument: str, _data: DataStruct):
+    def matchMarket(self, _symbol: str, _data: DataStruct):
         raise NotImplementedError('matchMarket not implemented')
 
     def addEvent(self, _fill_event: FillEvent):

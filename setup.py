@@ -24,6 +24,10 @@ setup(
         'pymongo',
         'PyQt5',
         'PyQtChart',
-        'arrow'
+        'arrow',
+        'PyCTP'
+    ],
+    dependency_links=[
+        'https://github.com/ppaanngggg/PyCTP/master#egg=PyCTP-0.1'
     ]
 )
