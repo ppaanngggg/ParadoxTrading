@@ -1,16 +1,15 @@
 import logging
 import typing
 
+import ParadoxTrading.Engine
 import pymongo
 import tabulate
-from pymongo import MongoClient
-from pymongo.collection import Collection
-
-import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
     DirectionType, FillEvent, OrderEvent, SignalEvent, EventAbstract, EventType
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
 from ParadoxTrading.Utils import DataStruct
+from pymongo import MongoClient
+from pymongo.collection import Collection
 
 
 class PortfolioPerStrategy:

@@ -10,8 +10,13 @@ class StepDrawdownStop(StopIndicatorAbstract):
             self,
             _data: DataStruct,
             _stop_type: SignalType.LONG,
-            _profit_thresh=(0.1, 0.2, 0.3, 0.5),
-            _stop_thresh=(1.0, 0.5, 0.3, 0.15),
+            _init_stop: float = 0.05,
+            _profit_thresh: typing.Tuple[float] = (
+                    0.1, 0.2, 0.3, 0.5
+            ),
+            _stop_thresh: typing.Tuple[float] = (
+                    1.0, 0.5, 0.3, 0.15
+            ),
             _use_key: str = 'closeprice',
             _idx_key: str = 'time',
             _ret_key: str = 'stopprice',
@@ -28,12 +33,18 @@ class StepDrawdownStop(StopIndicatorAbstract):
         self.ret_key = _ret_key
 
         self.init_price = _data.toDict()[self.use_key]
+        if self.stop_type == SignalType.LONG:
+            self.init_stop_price = self.init_price * (1 - _init_stop)
+        elif self.stop_type == SignalType.SHORT:
+            self.init_stop_price = self.init_price * (1 + _init_stop)
+        else:
+            raise Exception('unknown type')
         self.best_price = self.init_price
 
         self.data = DataStruct(
             [self.idx_key, self.ret_key],
             self.idx_key,
-            [[_data.index()[0], self.init_price]]
+            [[_data.index()[0], self.init_stop_price]]
         )
 
     def _set_best_price(self, _price):
@@ -75,7 +86,7 @@ class StepDrawdownStop(StopIndicatorAbstract):
             else:
                 raise Exception('unknown type')
         else:
-            return self.init_price
+            return self.init_stop_price
 
     def _addOne(self, _data_struct: DataStruct):
         time = _data_struct.index()[0]
@@ -96,8 +107,6 @@ class StepDrawdownStop(StopIndicatorAbstract):
     def _isStop(self, _data_struct: DataStruct):
         price = _data_struct.toDict()[self.use_key]
         stop_price = self.data[self.ret_key][-1]
-        if not self.status:
-            return
         if self.stop_type == SignalType.LONG:
             if price < stop_price:
                 self.is_stop = True

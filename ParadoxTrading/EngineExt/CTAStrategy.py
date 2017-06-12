@@ -1,49 +1,79 @@
 import typing
 
-from ParadoxTrading.Engine import StrategyAbstract, SettlementEvent, MarketEvent
+from ParadoxTrading.Engine import StrategyAbstract, SettlementEvent, MarketEvent, SignalType
 
 
-class CTAStrategy(StrategyAbstract):
+class CTAStatusType:
     EMPTY = 0
     LONG = 1
     SHORT = 2
 
-    def __init__(self, _name: str):
+
+class CTAStatusMgr:
+    def __init__(self):
+        self.last_status = CTAStatusType.EMPTY
+        self.status = CTAStatusType.EMPTY
+
+    def storeStatus(self):
+        self.last_status = self.status
+
+    def setStatus(self, _strength: float):
+        if _strength > 0:
+            self.status = CTAStatusType.LONG
+        elif _strength < 0:
+            self.status = CTAStatusType.SHORT
+        else:
+            self.status = CTAStatusType.EMPTY
+
+    def getStatus(self):
+        return self.status
+
+    def getLastStatus(self):
+        return self.last_status
+
+
+class CTAStrategy(StrategyAbstract):
+    def __init__(self, _name: str, _fund_alloc: float):
         super().__init__(_name)
 
-        self.last_status = self.EMPTY
-        self.status = self.EMPTY
+        self.fund_alloc = _fund_alloc
+        self.status_mgr = CTAStatusMgr()
 
     def addEvent(self,
                  _symbol: str,
                  _signal_type: int,
                  _strength: typing.Any = None):
+        if _strength > 0:
+            assert _signal_type == SignalType.LONG
+        if _strength < 0:
+            assert _signal_type == SignalType.SHORT
+
         super().addEvent(_symbol, _signal_type, _strength)
 
-        if _strength > 0:
-            self.status = self.LONG
-        elif _strength < 0:
-            self.status = self.SHORT
-        else:
-            self.status = self.EMPTY
+        self.status_mgr.setStatus(_strength)
+
+    def do_deal(self, _market_event: MarketEvent):
+        raise NotImplementedError('deal not implemented')
 
     def deal(self, _market_event: MarketEvent):
-        raise NotImplementedError('deal not implemented')
+        # save the last status
+        self.status_mgr.storeStatus()
+        # do the real deal func
+        self.do_deal(_market_event)
+        # deal with status change or not change
+        self.dealStatus(_market_event)
 
     def settlement(self, _settlement_event: SettlementEvent):
         raise NotImplementedError('settlement not implemented')
 
-    def storeStatus(self):
-        self.last_status = self.status
+    def getStatus(self):
+        return self.status_mgr.getStatus()
 
-    def getLastStatus(self) -> int:
-        return self.last_status
-
-    def getStatus(self) -> int:
-        return self.status
+    def getLastStatus(self):
+        return self.status_mgr.getLastStatus()
 
     def dealStatus(self, _market_event: MarketEvent):
-        if self.status == self.last_status:
+        if self.getStatus() == self.getLastStatus():
             self.dealStatusNotChanged(_market_event)
         else:
             self.dealStatusChanged(_market_event)

@@ -8,19 +8,34 @@ from ParadoxTrading.Utils import DataStruct
 class ProductPosition:
     def __init__(self, _product):
         self.product = _product
+        self.strength = 0.0
         self.cur_instrument = None
         self.cur_quantity = 0
         self.next_instrument = None
         self.next_quantity = 0
 
+        # map instrument to quantity changes
         self.detail: typing.Dict[str, int] = {}
 
     def dealSignal(self, _event: SignalEvent):
-        self.product = _event.symbol
-        self.next_instrument = _event.symbol
-        self.next_quantity = int(_event.strength * 10.)
+        """
+        update strength
+
+        :param _event:
+        :return:
+        """
+        self.strength = _event.strength
+
+    def resetDetail(self):
+        self.detail: typing.Dict[str, int] = {}
 
     def dealFill(self, _event: FillEvent):
+        """
+        store quantity into detail
+
+        :param _event:
+        :return:
+        """
         if _event.direction == DirectionType.BUY:
             try:
                 self.detail[_event.symbol] += _event.quantity
@@ -37,24 +52,35 @@ class ProductPosition:
     def __repr__(self) -> str:
         return \
             '\tPRODUCT: {}\n' \
+            '\tSTRENGTH: {}\n' \
             '\tCUR_INSTRUMENT: {}\n' \
             '\tCUR_QUANTITY: {}\n' \
             '\tNEXT_INSTRUMENT: {}\n' \
-            '\tNEXT_QUANTITY: {}\n'.format(
-                self.product,
-                self.cur_instrument,
-                self.cur_quantity,
-                self.next_instrument,
-                self.next_quantity,
+            '\tNEXT_QUANTITY: {}\n' \
+            '\tDETAIL: {}\n'.format(
+                self.product, self.strength,
+                self.cur_instrument, self.cur_quantity,
+                self.next_instrument, self.next_quantity,
+                self.detail
             )
 
 
 class StrategyProduct:
     def __init__(self, _strategy_name):
         self.strategy_name = _strategy_name
+        # map product to position
         self.product_table: typing.Dict[str, ProductPosition] = {}
 
     def dealSignal(self, _event: SignalEvent) -> ProductPosition:
+        """
+        deal signal of this strategy
+        1. find the position of this product
+        2. if not found, create one
+        3. update position
+
+        :param _event:
+        :return:
+        """
         product = _event.symbol
         try:
             product_position = self.product_table[product]
@@ -66,6 +92,11 @@ class StrategyProduct:
         return product_position
 
     def __iter__(self):
+        """
+        iter all product position of this strategy
+
+        :return:
+        """
         for p in self.product_table.values():
             yield p
 
@@ -111,11 +142,17 @@ class CTAPortfolio(PortfolioAbstract):
         self.fetcher = _fetcher
         self.settlement_price_index = _settlement_price_index
 
+        # map strategy to its position manager
         self.strategy_table: typing.Dict[str, StrategyProduct] = {}
-        self.order_table: typing.Dict[str, OrderStrategyProduct] = {}
+        # map order to its order info
+        self.order_table: typing.Dict[int, OrderStrategyProduct] = {}
 
     def dealSignal(self, _event: SignalEvent):
         """
+        deal the signal from a CTA strategy,
+        1. find the strategy's mgr
+        2. if not found, the create one
+        3. deal this signal
         
         :param _event: 
         :return: 
@@ -128,11 +165,13 @@ class CTAPortfolio(PortfolioAbstract):
             )
             strategy_product = self.strategy_table[_event.strategy_name]
 
-        # product_position
         strategy_product.dealSignal(_event)
 
     def dealFill(self, _event: FillEvent):
         """
+        deal fill event
+        1. store position change into position mgr
+        2. store strategy portfolio mgr
         
         :param _event: 
         :return: 
@@ -144,18 +183,56 @@ class CTAPortfolio(PortfolioAbstract):
 
         self.getPortfolioByIndex(_event.index).dealFillEvent(_event)
 
-    def _update_next_instrument(self, _p: ProductPosition, _tradingday: str):
-        # p had been update, and the next_instrument will be set to dominant
-        if _p.next_instrument:
-            _p.next_instrument = self.fetcher.fetchSymbol(
-                _tradingday, _p.product
-            )
-        else:  # has no signal
-            if _p.cur_quantity:  # if cur has position, continue
-                _p.next_instrument = self.fetcher.fetchSymbol(
-                    _tradingday, _p.product
-                )
-                _p.next_quantity = _p.cur_quantity
+    @staticmethod
+    def _update_cur_position(_p: ProductPosition):
+        p_dict = {}
+        # get cur position
+        if _p.cur_instrument:
+            p_dict[_p.cur_instrument] = _p.cur_quantity
+        # update positions
+        for k, v in _p.detail.items():
+            try:
+                p_dict[k] += v
+            except KeyError:
+                p_dict[k] = v
+        # remove empty position
+        new_p_dict = {}
+        for k, v in p_dict.items():
+            if v:
+                new_p_dict[k] = v
+        if new_p_dict:  # there is position
+            assert len(new_p_dict) == 1
+            for k, v in new_p_dict.items():
+                _p.cur_instrument = k
+                _p.cur_quantity = v
+        else:  # no position
+            _p.cur_instrument = None
+            _p.cur_quantity = 0
+
+    def allocQuantity(
+            self, _strategy2product: StrategyProduct,
+            _product2position: ProductPosition
+    ) -> int:
+        return int(10 * _product2position.strength)
+
+    def _update_next_position(
+            self, _tradingday: str,
+            _strategy2product: StrategyProduct,
+            _product2position: ProductPosition
+    ):
+        """
+        comp the next instrument and quantity according cur strength
+
+        :param _tradingday:
+        :return:
+        """
+        _product2position.next_instrument = self.fetcher.fetchSymbol(
+            _tradingday, _product2position.product
+        )
+        # !!! here is the  !!! #
+        _product2position.next_quantity = self.allocQuantity(
+            _strategy2product, _product2position
+        )
 
     def _create_order(self, _inst, _action, _direction, _quantity) -> OrderEvent:
         assert _quantity > 0
@@ -260,36 +337,10 @@ class CTAPortfolio(PortfolioAbstract):
                 return []
 
     @staticmethod
-    def _reset_pp(_p: ProductPosition):
+    def _reset_position_status(_p: ProductPosition):
         _p.next_instrument = None
         _p.next_quantity = 0
-        _p.detail = {}
-
-    @staticmethod
-    def _update_position(_p: ProductPosition):
-        p_dict = {}
-        # get cur position
-        if _p.cur_instrument:
-            p_dict[_p.cur_instrument] = _p.cur_quantity
-        # update positions
-        for k, v in _p.detail.items():
-            try:
-                p_dict[k] += v
-            except KeyError:
-                p_dict[k] = v
-        # remove empty position
-        new_p_dict = {}
-        for k, v in p_dict.items():
-            if v:
-                new_p_dict[k] = v
-        if new_p_dict:  # there is position
-            assert len(new_p_dict) == 1
-            for k, v in new_p_dict.items():
-                _p.cur_instrument = k
-                _p.cur_quantity = v
-        else:  # no position
-            _p.cur_instrument = None
-            _p.cur_quantity = 0
+        _p.resetDetail()
 
     def dealSettlement(self, _tradingday, _next_tradingday):
         # check it's the end of prev tradingday
@@ -300,20 +351,23 @@ class CTAPortfolio(PortfolioAbstract):
             # iter each product
             for p in s:
                 # update position according to fill event
-                self._update_position(p)
-                # check the next dominant instrument
-                self._update_next_instrument(p, _tradingday)
+                self._update_cur_position(p)
+                # next dominant instrument
+                self._update_next_position(
+                    _tradingday, s, p
+                )
                 # send orders according to instrument and quantity chg
                 orders = self._gen_orders(p)
                 for o in orders:
+                    self.addEvent(o, s.strategy_name)
                     self.order_table[o.index] = OrderStrategyProduct(
                         o.index, s.strategy_name, p.product
                     )
-                    self.addEvent(o, s.strategy_name)
-                    # input(p)
-                    self.getPortfolioByStrategy(s.strategy_name).dealOrderEvent(o)
+                    self.getPortfolioByStrategy(
+                        s.strategy_name
+                    ).dealOrderEvent(o)
                 # reset next status
-                self._reset_pp(p)
+                self._reset_position_status(p)
 
         # get price dict for each portfolio
         symbol_price_dict = {}
