@@ -14,7 +14,8 @@ setup(
         'ParadoxTrading/Indicator',
         'ParadoxTrading/Indicator/Bar',
         'ParadoxTrading/Indicator/General',
-        'ParadoxTrading/Performance'
+        'ParadoxTrading/Indicator/Stop',
+        'ParadoxTrading/Performance',
     ],
     install_requires=[
         'numpy',

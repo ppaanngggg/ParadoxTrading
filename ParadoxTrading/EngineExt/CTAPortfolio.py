@@ -262,7 +262,7 @@ class CTAPortfolio(PortfolioAbstract):
                 _p.cur_instrument, ActionType.CLOSE, DirectionType.BUY, -_p.cur_quantity
             ))
         else:
-            pass
+            assert _p.cur_quantity != 0
         # open next
         if _p.next_quantity > 0:
             ret_list.append(self._create_order(
@@ -273,44 +273,49 @@ class CTAPortfolio(PortfolioAbstract):
                 _p.next_instrument, ActionType.OPEN, DirectionType.SELL, -_p.next_quantity
             ))
         else:
-            pass
+            assert _p.next_quantity != 0
         return ret_list
 
+    def _adjust_cur(self, _p) -> typing.List[OrderEvent]:
+        quantity_diff = _p.next_quantity - _p.cur_quantity
+        if quantity_diff:  # quantity changes
+            if _p.next_quantity > 0:  # keep long position
+                if quantity_diff > 0:  # inc long position
+                    return [self._create_order(
+                        _p.next_instrument, ActionType.OPEN, DirectionType.BUY, quantity_diff
+                    )]
+                elif quantity_diff < 0:  # dec long position
+                    return [self._create_order(
+                        _p.next_instrument, ActionType.CLOSE, DirectionType.SELL, -quantity_diff
+                    )]
+                else:
+                    assert quantity_diff != 0
+            elif _p.next_quantity < 0:  # keep short position
+                if quantity_diff < 0:  # inc short position
+                    return [self._create_order(
+                        _p.next_instrument, ActionType.OPEN, DirectionType.SELL, -quantity_diff
+                    )]
+                elif quantity_diff > 0:  # dec short position
+                    return [self._create_order(
+                        _p.next_instrument, ActionType.CLOSE, DirectionType.BUY, quantity_diff
+                    )]
+                else:
+                    assert quantity_diff != 0
+            else:
+                assert _p.next_quantity != 0
+        else:  # quantity not changes
+            return []
+
     def _gen_orders(self, _p: ProductPosition) -> typing.List[OrderEvent]:
-        if _p.cur_quantity:  # cur is not empty
-            if _p.next_quantity:  # next is not empty, need to adjust position
+        if _p.cur_quantity != 0:  # cur is not empty
+            if _p.next_quantity != 0:  # next is not empty, need to adjust position
                 if _p.cur_instrument != _p.next_instrument or _p.cur_quantity * _p.next_quantity < 0:
-                    # change instrument, or change direction, need to close cur and open next
+                    # change instrument, or change direction,
+                    # need to close cur and open next
                     return self._close_cur_open_next(_p)
                 else:
-                    quantity_diff = _p.next_quantity - _p.cur_quantity
-                    if quantity_diff:  # quantity changes
-                        if _p.next_quantity > 0:  # keep long position
-                            if quantity_diff > 0:  # inc long position
-                                return [self._create_order(
-                                    _p.next_instrument, ActionType.OPEN, DirectionType.BUY, quantity_diff
-                                )]
-                            elif quantity_diff < 0:  # dec long position
-                                return [self._create_order(
-                                    _p.next_instrument, ActionType.CLOSE, DirectionType.SELL, -quantity_diff
-                                )]
-                            else:
-                                raise Exception('excuse me ??? quantity_diff == 0 ???')
-                        elif _p.next_quantity < 0:  # keep short position
-                            if quantity_diff < 0:  # inc short position
-                                return [self._create_order(
-                                    _p.next_instrument, ActionType.OPEN, DirectionType.SELL, -quantity_diff
-                                )]
-                            elif quantity_diff > 0:  # dec short position
-                                return [self._create_order(
-                                    _p.next_instrument, ActionType.CLOSE, DirectionType.BUY, quantity_diff
-                                )]
-                            else:
-                                raise Exception('excuse me ??? quantity_diff == 0 ???')
-                        else:
-                            raise Exception('excuse me ??? next_quantity == 0 ???')
-                    else:  # quantity not changes
-                        return []
+                    # just adjust cur position
+                    return self._adjust_cur(_p)
             else:  # next is empty, need to close position
                 if _p.cur_quantity > 0:
                     return [self._create_order(
@@ -321,19 +326,19 @@ class CTAPortfolio(PortfolioAbstract):
                         _p.cur_instrument, ActionType.CLOSE, DirectionType.BUY, -_p.cur_quantity
                     )]
                 else:
-                    raise Exception('excuse me ??? cur_quantity == 0 ???')
+                    assert _p.cur_quantity != 0
         else:  # cur is empty
-            if _p.next_quantity:  # next is not empty, to open position
-                if _p.next_quantity > 0:
-                    return [self._create_order(
-                        _p.next_instrument, ActionType.OPEN, DirectionType.BUY, _p.next_quantity
-                    )]
-                elif _p.next_quantity < 0:
-                    return [self._create_order(
-                        _p.next_instrument, ActionType.OPEN, DirectionType.SELL, -_p.next_quantity
-                    )]
-                raise Exception('excuse me ??? next_quantity == 0 ???')
-            else:  # next is empty, nothing to do
+            # check if next is not empty, to open position
+            if _p.next_quantity > 0:  # open buy
+                return [self._create_order(
+                    _p.next_instrument, ActionType.OPEN, DirectionType.BUY, _p.next_quantity
+                )]
+            elif _p.next_quantity < 0:  # open sell
+                return [self._create_order(
+                    _p.next_instrument, ActionType.OPEN, DirectionType.SELL, -_p.next_quantity
+                )]
+            else:
+                # next is empty, nothing to do
                 return []
 
     @staticmethod

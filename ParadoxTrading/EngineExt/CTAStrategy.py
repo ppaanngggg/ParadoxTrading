@@ -33,10 +33,9 @@ class CTAStatusMgr:
 
 
 class CTAStrategy(StrategyAbstract):
-    def __init__(self, _name: str, _fund_alloc: float):
+    def __init__(self, _name: str):
         super().__init__(_name)
 
-        self.fund_alloc = _fund_alloc
         self.status_mgr = CTAStatusMgr()
 
     def addEvent(self,

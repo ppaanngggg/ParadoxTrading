@@ -5,7 +5,7 @@ import ParadoxTrading.Engine
 import pymongo
 import tabulate
 from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
-    DirectionType, FillEvent, OrderEvent, SignalEvent, EventAbstract, EventType
+    DirectionType, FillEvent, OrderEvent, SignalEvent, EventType
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
 from ParadoxTrading.Utils import DataStruct
 from pymongo import MongoClient
@@ -15,9 +15,9 @@ from pymongo.collection import Collection
 class PortfolioPerStrategy:
     def __init__(self):
         # records for signal, order and fill
-        self.signal_record: typing.List[SignalEvent] = []
-        self.order_record: typing.List[OrderEvent] = []
-        self.fill_record: typing.List[FillEvent] = []
+        self.signal_record: typing.List[typing.Dict] = []
+        self.order_record: typing.List[typing.Dict] = []
+        self.fill_record: typing.List[typing.Dict] = []
         self.settlement_record: typing.List[typing.Dict] = []
 
         # cur order and position state
@@ -159,7 +159,7 @@ class PortfolioPerStrategy:
         :param _signal_event:
         :return:
         """
-        self.signal_record.append(_signal_event)
+        self.signal_record.append(_signal_event.toDict())
 
     def dealOrderEvent(self, _order_event: OrderEvent):
         """
@@ -169,7 +169,7 @@ class PortfolioPerStrategy:
         :return:
         """
         assert _order_event.index not in self.unfilled_order.keys()
-        self.order_record.append(_order_event)
+        self.order_record.append(_order_event.toDict())
         self.unfilled_order[_order_event.index] = _order_event
 
     def dealFillEvent(self, _fill_event: FillEvent):
@@ -180,7 +180,7 @@ class PortfolioPerStrategy:
         :return:
         """
         assert _fill_event.index in self.unfilled_order.keys()
-        self.fill_record.append(_fill_event)
+        self.fill_record.append(_fill_event.toDict())
         del self.unfilled_order[_fill_event.index]
         if _fill_event.action == ActionType.OPEN:
             if _fill_event.direction == DirectionType.BUY:
@@ -240,41 +240,19 @@ class PortfolioPerStrategy:
         :return:
         """
         logging.info('Portfolio({}) store records...'.format(_name))
-        tmp_list: typing.List[EventAbstract] = []
-        tmp_list += self.signal_record
-        tmp_list += self.order_record
-        tmp_list += self.fill_record
-        for d in tmp_list:
-            d = d.toDict()
-            d['strategy_name'] = _name
-            _coll.insert_one(d)
-        for d in self.settlement_record:
+        for d in self.signal_record + self.order_record + \
+                self.fill_record + self.settlement_record:
             d['strategy_name'] = _name
             _coll.insert_one(d)
 
     def __repr__(self) -> str:
-        def action2str(_action: int) -> str:
-            if _action == ActionType.OPEN:
-                return 'open'
-            elif _action == ActionType.CLOSE:
-                return 'close'
-            else:
-                raise Exception()
-
-        def direction2str(_direction: int) -> str:
-            if _direction == DirectionType.BUY:
-                return 'buy'
-            elif _direction == DirectionType.SELL:
-                return 'sell'
-            else:
-                raise Exception()
-
         ret = '@@@ POSITION @@@\n'
 
         table = []
         for k, v in self.position.items():
-            table.append(
-                [k, v[SignalType.LONG], v[SignalType.SHORT]])
+            table.append([
+                k, v[SignalType.LONG], v[SignalType.SHORT]
+            ])
         ret += tabulate.tabulate(table, ['symbol', 'LONG', 'SHORT'])
 
         ret += '\n@@@ UNFILLED ORDER @@@\n'
@@ -282,19 +260,19 @@ class PortfolioPerStrategy:
         table = []
         for k, v in self.unfilled_order.items():
             table.append([
-                k, v.symbol, action2str(v.action),
-                direction2str(v.direction), v.quantity
+                k, v.symbol,
+                ActionType.toStr(v.action),
+                DirectionType.toStr(v.direction),
+                v.quantity
             ])
         ret += tabulate.tabulate(
-            table, ['index', 'symbol', 'ACTION', 'DIRECTION', 'QUANTITY'])
-
-        ret += '\n@@@ UNFILLED ORDER @@@\n'
-        ret += str(sorted(self.unfilled_order.keys()))
+            table, ['index', 'symbol', 'ACTION', 'DIRECTION', 'QUANTITY']
+        )
 
         ret += '\n@@@ RECORD @@@\n'
-        ret += ' - Signal: ' + str(len(self.signal_record)) + '\n'
-        ret += ' - Order: ' + str(len(self.order_record)) + '\n'
-        ret += ' - Fill: ' + str(len(self.fill_record)) + '\n'
+        ret += ' - Signal: {}\n'.format(len(self.signal_record))
+        ret += ' - Order: {}\n'.format(len(self.order_record))
+        ret += ' - Fill: {}\n'.format(len(self.fill_record))
 
         return ret
 
@@ -330,6 +308,30 @@ class PortfolioAbstract:
         tmp = PortfolioPerStrategy()
         _strategy.setPortfolio(tmp)
         self.strategy_portfolio_dict[_strategy.name] = tmp
+
+    def getPortfolioByStrategy(
+            self, _strategy_name: str
+    ) -> PortfolioPerStrategy:
+        """
+        get the individual portfolio manager of strategy
+
+        :param _strategy_name: key
+        :return:
+        """
+        return self.strategy_portfolio_dict[_strategy_name]
+
+    def getPortfolioByIndex(
+            self, _index: int
+    ) -> PortfolioPerStrategy:
+        """
+        get the portfolio by order's index
+
+        :param _index:
+        :return:
+        """
+        return self.getPortfolioByStrategy(
+            self.order_strategy_dict[_index]
+        )
 
     def setEngine(self, _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
@@ -415,7 +417,7 @@ class PortfolioAbstract:
 
     def dealSignal(self, _event: SignalEvent):
         """
-        deal signal event from stategy
+        deal signal event from strategy
 
         :param _event: signal event to deal
         :return:
@@ -436,24 +438,3 @@ class PortfolioAbstract:
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         raise NotImplementedError('dealMarket not implemented')
-
-    def getPortfolioByStrategy(
-            self,
-            _strategy_name: str
-    ) -> PortfolioPerStrategy:
-        """
-        get the individual portfolio manager of strategy
-
-        :param _strategy_name: key
-        :return:
-        """
-        return self.strategy_portfolio_dict[_strategy_name]
-
-    def getPortfolioByIndex(self, _index: int) -> PortfolioPerStrategy:
-        """
-        get the portfolio by order's index
-
-        :param _index:
-        :return:
-        """
-        return self.getPortfolioByStrategy(self.order_strategy_dict[_index])
