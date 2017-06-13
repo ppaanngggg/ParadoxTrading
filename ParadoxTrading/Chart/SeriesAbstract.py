@@ -68,4 +68,4 @@ class SeriesAbstract:
             self.show_edit.setText('')
         else:
             value = value['y'][0]
-            self.show_edit.setText('{:f}'.format(value))
+            self.show_edit.setText('{:.2f}'.format(value))

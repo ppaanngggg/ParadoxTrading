@@ -92,11 +92,13 @@ class EventAbstract:
 
 
 class MarketEvent(EventAbstract):
-    def __init__(self,
-                 _market_register_key: str,
-                 _strategy_name: str,
-                 _symbol: str,
-                 _data: typing.Union[None, DataStruct] = None):
+    def __init__(
+            self,
+            _market_register_key: str,
+            _strategy_name: str,
+            _symbol: str,
+            _data: typing.Union[None, DataStruct] = None
+    ):
         super().__init__()
         self.type = EventType.MARKET
         self.market_register_key = _market_register_key
@@ -122,23 +124,26 @@ class MarketEvent(EventAbstract):
         )
 
     def __repr__(self):
-        return 'MARKET:\n' \
-               '\tkey: {}\n' \
-               '\tstrategy: {}\n' \
-               '\tsymbol: {}'.format(
+        tmp = 'MARKET:\n' \
+              '\tkey: {}\n' \
+              '\tstrategy: {}\n' \
+              '\tsymbol: {}'
+        return tmp.format(
             self.market_register_key,
             self.strategy_name, self.symbol
         )
 
 
 class SignalEvent(EventAbstract):
-    def __init__(self,
-                 _symbol: str,
-                 _strategy_name: str,
-                 _signal_type: int,
-                 _tradingday: str,
-                 _datetime: datetime,
-                 _strength: typing.Any = None):
+    def __init__(
+            self,
+            _symbol: str,
+            _strategy_name: str,
+            _signal_type: int,
+            _tradingday: str,
+            _datetime: typing.Union[None, datetime],
+            _strength: typing.Any = None
+    ):
         super().__init__()
         self.type = EventType.SIGNAL
         self.symbol = _symbol
@@ -170,29 +175,32 @@ class SignalEvent(EventAbstract):
             _strength=_dict['strength'])
 
     def __repr__(self):
-        return 'SIGNAL:\n' \
-               '\tsymbol: {}\n' \
-               '\tstrategy: {}\n' \
-               '\tsignal: {}\n' \
-               '\ttradingday: {}\n' \
-               '\tdatetime: {}\n' \
-               '\tstrength: {}'.format(
+        tmp = 'SIGNAL:\n' \
+              '\tsymbol: {}\n' \
+              '\tstrategy: {}\n' \
+              '\tsignal: {}\n' \
+              '\ttradingday: {}\n' \
+              '\tdatetime: {}\n' \
+              '\tstrength: {}'
+        return tmp.format(
             self.symbol, self.strategy_name, SignalType.toStr(self.signal_type),
             self.tradingday, self.datetime, self.strength
         )
 
 
 class OrderEvent(EventAbstract):
-    def __init__(self,
-                 _index: int,
-                 _symbol: str,
-                 _tradingday: str,
-                 _datetime: datetime,
-                 _order_type: int = None,
-                 _action: int = None,
-                 _direction: int = None,
-                 _quantity: int = 1,
-                 _price: float = None):
+    def __init__(
+            self,
+            _index: int,
+            _symbol: str,
+            _tradingday: str,
+            _datetime: typing.Union[None, datetime],
+            _order_type: int = None,
+            _action: int = None,
+            _direction: int = None,
+            _quantity: int = 1,
+            _price: float = None
+    ):
         super().__init__()
         self.type = EventType.ORDER
         self.index = _index
@@ -233,16 +241,17 @@ class OrderEvent(EventAbstract):
             _price=_dict['price'], )
 
     def __repr__(self):
-        return 'ORDER:\n' \
-               '\tindex: {}\n' \
-               '\tsymbol: {}\n' \
-               '\ttradingday: {}\n' \
-               '\tdatetime: {}\n' \
-               '\ttype: {}\n' \
-               '\taction: {}\n' \
-               '\tdirection: {}\n' \
-               '\tquantity: {}\n' \
-               '\tprice: {}'.format(
+        tmp = 'ORDER:\n' \
+              '\tindex: {}\n' \
+              '\tsymbol: {}\n' \
+              '\ttradingday: {}\n' \
+              '\tdatetime: {}\n' \
+              '\ttype: {}\n' \
+              '\taction: {}\n' \
+              '\tdirection: {}\n' \
+              '\tquantity: {}\n' \
+              '\tprice: {}'
+        return tmp.format(
             self.index, self.symbol, self.tradingday, self.datetime,
             OrderType.toStr(self.order_type), ActionType.toStr(self.action),
             DirectionType.toStr(self.direction), self.quantity, self.price
@@ -250,16 +259,18 @@ class OrderEvent(EventAbstract):
 
 
 class FillEvent(EventAbstract):
-    def __init__(self,
-                 _index: int,
-                 _symbol: str,
-                 _tradingday: str,
-                 _datetime: datetime,
-                 _quantity: int,
-                 _action: int,
-                 _direction: int,
-                 _price: float,
-                 _commission: float):
+    def __init__(
+            self,
+            _index: int,
+            _symbol: str,
+            _tradingday: str,
+            _datetime: typing.Union[None, datetime],
+            _quantity: int,
+            _action: int,
+            _direction: int,
+            _price: float,
+            _commission: float
+    ):
         super().__init__()
         self.type = EventType.FILL
         self.index = _index
@@ -300,16 +311,17 @@ class FillEvent(EventAbstract):
             _commission=_dict['commission'], )
 
     def __repr__(self):
-        return 'FILL:\n' \
-               '\tindex: {}\n' \
-               '\tsymbol: {}\n' \
-               '\ttradingday: {}\n' \
-               '\tdatetime: {}\n' \
-               '\tquantity: {}\n' \
-               '\taction: {}\n' \
-               '\tdirection: {}\n' \
-               '\tprice: {}\n' \
-               '\tcommission: {}'.format(
+        tmp = 'FILL:\n' \
+              '\tindex: {}\n' \
+              '\tsymbol: {}\n' \
+              '\ttradingday: {}\n' \
+              '\tdatetime: {}\n' \
+              '\tquantity: {}\n' \
+              '\taction: {}\n' \
+              '\tdirection: {}\n' \
+              '\tprice: {}\n' \
+              '\tcommission: {}'
+        return tmp.format(
             self.index, self.symbol, self.tradingday, self.datetime,
             self.quantity, ActionType.toStr(self.action),
             DirectionType.toStr(self.direction), self.price,
@@ -341,9 +353,10 @@ class SettlementEvent(EventAbstract):
         )
 
     def __repr__(self):
-        return "SETTLEMENT:\n" \
-               "\ttradingday: {}\n" \
-               "\tnext_tradingday: {}".format(
+        tmp = "SETTLEMENT:\n" \
+              "\ttradingday: {}\n" \
+              "\tnext_tradingday: {}"
+        return tmp.format(
             self.tradingday,
             self.next_tradingday
         )

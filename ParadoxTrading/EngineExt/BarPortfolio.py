@@ -5,6 +5,7 @@ from ParadoxTrading.Engine import OrderType, OrderEvent, SignalType, \
 from ParadoxTrading.Engine import PortfolioAbstract
 from ParadoxTrading.Utils import DataStruct
 
+
 class BarPortfolio(PortfolioAbstract):
     """
     It is a simple portfolio management mod.

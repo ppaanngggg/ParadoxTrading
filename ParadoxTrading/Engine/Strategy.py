@@ -23,7 +23,7 @@ class StrategyAbstract:
         self.register_dict: typing.Dict[str, RegisterAbstract] = {}
 
         # store the portfolio for this strategy
-        self.portfolio: ParadoxTrading.Engine.Portfolio.PortfolioPerStrategy = None
+        self.portfolio: ParadoxTrading.Engine.Portfolio.PortfolioMgr = None
 
         # # run user define init
         # self.init()
@@ -39,7 +39,7 @@ class StrategyAbstract:
         self.engine = _engine
 
     def setPortfolio(self,
-                     _portfolio: 'ParadoxTrading.Engine.Portfolio.PortfolioPerStrategy'):
+                     _portfolio: 'ParadoxTrading.Engine.Portfolio.PortfolioMgr'):
         self.portfolio = _portfolio
 
     # def init(self):

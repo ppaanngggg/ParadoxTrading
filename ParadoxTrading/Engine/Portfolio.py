@@ -12,17 +12,101 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 
 
-class PortfolioPerStrategy:
-    def __init__(self):
+class PositionMgr:
+    def __init__(
+            self, _symbol: str,
+            _init_long: int = 0, _init_short: int = 0
+    ):
+        self.symbol: str = _symbol
+        self.long: int = _init_long
+        self.short: int = _init_short
+
+    def getPosition(self, _type: int) -> int:
+        if _type == SignalType.LONG:
+            return self.long
+        elif _type == SignalType.SHORT:
+            return self.short
+        else:
+            raise Exception('unknown type')
+
+    def incPosition(self, _type: int, _quantity: int):
+        if _type == SignalType.LONG:
+            self.long += _quantity
+        elif _type == SignalType.SHORT:
+            self.short += _quantity
+        else:
+            raise Exception('unknown type')
+
+    def decPosition(self, _type: int, _quantity: int):
+        assert self.getPosition(_type) >= _quantity
+        if _type == SignalType.LONG:
+            self.long -= _quantity
+        elif _type == SignalType.SHORT:
+            self.short -= _quantity
+        else:
+            raise Exception('unknown type')
+
+
+class FundMgr:
+    def __init__(self, _init_fund: float):
+        self.fund: float = _init_fund
+
+    def dealFill(self, _fill_event: FillEvent):
+        self.fund -= _fill_event.commission
+        if _fill_event.direction == DirectionType.BUY:
+            self.fund -= _fill_event.price * _fill_event.quantity
+        elif _fill_event.direction == DirectionType.SELL:
+            self.fund += _fill_event.price * _fill_event.quantity
+        else:
+            raise Exception('unknown direction')
+
+    @staticmethod
+    def getUnfilledFund(
+            _position_mgr: typing.Dict[str, PositionMgr],
+            _symbol_price_dict: typing.Dict[str, float],
+    ) -> float:
+        unfilled_fund = 0.0
+        for p in _position_mgr.values():
+            if p.long:
+                unfilled_fund += _symbol_price_dict[p.symbol] * p.long
+            if p.short:
+                unfilled_fund -= _symbol_price_dict[p.symbol] * p.short
+        return unfilled_fund
+
+    def getFund(self) -> float:
+        return self.fund
+
+
+class PortfolioMgr:
+    def __init__(self, _init_fund: float = 0.0):
         # records for signal, order and fill
         self.signal_record: typing.List[typing.Dict] = []
         self.order_record: typing.List[typing.Dict] = []
         self.fill_record: typing.List[typing.Dict] = []
         self.settlement_record: typing.List[typing.Dict] = []
 
-        # cur order and position state
-        self.position: typing.Dict[str, typing.Dict[int, int]] = {}
+        # map order index to unfilled orders
         self.unfilled_order: typing.Dict[int, OrderEvent] = {}
+
+        # position mgr and fund mgr
+        self.position_mgr: typing.Dict[str, PositionMgr] = {}
+        self.fund_mgr: FundMgr = FundMgr(_init_fund)
+
+    def getSymbolList(self) -> typing.List[str]:
+        return [
+            p.symbol for p in self.position_mgr.values()
+            if p.long or p.short
+        ]
+
+    def getFund(self) -> float:
+        return self.fund_mgr.getFund()
+
+    def getUnfilledFund(
+            self, _symbol_price_dict: typing.Dict[str, float]
+    ) -> float:
+        return self.fund_mgr.getUnfilledFund(
+            self.position_mgr, _symbol_price_dict
+        )
 
     def incPosition(self, _symbol: str, _type: int, _quantity: int = 1):
         """
@@ -37,14 +121,11 @@ class PortfolioPerStrategy:
         assert _quantity > 0
         try:
             # try to add directly
-            self.position[_symbol][_type] += _quantity
+            self.position_mgr[_symbol].incPosition(_type, _quantity)
         except KeyError:
             # create if failed
-            self.position[_symbol] = {
-                SignalType.LONG: 0,
-                SignalType.SHORT: 0,
-            }
-            self.position[_symbol][_type] = _quantity
+            self.position_mgr[_symbol] = PositionMgr(_symbol)
+            self.position_mgr[_symbol].incPosition(_type, _quantity)
 
     def decPosition(self, _symbol: str, _type: int, _quantity: int = 1):
         """
@@ -57,10 +138,8 @@ class PortfolioPerStrategy:
         """
         assert _type == SignalType.LONG or _type == SignalType.SHORT
         assert _quantity > 0
-        assert _symbol in self.position.keys()
-        assert self.position[_symbol][_type] >= _quantity
-        self.position[_symbol][_type] -= _quantity
-        assert self.position[_symbol][_type] >= 0
+        assert _symbol in self.position_mgr.keys()
+        self.position_mgr[_symbol].decPosition(_type, _quantity)
 
     def getPosition(self, _symbol: str, _type: int) -> int:
         """
@@ -70,9 +149,8 @@ class PortfolioPerStrategy:
         :param _type: long or short
         :return: number of position
         """
-        assert _type == SignalType.LONG or _type == SignalType.SHORT
-        if _symbol in self.position.keys():
-            return self.position[_symbol][_type]
+        if _symbol in self.position_mgr.keys():
+            return self.position_mgr[_symbol].getPosition(_type)
         return 0
 
     def getLongPosition(self, _symbol: str) -> int:
@@ -93,10 +171,12 @@ class PortfolioPerStrategy:
         """
         return self.getPosition(_symbol, SignalType.SHORT)
 
-    def getUnfilledOrder(self, _symbol: str, _action: int,
-                         _direction: int) -> int:
+    def getUnfilledOrder(
+            self, _symbol: str,
+            _action: int, _direction: int
+    ) -> int:
         """
-        get number of unfilled orders for _insturment
+        get number of unfilled orders for _instrument
 
         :param _symbol: which symbol
         :param _action: open or close
@@ -119,8 +199,9 @@ class PortfolioPerStrategy:
         :param _symbol:
         :return:
         """
-        return self.getUnfilledOrder(_symbol, ActionType.OPEN,
-                                     DirectionType.BUY)
+        return self.getUnfilledOrder(
+            _symbol, ActionType.OPEN, DirectionType.BUY
+        )
 
     def getOpenSellUnfilledOrder(self, _symbol: str) -> int:
         """
@@ -129,8 +210,9 @@ class PortfolioPerStrategy:
         :param _symbol:
         :return:
         """
-        return self.getUnfilledOrder(_symbol, ActionType.OPEN,
-                                     DirectionType.SELL)
+        return self.getUnfilledOrder(
+            _symbol, ActionType.OPEN, DirectionType.SELL
+        )
 
     def getCloseBuyUnfilledOrder(self, _symbol: str) -> int:
         """
@@ -139,8 +221,9 @@ class PortfolioPerStrategy:
         :param _symbol:
         :return:
         """
-        return self.getUnfilledOrder(_symbol, ActionType.CLOSE,
-                                     DirectionType.BUY)
+        return self.getUnfilledOrder(
+            _symbol, ActionType.CLOSE, DirectionType.BUY
+        )
 
     def getCloseSellUnfilledOrder(self, _symbol: str) -> int:
         """
@@ -149,8 +232,9 @@ class PortfolioPerStrategy:
         :param _symbol:
         :return:
         """
-        return self.getUnfilledOrder(_symbol, ActionType.CLOSE,
-                                     DirectionType.SELL)
+        return self.getUnfilledOrder(
+            _symbol, ActionType.CLOSE, DirectionType.SELL
+        )
 
     def dealSignalEvent(self, _signal_event: SignalEvent):
         """
@@ -180,8 +264,11 @@ class PortfolioPerStrategy:
         :return:
         """
         assert _fill_event.index in self.unfilled_order.keys()
+        # store record
         self.fill_record.append(_fill_event.toDict())
+        # delete unfilled order record
         del self.unfilled_order[_fill_event.index]
+        # update position
         if _fill_event.action == ActionType.OPEN:
             if _fill_event.direction == DirectionType.BUY:
                 self.incPosition(
@@ -214,21 +301,20 @@ class PortfolioPerStrategy:
                 raise Exception('unknown direction')
         else:
             raise Exception('unknown action')
+        # update fund
+        self.fund_mgr.dealFill(_fill_event)
 
     def dealSettlement(
             self, _tradingday, _next_tradingday,
             _symbol_price_dict: typing.Dict[str, float]
     ):
-        unfilled_fund = 0.0
-        for k, v in self.position.items():
-            if v[SignalType.LONG]:
-                unfilled_fund += _symbol_price_dict[k] * v[SignalType.LONG]
-            if v[SignalType.SHORT]:
-                unfilled_fund -= _symbol_price_dict[k] * v[SignalType.SHORT]
         self.settlement_record.append({
             'tradingday': _tradingday,
+            'next_tradingday': _next_tradingday,
             'type': EventType.SETTLEMENT,
-            'unfilled_fund': unfilled_fund,
+            'unfilled_fund': self.getUnfilledFund(
+                _symbol_price_dict
+            ),
         })
 
     def storeRecords(self, _name: str, _coll: Collection):
@@ -249,10 +335,8 @@ class PortfolioPerStrategy:
         ret = '@@@ POSITION @@@\n'
 
         table = []
-        for k, v in self.position.items():
-            table.append([
-                k, v[SignalType.LONG], v[SignalType.SHORT]
-            ])
+        for k, v in self.position_mgr.items():
+            table.append([k, v.long, v.short])
         ret += tabulate.tabulate(table, ['symbol', 'LONG', 'SHORT'])
 
         ret += '\n@@@ UNFILLED ORDER @@@\n'
@@ -273,12 +357,13 @@ class PortfolioPerStrategy:
         ret += ' - Signal: {}\n'.format(len(self.signal_record))
         ret += ' - Order: {}\n'.format(len(self.order_record))
         ret += ' - Fill: {}\n'.format(len(self.fill_record))
+        ret += ' - Settlement: {}\n'.format(len(self.settlement_record))
 
         return ret
 
 
 class PortfolioAbstract:
-    def __init__(self):
+    def __init__(self, _init_fund: float = 0.0):
         self.engine: ParadoxTrading.Engine.EngineAbstract = None
 
         # init order index, and create a map from order to strategy
@@ -288,11 +373,11 @@ class PortfolioAbstract:
         # map from strategy key to its portfolio
         # !!! maybe this is the virtual portfolio
         self.strategy_portfolio_dict: typing.Dict[
-            str, PortfolioPerStrategy] = {}
+            str, PortfolioMgr] = {}
         # the global portfolio,
         # !!! usually this is the true portfolio,
         # !!! however how to manage it is up to implement
-        self.global_portfolio: PortfolioPerStrategy = PortfolioPerStrategy()
+        self.global_portfolio: PortfolioMgr = PortfolioMgr(_init_fund)
 
     def addStrategy(self, _strategy: StrategyAbstract):
         """
@@ -305,13 +390,13 @@ class PortfolioAbstract:
         # check unique
         assert _strategy.name not in self.strategy_portfolio_dict.keys()
         # create a portfolio for this strategy
-        tmp = PortfolioPerStrategy()
+        tmp = PortfolioMgr()
         _strategy.setPortfolio(tmp)
         self.strategy_portfolio_dict[_strategy.name] = tmp
 
     def getPortfolioByStrategy(
             self, _strategy_name: str
-    ) -> PortfolioPerStrategy:
+    ) -> PortfolioMgr:
         """
         get the individual portfolio manager of strategy
 
@@ -322,7 +407,7 @@ class PortfolioAbstract:
 
     def getPortfolioByIndex(
             self, _index: int
-    ) -> PortfolioPerStrategy:
+    ) -> PortfolioMgr:
         """
         get the portfolio by order's index
 
@@ -385,6 +470,8 @@ class PortfolioAbstract:
     def storeRecords(
             self,
             _backtest_key: str,
+            _store_global: bool = True,
+            _global_key: str = 'global',
             _mongo_host: str = 'localhost',
             _mongo_database: str = 'Backtest',
     ):
@@ -393,6 +480,8 @@ class PortfolioAbstract:
         store all strategies' records into mongodb
 
         :param _backtest_key:
+        :param _store_global:
+        :param _global_key:
         :param _mongo_host:
         :param _mongo_database:
         :return:
@@ -412,6 +501,9 @@ class PortfolioAbstract:
         ])
         for k, v in self.strategy_portfolio_dict.items():
             v.storeRecords(k, coll)
+        if _store_global:
+            assert _global_key not in self.strategy_portfolio_dict.keys()
+            self.global_portfolio.storeRecords(_global_key, coll)
 
         client.close()
 

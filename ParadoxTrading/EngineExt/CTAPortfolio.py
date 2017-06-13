@@ -2,6 +2,7 @@ import typing
 
 from ParadoxTrading.Engine import FillEvent, SignalEvent, OrderEvent, OrderType, ActionType, DirectionType
 from ParadoxTrading.Engine import PortfolioAbstract
+from ParadoxTrading.Fetch.FetchAbstract import FetchAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -134,10 +135,11 @@ class CTAPortfolio(PortfolioAbstract):
 
     def __init__(
             self,
-            _fetcher,
+            _fetcher: FetchAbstract,
+            _init_fund: float = 100_0000,
             _settlement_price_index: str = 'closeprice',
     ):
-        super().__init__()
+        super().__init__(_init_fund)
 
         self.fetcher = _fetcher
         self.settlement_price_index = _settlement_price_index
@@ -157,6 +159,8 @@ class CTAPortfolio(PortfolioAbstract):
         :param _event: 
         :return: 
         """
+
+        # deal the position
         try:
             strategy_product = self.strategy_table[_event.strategy_name]
         except KeyError:
@@ -164,24 +168,30 @@ class CTAPortfolio(PortfolioAbstract):
                 _event.strategy_name
             )
             strategy_product = self.strategy_table[_event.strategy_name]
-
         strategy_product.dealSignal(_event)
+
+        # add signal to portfolio
+        self.getPortfolioByStrategy(
+            _event.strategy_name
+        ).dealSignalEvent(_event)
+        self.global_portfolio.dealSignalEvent(_event)
 
     def dealFill(self, _event: FillEvent):
         """
         deal fill event
-        1. store position change into position mgr
-        2. store strategy portfolio mgr
-        
+
         :param _event: 
         :return: 
         """
+        # 1. store position change into position mgr
         order_strategy_product: OrderStrategyProduct = self.order_table[_event.index]
         strategy_product = self.strategy_table[order_strategy_product.strategy_name]
         product_position = strategy_product.product_table[order_strategy_product.product]
         product_position.dealFill(_event)
 
+        # 2. store strategy portfolio mgr
         self.getPortfolioByIndex(_event.index).dealFillEvent(_event)
+        self.global_portfolio.dealFillEvent(_event)
 
     @staticmethod
     def _update_cur_position(_p: ProductPosition):
@@ -210,13 +220,18 @@ class CTAPortfolio(PortfolioAbstract):
             _p.cur_quantity = 0
 
     def allocQuantity(
-            self, _strategy2product: StrategyProduct,
+            self, _fund: float, _tradingday: str,
+            _strategy2product: StrategyProduct,
             _product2position: ProductPosition
     ) -> int:
-        return int(10 * _product2position.strength)
+        return int(_fund / self.fetcher.fetchData(
+            _tradingday, _product2position.next_instrument
+        ).toDict()[
+            self.settlement_price_index
+        ] * _product2position.strength)
 
     def _update_next_position(
-            self, _tradingday: str,
+            self, _tradingday: str, _fund: float,
             _strategy2product: StrategyProduct,
             _product2position: ProductPosition
     ):
@@ -227,11 +242,17 @@ class CTAPortfolio(PortfolioAbstract):
         :return:
         """
         _product2position.next_instrument = self.fetcher.fetchSymbol(
-            _tradingday, _product2position.product
+            _tradingday, _product=_product2position.product
         )
-        # !!! here is the  !!! #
+        # !!! here is the portfolio !!! #
         _product2position.next_quantity = self.allocQuantity(
-            _strategy2product, _product2position
+            _fund, _tradingday, _strategy2product, _product2position
+        )
+        print(
+            _tradingday,
+            _strategy2product.strategy_name,
+            _product2position.next_instrument,
+            _product2position.next_quantity,
         )
 
     def _create_order(self, _inst, _action, _direction, _quantity) -> OrderEvent:
@@ -351,28 +372,11 @@ class CTAPortfolio(PortfolioAbstract):
         # check it's the end of prev tradingday
         assert _tradingday
 
-        # iter each strategy
+        # iter each strategy's each product
         for s in self.strategy_table.values():
-            # iter each product
             for p in s:
                 # update position according to fill event
                 self._update_cur_position(p)
-                # next dominant instrument
-                self._update_next_position(
-                    _tradingday, s, p
-                )
-                # send orders according to instrument and quantity chg
-                orders = self._gen_orders(p)
-                for o in orders:
-                    self.addEvent(o, s.strategy_name)
-                    self.order_table[o.index] = OrderStrategyProduct(
-                        o.index, s.strategy_name, p.product
-                    )
-                    self.getPortfolioByStrategy(
-                        s.strategy_name
-                    ).dealOrderEvent(o)
-                # reset next status
-                self._reset_position_status(p)
 
         # get price dict for each portfolio
         symbol_price_dict = {}
@@ -391,6 +395,37 @@ class CTAPortfolio(PortfolioAbstract):
                 _tradingday, _next_tradingday,
                 symbol_price_dict
             )
+        self.global_portfolio.dealSettlement(
+            _tradingday, _next_tradingday,
+            symbol_price_dict
+        )
+
+        # comp tmp fund
+        tmp_fund = self.global_portfolio.getFund(
+        ) + self.global_portfolio.getUnfilledFund(
+            symbol_price_dict
+        )
+
+        # send orders
+        for s in self.strategy_table.values():
+            for p in s:
+                # next dominant instrument
+                self._update_next_position(
+                    _tradingday, tmp_fund, s, p
+                )
+                # send orders according to instrument and quantity chg
+                orders = self._gen_orders(p)
+                for o in orders:
+                    self.addEvent(o, s.strategy_name)
+                    self.order_table[o.index] = OrderStrategyProduct(
+                        o.index, s.strategy_name, p.product
+                    )
+                    self.getPortfolioByStrategy(
+                        s.strategy_name
+                    ).dealOrderEvent(o)
+                    self.global_portfolio.dealOrderEvent(o)
+                # reset next status
+                self._reset_position_status(p)
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         pass
