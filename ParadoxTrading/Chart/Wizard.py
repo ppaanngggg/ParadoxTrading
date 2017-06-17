@@ -1,10 +1,9 @@
 import sys
 import typing
 
-from PyQt5.QtWidgets import QApplication, QVBoxLayout
-
 import ParadoxTrading.Chart.View
 import ParadoxTrading.Chart.Window
+from PyQt5.QtWidgets import QApplication, QVBoxLayout
 
 
 class Wizard:
@@ -29,18 +28,20 @@ class Wizard:
     def addView(
             self, _name: str, _view_stretch: int = 1,
             _adaptive=False, _chart_stretch: int = 15
-    ):
+    ) -> 'ParadoxTrading.Chart.View.View':
         assert _name not in self.view_dict.keys()
         assert _view_stretch > 0
         assert _chart_stretch > 0
         self.view_dict[_name] = ParadoxTrading.Chart.View.View(
-            _name, self, _adaptive, _view_stretch, _chart_stretch, len(self.view_dict)
+            _name, self, _adaptive,
+            _view_stretch, _chart_stretch,
+            len(self.view_dict)
         )
         return self.view_dict[_name]
 
     def _calcSetX(self) -> (dict, list):
         """
-        
+
         :return: x2idx and idx2x, because idx is int, then idx2x is list 
         """
         # join all x
