@@ -42,14 +42,6 @@ class StrategyAbstract:
                      _portfolio: 'ParadoxTrading.Engine.Portfolio.PortfolioMgr'):
         self.portfolio = _portfolio
 
-    # def init(self):
-    #     """
-    #     user defined init, it will be called when create object
-    #
-    #     :return:
-    #     """
-    #     raise NotImplementedError('init not implemented!')
-
     def deal(self, _market_event: MarketEvent):
         """
         user defined deal, it will be called when there is

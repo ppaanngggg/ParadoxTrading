@@ -10,6 +10,7 @@ class BarIndicatorAbstract(IndicatorAbstract):
             self, _data_struct: DataStruct,
             _idx: typing.Union[str, datetime] = None
     ) -> "BarIndicatorAbstract":
+        assert _idx is not None
         self._addOne(_data_struct, _idx)
         return self
 

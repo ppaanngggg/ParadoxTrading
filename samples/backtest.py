@@ -1,15 +1,19 @@
 import logging
 
+from ParadoxTrading.Chart import Wizard
 from ParadoxTrading.Engine import MarketEvent, SignalType, StrategyAbstract, SettlementEvent
 from ParadoxTrading.EngineExt import (BacktestEngine, BacktestMarketSupply,
                                       BarBacktestExecution, BarPortfolio)
 from ParadoxTrading.Fetch import FetchGuoJinMin, RegisterGuoJinMin
 from ParadoxTrading.Indicator import HighBar, LowBar
+from ParadoxTrading.Performance import dailyReturn
 from ParadoxTrading.Utils import SplitIntoMinute
 
 
 class MyStrategy(StrategyAbstract):
-    def init(self):
+    def __init__(self, _name: str):
+        super().__init__(_name)
+
         self.addMarketRegister(RegisterGuoJinMin(
             _product='rb'
         ))
@@ -54,27 +58,35 @@ class MyStrategy(StrategyAbstract):
         pass
 
 
-logging.basicConfig(level=logging.INFO)
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
 
-strategy = MyStrategy('range_break')
+    strategy = MyStrategy('range_break')
 
-fetcher = FetchGuoJinMin()
-fetcher.psql_host = '192.168.4.102'
-fetcher.psql_user = 'ubuntu'
-fetcher.mongo_host = '192.168.4.102'
+    fetcher = FetchGuoJinMin()
+    fetcher.psql_host = '192.168.4.102'
+    fetcher.psql_user = 'ubuntu'
+    fetcher.mongo_host = '192.168.4.102'
 
-market_supply = BacktestMarketSupply(
-    '20160101', '20160131', fetcher)
-execution = BarBacktestExecution(_commission_rate=0.001)
-portfolio = BarPortfolio()
+    market_supply = BacktestMarketSupply(
+        '20160101', '20160131', fetcher)
+    execution = BarBacktestExecution(_commission_rate=0.001)
+    portfolio = BarPortfolio()
 
-engine = BacktestEngine(
-    market_supply,
-    execution,
-    portfolio,
-    strategy,
-)
+    engine = BacktestEngine(
+        market_supply,
+        execution,
+        portfolio,
+        strategy,
+    )
 
-engine.run()
+    engine.run()
 
-portfolio.storeRecords('range_break')
+    portfolio.storeRecords('range_break')
+
+    daily_ret = dailyReturn('range_break', 'range_break')
+
+    wizard = Wizard()
+    fund_view = wizard.addView('fund')
+    fund_view.addLine('money', daily_ret.index(), daily_ret['fund'])
+    wizard.show()

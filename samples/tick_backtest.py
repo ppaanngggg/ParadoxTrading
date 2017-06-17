@@ -1,15 +1,19 @@
 import logging
 
+from ParadoxTrading.Chart import Wizard
 from ParadoxTrading.Engine import MarketEvent, SignalType, StrategyAbstract, SettlementEvent
 from ParadoxTrading.EngineExt import (BacktestEngine, BacktestMarketSupply,
                                       TickBacktestExecution, TickPortfolio)
 from ParadoxTrading.Fetch import FetchGuoJinTick, RegisterGuoJinTick
 from ParadoxTrading.Indicator import HighBar, LowBar
+from ParadoxTrading.Performance import dailyReturn
 from ParadoxTrading.Utils import SplitIntoMinute
 
 
 class MyStrategy(StrategyAbstract):
-    def init(self):
+    def __init__(self, _name: str):
+        super().__init__(_name)
+
         self.addMarketRegister(RegisterGuoJinTick(
             _product='rb'
         ))
@@ -24,12 +28,12 @@ class MyStrategy(StrategyAbstract):
         if self.split_rb.addOne(_market_event.data) and len(self.split_rb) > 1:
             # create a new 5 min bar
             self.highest_rb.addOne(
+                self.split_rb.getBarList()[-2],
                 self.split_rb.getBarEndTimeList()[-2],
-                self.split_rb.getBarList()[-2]
             )
             self.lowest_rb.addOne(
+                self.split_rb.getBarList()[-2],
                 self.split_rb.getBarEndTimeList()[-2],
-                self.split_rb.getBarList()[-2]
             )
         if len(self.highest_rb.getAllData()):
             lastprice = _market_event.data['lastprice'][0]
@@ -49,27 +53,38 @@ class MyStrategy(StrategyAbstract):
                     lastprice, last_highprice, last_lowprice
                 ))
 
+    def settlement(self, _settlement_event: SettlementEvent):
+        pass
 
-logging.basicConfig(level=logging.INFO)
 
-strategy = MyStrategy('range_break')
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
 
-fetcher = FetchGuoJinTick()
-# fetcher.psql_host = '192.168.4.102'
-# fetcher.psql_user = 'ubuntu'
-# fetcher.mongo_host = '192.168.4.102'
+    fetcher = FetchGuoJinTick()
+    fetcher.psql_host = '192.168.4.102'
+    fetcher.psql_user = 'ubuntu'
+    fetcher.mongo_host = '192.168.4.102'
 
-market_supply = BacktestMarketSupply(
-    '20160104', '20160105', fetcher)
-execution = TickBacktestExecution(_commission_rate=0.001)
-portfolio = TickPortfolio()
+    market_supply = BacktestMarketSupply(
+        '20160104', '20160131', fetcher)
+    execution = TickBacktestExecution(_commission_rate=0.001)
+    portfolio = TickPortfolio()
+    strategy = MyStrategy('range_break')
 
-engine = BacktestEngine()
-engine.addMarketSupply(market_supply)
-engine.addExecution(execution)
-engine.addPortfolio(portfolio)
-engine.addStrategy(strategy)
+    engine = BacktestEngine(
+        _market_supply=market_supply,
+        _execution=execution,
+        _portfolio=portfolio,
+        _strategy=strategy,
+    )
 
-engine.run()
+    engine.run()
 
-portfolio.storeRecords('range_break_tick')
+    portfolio.storeRecords('range_break_tick')
+
+    daily_ret = dailyReturn('range_break_tick', 'range_break')
+
+    wizard = Wizard()
+    fund_view = wizard.addView('fund')
+    fund_view.addLine('money', daily_ret.index(), daily_ret['fund'])
+    wizard.show()

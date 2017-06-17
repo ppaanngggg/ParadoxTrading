@@ -1,4 +1,4 @@
-from ParadoxTrading.Fetch import FetchGuoJinTick, FetchSHFEDayIndex
+from ParadoxTrading.Fetch import FetchGuoJinTick, FetchExchangeMarketIndex
 
 fetcher = FetchGuoJinTick()
 fetcher.psql_host = '192.168.4.102'
@@ -27,7 +27,7 @@ print(fetcher.fetchTradeInstrument('ag', '20160506'))
 print(fetcher.fetchData('20160506', fetcher.fetchSymbol('20160506', 'rb')))
 
 # this is a product index fetcher
-fetcher = FetchSHFEDayIndex()
+fetcher = FetchExchangeMarketIndex()
 fetcher.psql_host = '192.168.4.103'
 fetcher.psql_user = 'ubuntu'
 fetcher.mongo_host = '192.168.4.103'
