@@ -4,7 +4,8 @@ from ParadoxTrading.Utils import DataStruct
 
 class Kalman(IndicatorAbstract):
     def __init__(
-            self, _use_key: str, _R: float = 0.1 ** 2, _Q: float = 1e-5,
+            self, _use_key: str='closeprice',
+            _R: float = 0.1 ** 2, _Q: float = 1e-5,
             _idx_key: str = 'time', _ret_key: str = 'kalman'
     ):
         super().__init__()

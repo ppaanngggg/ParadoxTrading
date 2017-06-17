@@ -136,7 +136,7 @@ class CTAPortfolio(PortfolioAbstract):
     def __init__(
             self,
             _fetcher: FetchAbstract,
-            _init_fund: float = 100_0000,
+            _init_fund: float = 0.0,
             _settlement_price_index: str = 'closeprice',
     ):
         super().__init__(_init_fund)
@@ -224,11 +224,12 @@ class CTAPortfolio(PortfolioAbstract):
             _strategy2product: StrategyProduct,
             _product2position: ProductPosition
     ) -> int:
-        return int(_fund / self.fetcher.fetchData(
-            _tradingday, _product2position.next_instrument
-        ).toDict()[
-            self.settlement_price_index
-        ] * _product2position.strength)
+        if _product2position.strength > 0:
+            return 1
+        elif _product2position.strength < 0:
+            return -1
+        else:
+            return 0
 
     def _update_next_position(
             self, _tradingday: str, _fund: float,
@@ -247,12 +248,6 @@ class CTAPortfolio(PortfolioAbstract):
         # !!! here is the portfolio !!! #
         _product2position.next_quantity = self.allocQuantity(
             _fund, _tradingday, _strategy2product, _product2position
-        )
-        print(
-            _tradingday,
-            _strategy2product.strategy_name,
-            _product2position.next_instrument,
-            _product2position.next_quantity,
         )
 
     def _create_order(self, _inst, _action, _direction, _quantity) -> OrderEvent:

@@ -7,13 +7,15 @@ class MoveStopLoss(StopIndicatorAbstract):
     def __init__(
             self,
             _data: DataStruct,
-            _stop_type: SignalType.LONG,
+            _stop_type: int,
             _stop_rate: float = 0.05,
             _use_key: str = 'closeprice',
             _idx_key: str = 'time',
             _ret_key: str = 'stopprice',
     ):
         super().__init__()
+
+        assert len(_data) == 1
 
         self.stop_type = _stop_type
         self.stop_rate = _stop_rate

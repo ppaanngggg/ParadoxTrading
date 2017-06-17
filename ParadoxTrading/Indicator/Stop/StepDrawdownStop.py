@@ -9,7 +9,7 @@ class StepDrawdownStop(StopIndicatorAbstract):
     def __init__(
             self,
             _data: DataStruct,
-            _stop_type: SignalType.LONG,
+            _stop_type: int,
             _init_stop: float = 0.05,
             _profit_thresh: typing.Tuple[float] = (
                     0.1, 0.2, 0.3, 0.5
@@ -22,6 +22,8 @@ class StepDrawdownStop(StopIndicatorAbstract):
             _ret_key: str = 'stopprice',
     ):
         super().__init__()
+
+        assert len(_data) == 1
 
         self.stop_type = _stop_type
         self.status = 0

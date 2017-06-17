@@ -1,3 +1,5 @@
+import typing
+
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -26,3 +28,9 @@ class StopIndicatorAbstract(IndicatorAbstract):
 
     def _isStop(self, _data_struct: DataStruct) -> bool:
         raise NotImplementedError('You should implement isStop!')
+
+    def addMany(
+            self,
+            _data_list: typing.Union[DataStruct, typing.List[DataStruct]] = None,
+    ):
+        raise Exception('loss indicator has no addMany()')
