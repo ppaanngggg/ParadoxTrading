@@ -29,12 +29,13 @@ class Volatility(IndicatorAbstract):
         index_value = _data_struct.index()[0]
         price_value = _data_struct[self.use_key][0]
         if self.last_price is not None:
-            chg_rate = price_value / self.last_price - 1.0
+            # chg_rate = price_value / self.last_price - 1.0
+            chg_rate = np.log(price_value / self.last_price)
         else:
             chg_rate = 0.0
         self.last_price = price_value
         self.buf.append(chg_rate)
-        tmp_value = np.std(self.buf)
+        tmp_value = np.std(self.buf, ddof=1)
         self.data.addRow(
             [index_value, tmp_value],
             [self.idx_key, self.ret_key]
