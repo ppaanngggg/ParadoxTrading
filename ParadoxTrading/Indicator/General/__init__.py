@@ -7,3 +7,4 @@ from .MA import MA
 from .MACD import MACD
 from .STD import STD
 from .Volatility import Volatility
+from .ReturnRate import ReturnRate
