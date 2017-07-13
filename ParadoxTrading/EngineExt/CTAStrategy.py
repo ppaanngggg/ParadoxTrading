@@ -3,10 +3,8 @@ import typing
 from ParadoxTrading.Engine import StrategyAbstract, SettlementEvent, MarketEvent, SignalType
 
 
-class CTAStatusType:
-    EMPTY = 0
-    LONG = 1
-    SHORT = 2
+class CTAStatusType(SignalType):
+    pass
 
 
 class CTAStatusMgr:
@@ -38,21 +36,19 @@ class CTAStrategy(StrategyAbstract):
 
         self.status_mgr = CTAStatusMgr()
 
-    def addEvent(self,
-                 _symbol: str,
-                 _signal_type: int,
-                 _strength: typing.Any = None):
+    def addEvent(
+            self, _symbol: str,
+            _strength: typing.Any = None
+    ):
         if _strength > 0:
-            assert _signal_type == SignalType.LONG
-        if _strength < 0:
-            assert _signal_type == SignalType.SHORT
-
-        super().addEvent(_symbol, _signal_type, _strength)
+            signal_type = SignalType.LONG
+        elif _strength < 0:
+            signal_type = SignalType.SHORT
+        else:
+            signal_type = SignalType.EMPTY
+        super().addEvent(_symbol, signal_type, _strength)
 
         self.status_mgr.setStatus(_strength)
-
-    def do_deal(self, _market_event: MarketEvent):
-        raise NotImplementedError('deal not implemented')
 
     def deal(self, _market_event: MarketEvent):
         # save the last status
@@ -61,9 +57,6 @@ class CTAStrategy(StrategyAbstract):
         self.do_deal(_market_event)
         # deal with status change or not change
         self.dealStatus(_market_event)
-
-    def settlement(self, _settlement_event: SettlementEvent):
-        raise NotImplementedError('settlement not implemented')
 
     def getStatus(self):
         return self.status_mgr.getStatus()
@@ -76,6 +69,12 @@ class CTAStrategy(StrategyAbstract):
             self.dealStatusNotChanged(_market_event)
         else:
             self.dealStatusChanged(_market_event)
+
+    def do_deal(self, _market_event: MarketEvent):
+        raise NotImplementedError('deal not implemented')
+
+    def settlement(self, _settlement_event: SettlementEvent):
+        raise NotImplementedError('settlement not implemented')
 
     def dealStatusChanged(self, _market_event: MarketEvent):
         raise NotImplementedError('dealStatusChanged not implemented')

@@ -30,6 +30,7 @@ class EventType:
 class SignalType:
     LONG = 1
     SHORT = 2
+    EMPTY = 3
 
     @staticmethod
     def toStr(_value: int) -> str:
@@ -37,6 +38,8 @@ class SignalType:
             return 'LONG'
         elif _value == SignalType.SHORT:
             return 'SHORT'
+        elif _value == SignalType.EMPTY:
+            return 'EMPTY'
         else:
             raise Exception('unknown signal type')
 

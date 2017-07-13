@@ -89,10 +89,17 @@ class PortfolioMgr:
         self.unfilled_order: typing.Dict[int, OrderEvent] = {}
 
         # position mgr and fund mgr
+        # position_mgr will map symbols to a PositionMgr
+        # fund_mgr manager total fund
         self.position_mgr: typing.Dict[str, PositionMgr] = {}
         self.fund_mgr: FundMgr = FundMgr(_init_fund)
 
     def getSymbolList(self) -> typing.List[str]:
+        """
+
+
+        :return:
+        """
         return [
             p.symbol for p in self.position_mgr.values()
             if p.long or p.short

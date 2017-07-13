@@ -224,12 +224,16 @@ class CTAPortfolio(PortfolioAbstract):
             _strategy2product: StrategyProduct,
             _product2position: ProductPosition
     ) -> int:
-        if _product2position.strength > 0:
-            return 1
-        elif _product2position.strength < 0:
-            return -1
-        else:
-            return 0
+        """
+        the core part to alloc quantity
+
+        :param _fund: total fund of portfolio
+        :param _tradingday:
+        :param _strategy2product:
+        :param _product2position:
+        :return:
+        """
+        return int(_product2position.strength)
 
     def _update_next_position(
             self, _tradingday: str, _fund: float,
