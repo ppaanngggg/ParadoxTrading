@@ -83,7 +83,7 @@ class DataStruct:
         tmp_rows, tmp_keys = self.toRows()
         return tabulate.tabulate(tmp_rows, headers=tmp_keys)
 
-    def clone(self, _columns: typing.Sequence[str] = None) -> 'DataStruct':
+    def clone(self, _columns: typing.List[str] = None) -> 'DataStruct':
         """
         copy all the data to a new datasturct,
         !!! WARN !!!: if the value in data is a reference to
