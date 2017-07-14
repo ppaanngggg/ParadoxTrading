@@ -98,14 +98,14 @@ class MarketEvent(EventAbstract):
     def __init__(
             self,
             _market_register_key: str,
-            _strategy_name: str,
+            _strategy: str,
             _symbol: str,
             _data: typing.Union[None, DataStruct] = None
     ):
         super().__init__()
         self.type = EventType.MARKET
         self.market_register_key = _market_register_key
-        self.strategy_name = _strategy_name
+        self.strategy = _strategy
         self.symbol = _symbol
         self.data = _data
 
@@ -113,7 +113,7 @@ class MarketEvent(EventAbstract):
         return {
             'type': self.type,
             'market_register_key': self.market_register_key,
-            'strategy_name': self.strategy_name,
+            'strategy': self.strategy,
             'symbol': self.symbol,
         }
 
@@ -121,7 +121,7 @@ class MarketEvent(EventAbstract):
     def fromDict(_dict: dict) -> 'MarketEvent':
         return MarketEvent(
             _market_register_key=_dict['market_register_key'],
-            _strategy_name=_dict['strategy_name'],
+            _strategy=_dict['strategy'],
             _symbol=_dict['symbol'],
             _data=None
         )
@@ -133,7 +133,7 @@ class MarketEvent(EventAbstract):
               '\tsymbol: {}'
         return tmp.format(
             self.market_register_key,
-            self.strategy_name, self.symbol
+            self.strategy, self.symbol
         )
 
 
@@ -141,7 +141,7 @@ class SignalEvent(EventAbstract):
     def __init__(
             self,
             _symbol: str,
-            _strategy_name: str,
+            _strategy: str,
             _signal_type: int,
             _tradingday: str,
             _datetime: typing.Union[None, datetime],
@@ -150,7 +150,7 @@ class SignalEvent(EventAbstract):
         super().__init__()
         self.type = EventType.SIGNAL
         self.symbol = _symbol
-        self.strategy_name = _strategy_name
+        self.strategy = _strategy
         self.signal_type = _signal_type
         self.tradingday = _tradingday
         self.datetime = _datetime
@@ -160,7 +160,7 @@ class SignalEvent(EventAbstract):
         return {
             'type': self.type,
             'symbol': self.symbol,
-            'strategy_name': self.strategy_name,
+            'strategy': self.strategy,
             'signal_type': self.signal_type,
             'tradingday': self.tradingday,
             'datetime': self.datetime,
@@ -171,7 +171,7 @@ class SignalEvent(EventAbstract):
     def fromDict(_dict: dict) -> 'SignalEvent':
         return SignalEvent(
             _symbol=_dict['symbol'],
-            _strategy_name=_dict['strategy_name'],
+            _strategy=_dict['strategy'],
             _signal_type=_dict['signal_type'],
             _tradingday=_dict['tradingday'],
             _datetime=_dict['datetime'],
@@ -186,8 +186,10 @@ class SignalEvent(EventAbstract):
               '\tdatetime: {}\n' \
               '\tstrength: {}'
         return tmp.format(
-            self.symbol, self.strategy_name, SignalType.toStr(self.signal_type),
-            self.tradingday, self.datetime, self.strength
+            self.symbol, self.strategy,
+            SignalType.toStr(self.signal_type),
+            self.tradingday, self.datetime,
+            self.strength
         )
 
 
@@ -255,9 +257,12 @@ class OrderEvent(EventAbstract):
               '\tquantity: {}\n' \
               '\tprice: {}'
         return tmp.format(
-            self.index, self.symbol, self.tradingday, self.datetime,
-            OrderType.toStr(self.order_type), ActionType.toStr(self.action),
-            DirectionType.toStr(self.direction), self.quantity, self.price
+            self.index, self.symbol,
+            self.tradingday, self.datetime,
+            OrderType.toStr(self.order_type),
+            ActionType.toStr(self.action),
+            DirectionType.toStr(self.direction),
+            self.quantity, self.price
         )
 
 
@@ -325,10 +330,11 @@ class FillEvent(EventAbstract):
               '\tprice: {}\n' \
               '\tcommission: {}'
         return tmp.format(
-            self.index, self.symbol, self.tradingday, self.datetime,
+            self.index, self.symbol,
+            self.tradingday, self.datetime,
             self.quantity, ActionType.toStr(self.action),
-            DirectionType.toStr(self.direction), self.price,
-            self.commission
+            DirectionType.toStr(self.direction),
+            self.price, self.commission
         )
 
 

@@ -67,8 +67,8 @@ class ProductPosition:
 
 
 class StrategyProduct:
-    def __init__(self, _strategy_name):
-        self.strategy_name = _strategy_name
+    def __init__(self, _strategy):
+        self.strategy = _strategy
         # map product to position
         self.product_table: typing.Dict[str, ProductPosition] = {}
 
@@ -102,7 +102,7 @@ class StrategyProduct:
             yield p
 
     def __repr__(self) -> str:
-        ret = 'STRATEGY: {}\n'.format(self.strategy_name)
+        ret = 'STRATEGY: {}\n'.format(self.strategy)
         for k, v in self.product_table.items():
             ret += '--- {} ---:\n{}\n'.format(k, v)
 
@@ -110,18 +110,18 @@ class StrategyProduct:
 
 
 class OrderStrategyProduct:
-    def __init__(self, _order_index, _strategy_name, _product):
+    def __init__(self, _order_index, _strategy, _product):
         self.order_index = _order_index
-        self.strategy_name = _strategy_name
+        self.strategy = _strategy
         self.product = _product
 
     def __repr__(self):
         return \
             'ORDER_INDEX: {}\n' \
-            'STRATEGY_NAME: {}\n' \
+            'STRATEGY: {}\n' \
             'PRODUCT: {}\n'.format(
                 self.order_index,
-                self.strategy_name,
+                self.strategy,
                 self.product
             )
 
@@ -162,19 +162,16 @@ class CTAPortfolio(PortfolioAbstract):
 
         # deal the position
         try:
-            strategy_product = self.strategy_table[_event.strategy_name]
+            strategy_product = self.strategy_table[_event.strategy]
         except KeyError:
-            self.strategy_table[_event.strategy_name] = StrategyProduct(
-                _event.strategy_name
+            self.strategy_table[_event.strategy] = StrategyProduct(
+                _event.strategy
             )
-            strategy_product = self.strategy_table[_event.strategy_name]
+            strategy_product = self.strategy_table[_event.strategy]
         strategy_product.dealSignal(_event)
 
         # add signal to portfolio
-        self.getPortfolioByStrategy(
-            _event.strategy_name
-        ).dealSignalEvent(_event)
-        self.global_portfolio.dealSignalEvent(_event)
+        self.portfolio.dealSignalEvent(_event)
 
     def dealFill(self, _event: FillEvent):
         """
@@ -184,14 +181,13 @@ class CTAPortfolio(PortfolioAbstract):
         :return: 
         """
         # 1. store position change into position mgr
-        order_strategy_product: OrderStrategyProduct = self.order_table[_event.index]
-        strategy_product = self.strategy_table[order_strategy_product.strategy_name]
-        product_position = strategy_product.product_table[order_strategy_product.product]
-        product_position.dealFill(_event)
+        order_sp: OrderStrategyProduct = self.order_table[_event.index]
+        strategy_p = self.strategy_table[order_sp.strategy]
+        product_p = strategy_p.product_table[order_sp.product]
+        product_p.dealFill(_event)
 
         # 2. store strategy portfolio mgr
-        self.getPortfolioByIndex(_event.index).dealFillEvent(_event)
-        self.global_portfolio.dealFillEvent(_event)
+        self.portfolio.dealFillEvent(order_sp.strategy, _event)
 
     @staticmethod
     def _update_cur_position(_p: ProductPosition):
@@ -231,7 +227,7 @@ class CTAPortfolio(PortfolioAbstract):
     ) -> typing.Dict[str, float]:
         # get price dict for each portfolio
         symbol_price_dict = {}
-        for symbol in self.global_portfolio.getSymbolList():
+        for symbol in self.portfolio.getSymbolList():
             symbol_price_dict[symbol] = 0.0
         for k in symbol_price_dict.keys():
             symbol_price_dict[k] = self.fetcher.fetchData(
@@ -244,12 +240,7 @@ class CTAPortfolio(PortfolioAbstract):
             _symbol_price_dict: typing.Dict[str, float]
     ):
         # update each portfolio settlement
-        for v in self.strategy_portfolio_dict.values():
-            v.dealSettlement(
-                _tradingday, _next_tradingday,
-                _symbol_price_dict
-            )
-        self.global_portfolio.dealSettlement(
+        self.portfolio.dealSettlement(
             _tradingday, _next_tradingday,
             _symbol_price_dict
         )
@@ -400,14 +391,11 @@ class CTAPortfolio(PortfolioAbstract):
                 # send orders according to instrument and quantity chg
                 orders = self._gen_orders(p)
                 for o in orders:
-                    self.addEvent(o, s.strategy_name)
+                    self.addEvent(o)
                     self.order_table[o.index] = OrderStrategyProduct(
-                        o.index, s.strategy_name, p.product
+                        o.index, s.strategy, p.product
                     )
-                    self.getPortfolioByStrategy(
-                        s.strategy_name
-                    ).dealOrderEvent(o)
-                    self.global_portfolio.dealOrderEvent(o)
+                    self.portfolio.dealOrderEvent(s.strategy, o)
                 # reset next status
                 self._reset_position_status(p)
 

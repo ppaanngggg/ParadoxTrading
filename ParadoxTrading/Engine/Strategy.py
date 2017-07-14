@@ -97,7 +97,7 @@ class StrategyAbstract:
         self.engine.addEvent(
             SignalEvent(
                 _symbol=_symbol,
-                _strategy_name=self.name,
+                _strategy=self.name,
                 _tradingday=self.engine.getTradingDay(),
                 _datetime=self.engine.getDatetime(),
                 _signal_type=_signal_type,

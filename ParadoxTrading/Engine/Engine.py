@@ -96,7 +96,6 @@ class EngineAbstract:
         _strategy.setEngine(self)
 
         self.market_supply.addStrategy(_strategy)
-        self.portfolio.addStrategy(_strategy)
 
     def getTradingDay(self) -> str:
         """

@@ -44,7 +44,7 @@ class BacktestEngine(EngineAbstract):
                 if len(self.event_queue):  # deal all event at that moment
                     event = self.event_queue.popleft()
                     if event.type == EventType.MARKET:
-                        self.strategy_dict[event.strategy_name].deal(event)
+                        self.strategy_dict[event.strategy].deal(event)
                     elif event.type == EventType.SIGNAL:
                         self.portfolio.dealSignal(event)
                     elif event.type == EventType.ORDER:
