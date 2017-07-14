@@ -155,9 +155,9 @@ class CTAPortfolio(PortfolioAbstract):
         1. find the strategy's mgr
         2. if not found, the create one
         3. deal this signal
-        
-        :param _event: 
-        :return: 
+
+        :param _event:
+        :return:
         """
 
         # deal the position
@@ -177,8 +177,8 @@ class CTAPortfolio(PortfolioAbstract):
         """
         deal fill event
 
-        :param _event: 
-        :return: 
+        :param _event:
+        :return:
         """
         # 1. store position change into position mgr
         order_sp: OrderStrategyProduct = self.order_table[_event.index]
@@ -245,33 +245,15 @@ class CTAPortfolio(PortfolioAbstract):
             _symbol_price_dict
         )
 
-    def allocQuantity(
-            self, **kwargs
-    ) -> int:
-        """
-        the core part to alloc quantity
-
-        :return:
-        """
-        return int(kwargs['_strength'])
-
-    def _update_next_position(
-            self, _tradingday: str,
-            _product2position: ProductPosition
-    ):
-        """
-        comp the next instrument and quantity according cur strength
-
-        :param _tradingday:
-        :return:
-        """
-        _product2position.next_instrument = self.fetcher.fetchSymbol(
-            _tradingday, _product=_product2position.product
-        )
-        # !!! here is the portfolio !!! #
-        _product2position.next_quantity = self.allocQuantity(
-            _strength=_product2position.strength
-        )
+    def _iter_update_next_position(self, _tradingday):
+        # send orders
+        for s in self.strategy_table.values():
+            for p in s:
+                # next dominant instrument
+                p.next_instrument = self.fetcher.fetchSymbol(
+                    _tradingday, _product=p.product
+                )
+                p.next_quantity = int(p.strength)
 
     def _create_order(self, _inst, _action, _direction, _quantity) -> OrderEvent:
         assert _quantity > 0
@@ -380,14 +362,9 @@ class CTAPortfolio(PortfolioAbstract):
                 # next is empty, nothing to do
                 return []
 
-    def _iter_send_order(self, _tradingday):
-        # send orders
+    def _iter_send_order(self):
         for s in self.strategy_table.values():
             for p in s:
-                # next dominant instrument
-                self._update_next_position(
-                    _tradingday, p
-                )
                 # send orders according to instrument and quantity chg
                 orders = self._gen_orders(p)
                 for o in orders:
@@ -418,9 +395,80 @@ class CTAPortfolio(PortfolioAbstract):
         )
 
         # 3. update each strategy's positions to current status
+        # according to fill results
         self._iter_update_cur_position()
-        # 4. send new orders
-        self._iter_send_order(_tradingday)
+        # 4. update each strategy's positions to next status
+        # according to new strength and other information
+        self._iter_update_next_position(_tradingday)
+        # 5. send new orders
+        self._iter_send_order()
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         pass
+
+
+class CTAEqualFundPortfolio(CTAPortfolio):
+    def __init__(
+            self,
+            _fetcher: FetchAbstract,
+            _init_fund: float = 0.0,
+            _settlement_price_index: str = 'closeprice',
+    ):
+        super().__init__(
+            _fetcher, _init_fund, _settlement_price_index
+        )
+
+        # used for allocQuantity()
+        self.total_fund: float = 0.0
+        self.parted_num: float = 0.0
+
+    def _iter_update_next_position(self, _tradingday):
+        # send orders
+        for s in self.strategy_table.values():
+            for p in s:
+                # next dominant instrument
+                p.next_instrument = self.fetcher.fetchSymbol(
+                    _tradingday, p.product
+                )
+                if p.strength == 0:
+                    p.next_quantity = 0
+                else:
+                    price = self.fetcher.fetchData(
+                        _tradingday, p.next_instrument
+                    )[self.settlement_price_index][0]
+                    tmp = int(self.total_fund / self.parted_num / price)
+                    if p.strength > 0:
+                        p.next_quantity = tmp
+                    elif p.strength < 0:
+                        p.next_quantity = -tmp
+                    else:
+                        raise Exception('p.strength == 0 ???')
+
+    def dealSettlement(self, _tradingday, _next_tradingday):
+        # check it's the end of prev tradingday
+        assert _tradingday
+
+        # 1. get the table map symbols to their price
+        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        # 2. set portfolio settlement
+        self._iter_portfolio_settlement(
+            _tradingday, _next_tradingday,
+            symbol_price_dict
+        )
+
+        # 3.1 compute current total fund
+        self.total_fund = self.portfolio.getFund(
+        ) + self.portfolio.getUnfilledFund(symbol_price_dict)
+        # 3.2 compute how many parts to be divided
+        self.parted_num = 0
+        for stratey_p in self.strategy_table.values():
+            for product_p in stratey_p:
+                if product_p.strength != 0:
+                    self.parted_num += 1
+
+        # 4. update each strategy's positions to current status
+        self._iter_update_cur_position()
+        # 5. update next status
+        self._iter_update_next_position(_tradingday)
+        # 6. send new orders
+        self._iter_send_order()
