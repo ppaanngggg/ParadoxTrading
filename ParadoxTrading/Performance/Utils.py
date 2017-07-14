@@ -4,6 +4,7 @@ import typing
 from ParadoxTrading.Engine import EventType, DirectionType, SignalType
 from ParadoxTrading.Utils import DataStruct
 
+
 def fillRecordToBuySell(
         _fill_list: typing.Sequence[typing.Dict]
 ) -> (DataStruct, DataStruct):
@@ -23,6 +24,7 @@ def fillRecordToBuySell(
 
     return buy_ret, sell_ret
 
+
 def signalRecordToLongShort(
         _signal_list: typing.Sequence[typing.Dict]
 ) -> (DataStruct, DataStruct):
@@ -41,10 +43,14 @@ def signalRecordToLongShort(
 
     return long_ret, short_ret
 
+
 class FetchRecord:
-    def __init__(self):
-        self.mongo_host = 'localhost'
-        self.mongo_database = 'Backtest'
+    def __init__(
+            self, _mongo_host: str = 'localhost',
+            _mongo_database: str = 'Backtest'
+    ):
+        self.mongo_host = _mongo_host
+        self.mongo_database = _mongo_database
 
     def _fetchRecords(
             self, _backtest_key: str, _strategy_name: str, _type: int,

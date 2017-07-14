@@ -11,10 +11,10 @@ class StepDrawdownStop(StopIndicatorAbstract):
             _data: DataStruct,
             _stop_type: int,
             _init_stop: float = 0.05,
-            _profit_thresh: typing.Tuple[float] = (
+            _profit_thresh: typing.Sequence[float] = (
                     0.1, 0.2, 0.3, 0.5
             ),
-            _stop_thresh: typing.Tuple[float] = (
+            _stop_thresh: typing.Sequence[float] = (
                     1.0, 0.5, 0.3, 0.15
             ),
             _use_key: str = 'closeprice',
