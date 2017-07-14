@@ -83,7 +83,7 @@ class DataStruct:
         tmp_rows, tmp_keys = self.toRows()
         return tabulate.tabulate(tmp_rows, headers=tmp_keys)
 
-    def clone(self):
+    def clone(self, _columns: typing.Sequence[str] = None) -> 'DataStruct':
         """
         copy all the data to a new datasturct,
         !!! WARN !!!: if the value in data is a reference to
@@ -92,7 +92,19 @@ class DataStruct:
 
         :return: the new datastruct
         """
-        return self.iloc[:]
+        if _columns is None:
+            return self.iloc[:]
+
+        keys_new = [self.index_name] + _columns
+        datastruct = DataStruct(
+            keys_new, self.index_name
+        )
+        keys_self = self.getColumnNames(_include_index_name=False)
+        for column in _columns:
+            assert column != self.index_name
+            assert column in keys_self
+        datastruct.addRows(*self.toRows(keys_new))
+        return datastruct
 
     def merge(self, _struct: "DataStruct"):
         """

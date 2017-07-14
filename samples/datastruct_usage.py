@@ -1,16 +1,16 @@
 from datetime import datetime
 
-from ParadoxTrading.Fetch import FetchGuoJinMin
+from ParadoxTrading.Fetch import FetchExchangeMarketIndex
 from ParadoxTrading.Utils import DataStruct
 
-fetcher = FetchGuoJinMin()
+fetcher = FetchExchangeMarketIndex()
 # adjust it by yourself
-# fetcher.psql_host = '192.168.4.102'
+# fetcher.psql_host = '192.168.4.103'
 # fetcher.psql_user = 'ubuntu'
-# fetcher.mongo_host = '192.168.4.102'
+# fetcher.mongo_host = '192.168.4.103'
 
 # this is a powerful DataStruct
-data: DataStruct = fetcher.fetchData('20160506', 'rb1609')
+data: DataStruct = fetcher.fetchDayData('20100101','20170101', 'rb')
 
 # print table like data
 print(data)
@@ -38,7 +38,7 @@ print(data.loc[:data.index()[10]])
 # when slice one row,
 print(data.loc[data.index()[10]])
 # return None if not exists
-print(data.loc[datetime(2016, 5, 5, 20)])
+print(data.loc['20180101'])
 
 # merge two datastruct, and merge will keep sort of index
 a = data.iloc[:5]
@@ -56,9 +56,16 @@ print(k)
 print(a.toDicts())
 
 # iter each line in data
-for d in data:
+for d in a:
     print(d)
 
 # change index
-data_new = data.changeIndex('closeprice')
+data_new = a.changeIndex('closeprice')
+print(data_new)
+
+# clone a new datastruct
+data_new = a.clone()
+print(data_new)
+# clone a new datastruct and select some columns
+data_new = a.clone(['closeprice', 'volume'])
 print(data_new)
