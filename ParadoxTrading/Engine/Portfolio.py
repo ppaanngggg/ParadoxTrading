@@ -1,15 +1,16 @@
 import logging
 import typing
 
-import ParadoxTrading.Engine
 import pymongo
 import tabulate
+from pymongo import MongoClient
+from pymongo.collection import Collection
+
+import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
     DirectionType, FillEvent, OrderEvent, SignalEvent, EventType
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
 from ParadoxTrading.Utils import DataStruct
-from pymongo import MongoClient
-from pymongo.collection import Collection
 
 
 class PositionMgr:
@@ -27,7 +28,7 @@ class PositionMgr:
         elif _type == SignalType.SHORT:
             return self.short
         else:
-            raise Exception('unknown type')
+            raise Exception('unavailable type')
 
     def incPosition(self, _type: int, _quantity: int):
         if _type == SignalType.LONG:
@@ -35,7 +36,7 @@ class PositionMgr:
         elif _type == SignalType.SHORT:
             self.short += _quantity
         else:
-            raise Exception('unknown type')
+            raise Exception('unavailable type')
 
     def decPosition(self, _type: int, _quantity: int):
         assert self.getPosition(_type) >= _quantity
@@ -44,7 +45,7 @@ class PositionMgr:
         elif _type == SignalType.SHORT:
             self.short -= _quantity
         else:
-            raise Exception('unknown type')
+            raise Exception('unavailable type')
 
 
 class FundMgr:
@@ -65,6 +66,14 @@ class FundMgr:
             _position_mgr: typing.Dict[str, PositionMgr],
             _symbol_price_dict: typing.Dict[str, float],
     ) -> float:
+        """
+        compute unfilled fund according current positions and
+        current prices
+
+        :param _position_mgr:
+        :param _symbol_price_dict:
+        :return:
+        """
         unfilled_fund = 0.0
         for p in _position_mgr.values():
             if p.long:
@@ -96,9 +105,9 @@ class PortfolioMgr:
 
     def getSymbolList(self) -> typing.List[str]:
         """
+        get symbols which have long or short positions
 
-
-        :return:
+        :return: return list of symbols
         """
         return [
             p.symbol for p in self.position_mgr.values()
@@ -111,6 +120,12 @@ class PortfolioMgr:
     def getUnfilledFund(
             self, _symbol_price_dict: typing.Dict[str, float]
     ) -> float:
+        """
+        compute current fund according to prices
+
+        :param _symbol_price_dict:
+        :return:
+        """
         return self.fund_mgr.getUnfilledFund(
             self.position_mgr, _symbol_price_dict
         )
@@ -315,13 +330,22 @@ class PortfolioMgr:
             self, _tradingday, _next_tradingday,
             _symbol_price_dict: typing.Dict[str, float]
     ):
+        """
+        do settlement, and store settlement information
+
+        :param _tradingday:
+        :param _next_tradingday:
+        :param _symbol_price_dict:
+        :return:
+        """
+        unfilled_fund = self.getUnfilledFund(_symbol_price_dict)
         self.settlement_record.append({
             'tradingday': _tradingday,
             'next_tradingday': _next_tradingday,
             'type': EventType.SETTLEMENT,
-            'unfilled_fund': self.getUnfilledFund(
-                _symbol_price_dict
-            ),
+            'fund': self.getFund(),
+            'unfilled_fund': unfilled_fund,
+            'total_fund': self.getFund() + unfilled_fund,
         })
 
     def storeRecords(self, _name: str, _coll: Collection):
@@ -366,6 +390,9 @@ class PortfolioMgr:
         ret += ' - Fill: {}\n'.format(len(self.fill_record))
         ret += ' - Settlement: {}\n'.format(len(self.settlement_record))
 
+        ret += '\n@@@ FUND @@@\n'
+        ret += ' - Fund: {}\n'.format(self.getFund())
+
         return ret
 
 
@@ -398,7 +425,6 @@ class PortfolioAbstract:
         assert _strategy.name not in self.strategy_portfolio_dict.keys()
         # create a portfolio for this strategy
         tmp = PortfolioMgr()
-        _strategy.setPortfolio(tmp)
         self.strategy_portfolio_dict[_strategy.name] = tmp
 
     def getPortfolioByStrategy(

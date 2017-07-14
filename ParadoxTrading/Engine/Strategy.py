@@ -22,12 +22,6 @@ class StrategyAbstract:
         self.engine: ParadoxTrading.Engine.Engine.EngineAbstract = None
         self.register_dict: typing.Dict[str, RegisterAbstract] = {}
 
-        # store the portfolio for this strategy
-        self.portfolio: ParadoxTrading.Engine.Portfolio.PortfolioMgr = None
-
-        # # run user define init
-        # self.init()
-
     def setEngine(self,
                   _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
@@ -37,10 +31,6 @@ class StrategyAbstract:
         :return:
         """
         self.engine = _engine
-
-    def setPortfolio(self,
-                     _portfolio: 'ParadoxTrading.Engine.Portfolio.PortfolioMgr'):
-        self.portfolio = _portfolio
 
     def deal(self, _market_event: MarketEvent):
         """

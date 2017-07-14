@@ -219,25 +219,53 @@ class CTAPortfolio(PortfolioAbstract):
             _p.cur_instrument = None
             _p.cur_quantity = 0
 
+    def _iter_update_cur_position(self):
+        # iter each strategy's each product
+        for s in self.strategy_table.values():
+            for p in s:
+                # update position according to fill event
+                self._update_cur_position(p)
+
+    def _get_symbol_price_dict(
+            self, _tradingday
+    ) -> typing.Dict[str, float]:
+        # get price dict for each portfolio
+        symbol_price_dict = {}
+        for symbol in self.global_portfolio.getSymbolList():
+            symbol_price_dict[symbol] = 0.0
+        for k in symbol_price_dict.keys():
+            symbol_price_dict[k] = self.fetcher.fetchData(
+                _tradingday, k
+            )[self.settlement_price_index][0]
+        return symbol_price_dict
+
+    def _iter_portfolio_settlement(
+            self, _tradingday, _next_tradingday,
+            _symbol_price_dict: typing.Dict[str, float]
+    ):
+        # update each portfolio settlement
+        for v in self.strategy_portfolio_dict.values():
+            v.dealSettlement(
+                _tradingday, _next_tradingday,
+                _symbol_price_dict
+            )
+        self.global_portfolio.dealSettlement(
+            _tradingday, _next_tradingday,
+            _symbol_price_dict
+        )
+
     def allocQuantity(
-            self, _fund: float, _tradingday: str,
-            _strategy2product: StrategyProduct,
-            _product2position: ProductPosition
+            self, **kwargs
     ) -> int:
         """
         the core part to alloc quantity
 
-        :param _fund: total fund of portfolio
-        :param _tradingday:
-        :param _strategy2product:
-        :param _product2position:
         :return:
         """
-        return int(_product2position.strength)
+        return int(kwargs['_strength'])
 
     def _update_next_position(
-            self, _tradingday: str, _fund: float,
-            _strategy2product: StrategyProduct,
+            self, _tradingday: str,
             _product2position: ProductPosition
     ):
         """
@@ -251,7 +279,7 @@ class CTAPortfolio(PortfolioAbstract):
         )
         # !!! here is the portfolio !!! #
         _product2position.next_quantity = self.allocQuantity(
-            _fund, _tradingday, _strategy2product, _product2position
+            _strength=_product2position.strength
         )
 
     def _create_order(self, _inst, _action, _direction, _quantity) -> OrderEvent:
@@ -361,56 +389,13 @@ class CTAPortfolio(PortfolioAbstract):
                 # next is empty, nothing to do
                 return []
 
-    @staticmethod
-    def _reset_position_status(_p: ProductPosition):
-        _p.next_instrument = None
-        _p.next_quantity = 0
-        _p.resetDetail()
-
-    def dealSettlement(self, _tradingday, _next_tradingday):
-        # check it's the end of prev tradingday
-        assert _tradingday
-
-        # iter each strategy's each product
-        for s in self.strategy_table.values():
-            for p in s:
-                # update position according to fill event
-                self._update_cur_position(p)
-
-        # get price dict for each portfolio
-        symbol_price_dict = {}
-        for s in self.strategy_table.values():
-            for p in s:
-                if p.cur_instrument:
-                    symbol_price_dict[p.cur_instrument] = 0.0
-        for k in symbol_price_dict.keys():
-            symbol_price_dict[k] = self.fetcher.fetchData(
-                _tradingday, k
-            )[self.settlement_price_index][0]
-
-        # update each portfolio settlement
-        for v in self.strategy_portfolio_dict.values():
-            v.dealSettlement(
-                _tradingday, _next_tradingday,
-                symbol_price_dict
-            )
-        self.global_portfolio.dealSettlement(
-            _tradingday, _next_tradingday,
-            symbol_price_dict
-        )
-
-        # comp tmp fund
-        tmp_fund = self.global_portfolio.getFund(
-        ) + self.global_portfolio.getUnfilledFund(
-            symbol_price_dict
-        )
-
+    def _iter_send_order(self, _tradingday):
         # send orders
         for s in self.strategy_table.values():
             for p in s:
                 # next dominant instrument
                 self._update_next_position(
-                    _tradingday, tmp_fund, s, p
+                    _tradingday, p
                 )
                 # send orders according to instrument and quantity chg
                 orders = self._gen_orders(p)
@@ -425,6 +410,29 @@ class CTAPortfolio(PortfolioAbstract):
                     self.global_portfolio.dealOrderEvent(o)
                 # reset next status
                 self._reset_position_status(p)
+
+    @staticmethod
+    def _reset_position_status(_p: ProductPosition):
+        _p.next_instrument = None
+        _p.next_quantity = 0
+        _p.resetDetail()
+
+    def dealSettlement(self, _tradingday, _next_tradingday):
+        # check it's the end of prev tradingday
+        assert _tradingday
+
+        # 1. get the table map symbols to their price
+        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        # 2. set portfolio settlement
+        self._iter_portfolio_settlement(
+            _tradingday, _next_tradingday,
+            symbol_price_dict
+        )
+
+        # 3. update each strategy's positions to current status
+        self._iter_update_cur_position()
+        # 4. send new orders
+        self._iter_send_order(_tradingday)
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         pass
