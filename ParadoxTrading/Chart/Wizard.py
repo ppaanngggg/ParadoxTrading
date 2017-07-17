@@ -1,9 +1,10 @@
 import sys
 import typing
 
+from PyQt5.QtWidgets import QApplication, QVBoxLayout
+
 import ParadoxTrading.Chart.View
 import ParadoxTrading.Chart.Window
-from PyQt5.QtWidgets import QApplication, QVBoxLayout
 
 
 class Wizard:
@@ -21,6 +22,7 @@ class Wizard:
         self.begin_idx: int = 0
         self.end_idx: int = 0
 
+        self.app: QApplication = None
         self.window: ParadoxTrading.Chart.Window = None
         self.width = _width
         self.height = _height
@@ -68,11 +70,11 @@ class Wizard:
                 d.calcRangeY(self.idx2x[_begin], self.idx2x[_end])
                 d.setAxisY(d.begin_y, d.end_y)
 
-    def show(self):
+    def drawWindow(self):
         if not self.view_dict:
             return
 
-        app = QApplication(sys.argv)
+        self.app = QApplication(sys.argv)
 
         # get the axis info, and reset it
         self.x2idx, self.idx2x = self._calcSetX()
@@ -90,9 +92,15 @@ class Wizard:
         self.window.resize(self.width, self.height)
         self.window.setLayout(layout)
 
+    def show(self):
+        self.drawWindow()
         self.window.show()
 
-        return app.exec()
+        return self.app.exec()
+
+    def save(self, _filename: str):
+        self.drawWindow()
+        self.window.grab().save(_filename)
 
     def zoomIn(self):
         diff = max(
