@@ -19,6 +19,7 @@ class StepDrawdownStop(StopIndicatorAbstract):
             ),
             _use_key: str = 'closeprice',
             _idx_key: str = 'time',
+            _status_key: str = 'status',
             _ret_key: str = 'stopprice',
     ):
         super().__init__()
@@ -32,6 +33,7 @@ class StepDrawdownStop(StopIndicatorAbstract):
         self.stop_thresh = _stop_thresh
         self.use_key = _use_key
         self.idx_key = _idx_key
+        self.status_key = _status_key
         self.ret_key = _ret_key
 
         self.init_price = _data.toDict()[self.use_key]
@@ -44,7 +46,7 @@ class StepDrawdownStop(StopIndicatorAbstract):
         self.best_price = self.init_price
 
         self.data = DataStruct(
-            [self.idx_key, self.ret_key],
+            [self.idx_key, self.status_key, self.ret_key],
             self.idx_key,
             [[_data.index()[0], self.init_stop_price]]
         )
@@ -103,6 +105,7 @@ class StepDrawdownStop(StopIndicatorAbstract):
 
         self.data.addDict({
             self.idx_key: time,
+            self.status_key: self.status,
             self.ret_key: self._calc_stop_price(),
         })
 
