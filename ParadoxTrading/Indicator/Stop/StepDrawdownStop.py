@@ -48,7 +48,7 @@ class StepDrawdownStop(StopIndicatorAbstract):
         self.data = DataStruct(
             [self.idx_key, self.status_key, self.ret_key],
             self.idx_key,
-            [[_data.index()[0], self.init_stop_price]]
+            [[_data.index()[0], self.status, self.init_stop_price]]
         )
 
     def _set_best_price(self, _price):
