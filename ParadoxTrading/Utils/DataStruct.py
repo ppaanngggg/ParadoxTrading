@@ -2,6 +2,7 @@ import typing
 from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta
 
+import h5py
 import tabulate
 
 
@@ -247,14 +248,67 @@ class DataStruct:
         row, keys = self.toRow(_index)
         return dict(zip(keys, row))
 
-    def toHDF5(self, _f_name: str):
+    def toHDF5(self, _f_name: str, _mode: str = 'w'):
         """
-        not implemented yet
+        save data struct to hdf5
+
+        :param _f_name:
+        :param _mode:
+        :return:
+        """
+        f = h5py.File(_f_name, _mode)
+        f.attrs['index_name'] = self.index_name
+
+        for k, v in self.data.items():
+            v_sample = v[0]
+            if isinstance(v_sample, int):
+                dtype = 'int32'
+                attr = 'int'
+            elif isinstance(v_sample, float):
+                dtype = 'float64'
+                attr = 'float'
+            elif isinstance(v_sample, str):
+                dtype = h5py.special_dtype(vlen=str)
+                attr = 'str'
+            elif isinstance(v_sample, datetime):
+                dtype = 'float64'
+                attr = 'datetime'
+            else:
+                raise Exception('unsupported type, sorry')
+
+            if attr == 'datetime':
+                self.datetime2float(k)
+
+            dataset = f.create_dataset(
+                k, (len(self),), dtype=dtype
+            )
+            dataset[:] = self[k]
+            dataset.attrs['type'] = attr
+
+            if attr == 'datetime':
+                self.float2datetime(k)
+
+        f.close()
+
+    @staticmethod
+    def fromHDF5(_f_name: str) -> 'DataStruct':
+        """
+        load data struct from hdf5
 
         :param _f_name:
         :return:
         """
-        pass
+        f = h5py.File(_f_name)
+
+        datastruct = DataStruct(list(f.keys()), f.attrs['index_name'])
+        for k in f.keys():
+            dataset = f[k]
+            datastruct.data[k] = dataset[:].tolist()
+            if dataset.attrs['type'] == 'datetime':
+                datastruct.float2datetime(k)
+
+        f.close()
+        return datastruct
 
     def index(self) -> list:
         """

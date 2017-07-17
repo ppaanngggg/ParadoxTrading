@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from ParadoxTrading.Fetch import FetchExchangeMarketIndex
 from ParadoxTrading.Utils import DataStruct
 
@@ -10,7 +8,7 @@ fetcher = FetchExchangeMarketIndex()
 # fetcher.mongo_host = '192.168.4.103'
 
 # this is a powerful DataStruct
-data: DataStruct = fetcher.fetchDayData('20100101','20170101', 'rb')
+data: DataStruct = fetcher.fetchDayData('20100101', '20170101', 'rb')
 
 # print table like data
 print(data)
@@ -60,12 +58,13 @@ for d in a:
     print(d)
 
 # change index
-data_new = a.changeIndex('closeprice')
-print(data_new)
+print(a.changeIndex('closeprice'))
 
 # clone a new datastruct
-data_new = a.clone()
-print(data_new)
+print(a.clone())
 # clone a new datastruct and select some columns
-data_new = a.clone(['closeprice', 'volume'])
-print(data_new)
+print(a.clone(['closeprice', 'volume']))
+
+print(a)
+a.toHDF5('hdf_sample.hdf5')
+print(DataStruct.fromHDF5('hdf_sample.hdf5'))
