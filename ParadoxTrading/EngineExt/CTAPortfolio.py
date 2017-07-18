@@ -486,7 +486,15 @@ class CTAEqualFundPortfolio(CTAPortfolio):
         self._iter_send_order()
 
 
-class CTAOnceAllocPortfolio(CTAPortfolio):
+# class CTAEqualFundReducePortfolio(CTAPortfolio):
+#     """
+#
+#
+#     """
+#     pass
+
+
+class CTAConstAllocPortfolio(CTAPortfolio):
     """
     it will create a const position according to alloc_rate when
     receive a open signal. It will the position unchanged until
