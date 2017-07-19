@@ -1,7 +1,6 @@
+import typing
 from collections import deque
 from datetime import datetime
-
-import typing
 
 from ParadoxTrading.Engine.Event import EventAbstract
 from ParadoxTrading.Engine.Execution import ExecutionAbstract
@@ -20,11 +19,11 @@ class EngineAbstract:
             _strategy: typing.Union[StrategyAbstract, typing.Iterable[StrategyAbstract]]
     ):
         self.event_queue: deque = deque()  # store event
-        self.strategy_dict: typing.Dict[str, StrategyAbstract] = {}
 
         self.market_supply: MarketSupplyAbstract = None
         self.execution: ExecutionAbstract = None
         self.portfolio: PortfolioAbstract = None
+        self.strategy_dict: typing.Dict[str, StrategyAbstract] = {}
 
         self._addMarketSupply(_market_supply)
         self._addExecution(_execution)
@@ -89,6 +88,7 @@ class EngineAbstract:
         :return: None
         """
         assert self.market_supply is not None
+        assert self.execution is not None
         assert self.portfolio is not None
         assert _strategy.name not in self.strategy_dict.keys()
 

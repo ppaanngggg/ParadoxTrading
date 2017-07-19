@@ -32,7 +32,7 @@ class DataGenerator:
         logging.info('Fetch Day: {}'.format(_tradingday))
         self.data_dict: typing.Dict[str, DataStruct] = {}
         self.index_dict: typing.Dict[str, int] = {}
-        self.cur_datetime: datetime = None
+        self.datetime: typing.Union[str, datetime] = None
 
         # have to reset it, it is a ref to market supply's dict
         _symbol_dict.clear()
@@ -59,7 +59,7 @@ class DataGenerator:
         """
         gen one tick data
 
-        :return: (symbol, one tick data struct)
+        :return: (symbol, one tick datastruct) or None
         """
 
         # get latest one of each symbol
@@ -82,7 +82,7 @@ class DataGenerator:
             self.index_dict[inst] += 1  # point to next one
 
             # set cur datetime to latest tick's happentime
-            self.cur_datetime = tmp[0][1]
+            self.datetime = tmp[0][1]
 
             return ret
         else:
@@ -106,11 +106,9 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         super().__init__(_fetcher)
 
         self.begin_day: str = _begin_day
-        self.next_day: str = self.begin_day
         self.end_day: str = _end_day
 
-        self.tradingday: str = None
-        self.last_tradingday: str = None
+        self.tradingday: str = self.begin_day
         self.datetime: typing.Union[str, datetime] = None
         self.data_generator: DataGenerator = None
 
@@ -120,55 +118,44 @@ class BacktestMarketSupply(MarketSupplyAbstract):
 
         :return: cur date
         """
-        tmp = datetime.strptime(self.next_day, '%Y%m%d')
+        tmp = datetime.strptime(self.tradingday, '%Y%m%d')
         tmp += timedelta(days=1)
-        self.next_day = tmp.strftime('%Y%m%d')
-        return self.next_day
+        self.tradingday = tmp.strftime('%Y%m%d')
+        return self.tradingday
 
-    def updateData(self) -> typing.Union[ReturnMarket, ReturnSettlement]:
+    def updateData(self) -> typing.Union[
+        None, ReturnMarket, ReturnSettlement
+    ]:
         """
         update data tick by tick, or bar by bar
 
-        :return: ReturnMarket - return market data
-            ReturnSettlement - return settlement signal
+        :return: flag of current market status
         """
 
-        while True:
-            # reach end, so return false to end backtest
-            if self.next_day > self.end_day:
-                # return end backtest
-                return self.addSettlementEvent(
-                    self.tradingday, None
-                )
+        while self.data_generator is None:
+            if self.tradingday > self.end_day:
+                return None
 
-            # if there is no data generator, create one
-            if self.data_generator is None:
-                self.data_generator: DataGenerator = DataGenerator(
-                    _tradingday=self.next_day,
-                    _register_dict=self.register_dict,
-                    _symbol_dict=self.symbol_dict,
-                    _fetcher=self.fetcher
-                )
-                if not self.symbol_dict:
-                    # today is not a tradingday
-                    self.incDate()
-                    self.data_generator = None
-                else:
-                    # a new tradingday, send settlement event
-                    return self.addSettlementEvent(
-                        self.tradingday, self.next_day
-                    )
-            else:
-                # gen one tick data from data generator
-                ret = self.data_generator.gen()
-                if ret is None:
-                    # all symbols reach the end
-                    self.incDate()
-                    self.data_generator: DataGenerator = None
-                else:
-                    self.tradingday: str = self.next_day
-                    self.datetime: typing.Union[str, datetime] = self.data_generator.cur_datetime
-                    return self.addMarketEvent(*ret)
+            self.data_generator = DataGenerator(
+                _tradingday=self.tradingday,
+                _register_dict=self.register_dict,
+                _symbol_dict=self.symbol_dict,
+                _fetcher=self.fetcher
+            )
+            if not self.symbol_dict:
+                self.incDate()
+                self.data_generator: DataGenerator = None
+
+        # try to gen one tick data from data generator
+        ret = self.data_generator.gen()
+        if ret is None:  # this tradingday is end
+            tmp_day = self.tradingday
+            self.incDate()
+            self.data_generator: DataGenerator = None
+            return self.addSettlementEvent(tmp_day)
+        else:
+            self.datetime = self.data_generator.datetime
+            return self.addMarketEvent(*ret)
 
     def getTradingDay(self) -> str:
         return self.tradingday

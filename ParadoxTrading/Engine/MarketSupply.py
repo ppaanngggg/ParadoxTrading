@@ -18,18 +18,12 @@ class ReturnMarket:
 
 
 class ReturnSettlement:
-    """
-    if _tradingday is None, it means the first day
-    if _next_tradingday is None, it means the last day
-    """
-
-    def __init__(self, _tradingday: str, _next_tradingday: str):
+    def __init__(self, _tradingday: str):
         self.tradingday = _tradingday
-        self.next_tradingday = _next_tradingday
 
     def __repr__(self) -> str:
-        return "ReturnSettlement:\n\ttradingday {}\n\tnext_tradingday {}".format(
-            self.tradingday, self.next_tradingday
+        return "ReturnSettlement:\n\ttradingday {}".format(
+            self.tradingday
         )
 
 
@@ -64,19 +58,18 @@ class MarketSupplyAbstract:
         for key in _strategy.register_dict.keys():
             if key not in self.register_dict.keys():
                 # if not existed, create it
-                self.register_dict[key] = self.fetcher.register_type.fromJson(
-                    key)
+                self.register_dict[key] = \
+                    self.fetcher.register_type.fromJson(key)
             # add strategy into market register
             self.register_dict[key].addStrategy(_strategy)
             _strategy.register_dict[key] = self.register_dict[key]
 
-    def addSettlementEvent(self, _tradingday, _next_tradingday):
-        self.engine.addEvent(SettlementEvent(
-            _tradingday, _next_tradingday
+    def addSettlementEvent(self, _tradingday):
+        self.engine.addEvent(SettlementEvent(_tradingday))
+        logging.info('Settlement - tradingday:{}'.format(
+            _tradingday
         ))
-        logging.info('Settlement - Prev: {}, Next: {}'.format(
-            _tradingday, _next_tradingday))
-        return ReturnSettlement(_tradingday, _next_tradingday)
+        return ReturnSettlement(_tradingday)
 
     def addMarketEvent(self, _symbol: str, _data: DataStruct):
         """
@@ -128,7 +121,7 @@ class MarketSupplyAbstract:
         ret = '### MARKET REGISTER ###'
         for k, v in self.register_dict.items():
             ret += '\n' + k
-        ret += '\n### SYMNOL ###'
+        ret += '\n### SYMBOL ###'
         for k, v in self.symbol_dict.items():
             ret += '\n' + k + ': ' + str(v)
         ret += '\n### DATA ###'

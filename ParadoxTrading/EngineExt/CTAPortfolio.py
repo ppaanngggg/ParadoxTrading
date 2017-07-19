@@ -237,13 +237,12 @@ class CTAPortfolio(PortfolioAbstract):
         return symbol_price_dict
 
     def _iter_portfolio_settlement(
-            self, _tradingday, _next_tradingday,
+            self, _tradingday,
             _symbol_price_dict: typing.Dict[str, float]
     ):
         # update each portfolio settlement
         self.portfolio.dealSettlement(
-            _tradingday, _next_tradingday,
-            _symbol_price_dict
+            _tradingday, _symbol_price_dict
         )
 
     def _iter_update_next_position(self, _tradingday):
@@ -383,7 +382,7 @@ class CTAPortfolio(PortfolioAbstract):
         _p.next_quantity = 0
         _p.resetDetail()
 
-    def dealSettlement(self, _tradingday, _next_tradingday):
+    def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
         assert _tradingday
 
@@ -391,8 +390,7 @@ class CTAPortfolio(PortfolioAbstract):
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._iter_portfolio_settlement(
-            _tradingday, _next_tradingday,
-            symbol_price_dict
+            _tradingday, symbol_price_dict
         )
 
         # 3. update each strategy's positions to current status
@@ -456,7 +454,7 @@ class CTAEqualFundPortfolio(CTAPortfolio):
                     else:
                         raise Exception('p.strength == 0 ???')
 
-    def dealSettlement(self, _tradingday, _next_tradingday):
+    def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
         assert _tradingday
 
@@ -464,8 +462,7 @@ class CTAEqualFundPortfolio(CTAPortfolio):
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._iter_portfolio_settlement(
-            _tradingday, _next_tradingday,
-            symbol_price_dict
+            _tradingday, symbol_price_dict
         )
 
         # 3.1 compute current total fund
@@ -553,7 +550,7 @@ class CTAEqualFundReducePortfolio(CTAPortfolio):
                         else:
                             raise Exception('p.strength == 0 ???')
 
-    def dealSettlement(self, _tradingday, _next_tradingday):
+    def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
         assert _tradingday
 
@@ -561,8 +558,7 @@ class CTAEqualFundReducePortfolio(CTAPortfolio):
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._iter_portfolio_settlement(
-            _tradingday, _next_tradingday,
-            symbol_price_dict
+            _tradingday, symbol_price_dict
         )
 
         # 3 compute current total fund
@@ -638,7 +634,7 @@ class CTAConstAllocPortfolio(CTAPortfolio):
                 else:  # no position
                     p.next_quantity = 0
 
-    def dealSettlement(self, _tradingday, _next_tradingday):
+    def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
         assert _tradingday
 
@@ -646,8 +642,7 @@ class CTAConstAllocPortfolio(CTAPortfolio):
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._iter_portfolio_settlement(
-            _tradingday, _next_tradingday,
-            symbol_price_dict
+            _tradingday, symbol_price_dict
         )
 
         # 3 compute current total fund

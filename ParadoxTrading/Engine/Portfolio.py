@@ -343,22 +343,19 @@ class PortfolioMgr:
         self.fund_mgr.dealFill(_fill_event)
 
     def dealSettlement(
-            self,
-            _tradingday: str, _next_tradingday: str,
+            self, _tradingday: str,
             _symbol_price_dict: typing.Dict[str, float]
     ):
         """
         do settlement, and store settlement information
 
         :param _tradingday:
-        :param _next_tradingday:
         :param _symbol_price_dict:
         :return:
         """
         unfilled_fund = self.getUnfilledFund(_symbol_price_dict)
         self.settlement_record.append({
             'tradingday': _tradingday,
-            'next_tradingday': _next_tradingday,
             'type': EventType.SETTLEMENT,
             'fund': self.getFund(),
             'unfilled_fund': unfilled_fund,
@@ -520,7 +517,7 @@ class PortfolioAbstract:
         """
         raise NotImplementedError('dealFill not implemented')
 
-    def dealSettlement(self, _tradingday: str, _next_tradingday: str):
+    def dealSettlement(self, _tradingday: str):
         raise NotImplementedError('dealSettlement not implemented')
 
     def dealMarket(self, _symbol: str, _data: DataStruct):

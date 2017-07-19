@@ -31,6 +31,8 @@ class BacktestEngine(EngineAbstract):
         logging.info('Begin RUN!')
         while True:
             ret = self.market_supply.updateData()
+            if ret is None:
+                return
 
             # loop until finished all the events
             while True:
@@ -59,13 +61,11 @@ class BacktestEngine(EngineAbstract):
                 else:
                     break
 
+            # deal something after all events if necessary
             if isinstance(ret, ReturnSettlement):
-                if ret.tradingday:
-                    self.portfolio.dealSettlement(
-                        ret.tradingday, ret.next_tradingday
-                    )
-                if not ret.next_tradingday:
-                    break
+                self.portfolio.dealSettlement(
+                    ret.tradingday
+                )
             elif isinstance(ret, ReturnMarket):
                 self.portfolio.dealMarket(ret.symbol, ret.data)
             else:

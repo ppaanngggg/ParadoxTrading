@@ -15,7 +15,7 @@ class StrategyAbstract:
         :param _name: name of this strategy
         """
 
-        self.name: typing.AnyStr = _name
+        self.name: str = _name
         self.last_signal: int = None
 
         # common variables
@@ -118,7 +118,7 @@ class StrategyAbstract:
 
     def getSymbolData(self, _symbol: str) -> DataStruct:
         """
-        get data of one symbol from marketsupply through engine
+        get data of one symbol from market supply through engine
 
         :param _symbol:
         :return:

@@ -144,7 +144,7 @@ class SignalEvent(EventAbstract):
             _strategy: str,
             _signal_type: int,
             _tradingday: str,
-            _datetime: typing.Union[None, datetime],
+            _datetime: typing.Union[str, datetime],
             _strength: typing.Any = None
     ):
         super().__init__()
@@ -199,7 +199,7 @@ class OrderEvent(EventAbstract):
             _index: int,
             _symbol: str,
             _tradingday: str,
-            _datetime: typing.Union[None, datetime],
+            _datetime: typing.Union[str, datetime],
             _order_type: int = None,
             _action: int = None,
             _direction: int = None,
@@ -272,7 +272,7 @@ class FillEvent(EventAbstract):
             _index: int,
             _symbol: str,
             _tradingday: str,
-            _datetime: typing.Union[None, datetime],
+            _datetime: typing.Union[str, datetime],
             _quantity: int,
             _action: int,
             _direction: int,
@@ -339,33 +339,29 @@ class FillEvent(EventAbstract):
 
 
 class SettlementEvent(EventAbstract):
-    def __init__(self,
-                 _tradingday: str,
-                 _next_tradingday: str):
+    def __init__(
+            self,
+            _tradingday: str,
+    ):
         super().__init__()
         self.type = EventType.SETTLEMENT
         self.tradingday = _tradingday
-        self.next_tradingday = _next_tradingday
 
     def toDict(self) -> dict:
         return {
             'type': self.type,
             'tradingday': self.tradingday,
-            'next_tradingday': self.next_tradingday,
         }
 
     @staticmethod
     def fromDict(_dict: dict) -> 'SettlementEvent':
         return SettlementEvent(
             _tradingday=_dict['tradingday'],
-            _next_tradingday=_dict['next_tradingday']
         )
 
     def __repr__(self):
         tmp = "SETTLEMENT:\n" \
-              "\ttradingday: {}\n" \
-              "\tnext_tradingday: {}"
+              "\ttradingday: {}\n"
         return tmp.format(
-            self.tradingday,
-            self.next_tradingday
+            self.tradingday
         )
