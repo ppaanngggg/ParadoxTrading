@@ -38,9 +38,8 @@ class ATR(IndicatorAbstract):
             tr_value = max(_data_struct[self.high_key][0], self.last_close_price) - \
                        min(_data_struct[self.low_key][0], self.last_close_price)
             self.buf.append(tr_value)
-            tmp_value = np.mean(self.buf)
-            self.data.addRow(
-                [index_value, tmp_value],
-                [self.idx_key, self.ret_key]
-            )
+            self.data.addDict({
+                self.idx_key: index_value,
+                self.ret_key: np.mean(self.buf),
+            })
         self.last_close_price = _data_struct[self.close_key][0]

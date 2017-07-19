@@ -9,3 +9,5 @@ from .MACD import MACD
 from .ReturnRate import ReturnRate
 from .STD import STD
 from .Volatility import Volatility
+from .MAX import MAX
+from .MIN import MIN

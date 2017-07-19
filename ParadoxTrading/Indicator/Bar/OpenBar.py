@@ -23,8 +23,7 @@ class OpenBar(BarIndicatorAbstract):
             self, _data_struct: DataStruct,
             _idx: typing.Union[str, datetime] = None
     ):
-        tmp_value = _data_struct.getColumn(self.use_key)[0]
-        self.data.addRow(
-            (_idx, tmp_value),
-            (self.idx_key, self.ret_key)
-        )
+        self.data.addDict({
+            self.idx_key: _idx,
+            self.ret_key: _data_struct[self.use_key][0]
+        })

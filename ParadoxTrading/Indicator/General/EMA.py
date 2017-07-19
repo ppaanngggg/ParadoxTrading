@@ -25,5 +25,7 @@ class EMA(IndicatorAbstract):
         if len(self) > 0:
             last_ret = self.getLastData().toDict()[self.ret_key]
             tmp_value = (tmp_value - last_ret) / self.period + last_ret
-
-        self.data.addRow([index_value, tmp_value], [self.idx_key, self.ret_key])
+        self.data.addDict({
+            self.idx_key: index_value,
+            self.ret_key: tmp_value,
+        })

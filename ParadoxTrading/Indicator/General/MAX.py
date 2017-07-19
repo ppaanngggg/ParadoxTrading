@@ -1,15 +1,17 @@
 from collections import deque
 
-import numpy as np
-
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class STD(IndicatorAbstract):
+class MAX(IndicatorAbstract):
+    """
+    rolling simple ma
+    """
+
     def __init__(
             self, _period: int, _use_key: str = 'closeprice',
-            _idx_key: str = 'time', _ret_key: str = 'std'
+            _idx_key: str = 'time', _ret_key: str = 'max'
     ):
         super().__init__()
 
@@ -29,5 +31,5 @@ class STD(IndicatorAbstract):
         self.buf.append(_data_struct.getColumn(self.use_key)[0])
         self.data.addDict({
             self.idx_key: index_value,
-            self.ret_key: np.std(self.buf),
+            self.ret_key: max(self.buf),
         })

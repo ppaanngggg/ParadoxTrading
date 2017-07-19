@@ -30,11 +30,10 @@ class Diff(IndicatorAbstract):
     def _addOne(self, _data_struct: DataStruct):
         index_value = _data_struct.index()[0]
         cur_value = _data_struct[self.use_key][0]
-        diff_value = 0
         if self.last_value is not None:
             diff_value = cur_value - self.last_value
+            self.data.addDict({
+                self.idx_key: index_value,
+                self.ret_key: diff_value,
+            })
         self.last_value = cur_value
-        self.data.addRow(
-            (index_value, diff_value),
-            (self.idx_key, self.ret_key)
-        )

@@ -57,7 +57,7 @@ class DataStruct:
 
     def __len__(self) -> int:
         """
-        get the lenght of data
+        get the length of data
 
         :return: length
         """
@@ -86,7 +86,7 @@ class DataStruct:
 
     def clone(self, _columns: typing.List[str] = None) -> 'DataStruct':
         """
-        copy all the data to a new datasturct,
+        copy all the data to a new datastruct,
         !!! WARN !!!: if the value in data is a reference to
         a object, it will just copy a reference to the same
         object
@@ -119,8 +119,8 @@ class DataStruct:
         """
         expand columns by another datastruct
             - strict:
-                1. two datastructs have the totally same index
-                2. names in the other datastruct dont exist in self
+                1. two datastruct have the totally same index
+                2. names in the other datastruct don't exist in self
                 3. copy columns to self
             - ...
 
@@ -136,7 +136,7 @@ class DataStruct:
             for name in _struct.getColumnNames(False):
                 self.data[name] = _struct.getColumn(name)
         else:
-            raise Exception('unknow type!')
+            raise Exception('unknown type!')
 
     def addRow(
             self,
@@ -158,7 +158,7 @@ class DataStruct:
             _keys: typing.Sequence[str]
     ):
         """
-        add mulit rows like addRow
+        add multi rows like addRow
 
         :param _rows:
         :param _keys:
@@ -262,16 +262,16 @@ class DataStruct:
         for k, v in self.data.items():
             v_sample = v[0]
             if isinstance(v_sample, int):
-                dtype = 'int32'
+                d_type = 'int32'
                 attr = 'int'
             elif isinstance(v_sample, float):
-                dtype = 'float64'
+                d_type = 'float64'
                 attr = 'float'
             elif isinstance(v_sample, str):
-                dtype = h5py.special_dtype(vlen=str)
+                d_type = h5py.special_dtype(vlen=str)
                 attr = 'str'
             elif isinstance(v_sample, datetime):
-                dtype = 'float64'
+                d_type = 'float64'
                 attr = 'datetime'
             else:
                 raise Exception('unsupported type, sorry')
@@ -280,7 +280,7 @@ class DataStruct:
                 self.datetime2float(k)
 
             dataset = f.create_dataset(
-                k, (len(self),), dtype=dtype
+                k, (len(self),), dtype=d_type
             )
             dataset[:] = self[k]
             dataset.attrs['type'] = attr

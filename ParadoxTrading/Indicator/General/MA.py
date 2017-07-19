@@ -1,11 +1,16 @@
 from collections import deque
 
 import numpy as np
+
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
 class MA(IndicatorAbstract):
+    """
+    rolling ma
+    """
+
     def __init__(
             self, _period: int, _use_key: str = 'closeprice',
             _idx_key: str = 'time', _ret_key: str = 'ma'
@@ -26,5 +31,7 @@ class MA(IndicatorAbstract):
     def _addOne(self, _data_struct: DataStruct):
         index_value = _data_struct.index()[0]
         self.buf.append(_data_struct.getColumn(self.use_key)[0])
-        tmp_value = np.mean(self.buf)
-        self.data.addRow([index_value, tmp_value], [self.idx_key, self.ret_key])
+        self.data.addDict({
+            self.idx_key: index_value,
+            self.ret_key: np.mean(self.buf),
+        })

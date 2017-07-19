@@ -4,7 +4,7 @@ from ParadoxTrading.Utils import DataStruct
 
 class Kalman(IndicatorAbstract):
     def __init__(
-            self, _use_key: str='closeprice',
+            self, _use_key: str = 'closeprice',
             _R: float = 1e-2, _Q: float = 1e-5,
             _idx_key: str = 'time', _ret_key: str = 'kalman'
     ):
@@ -21,20 +21,20 @@ class Kalman(IndicatorAbstract):
         self.R = _R
         self.Q = _Q
 
-        self.xhat = 0.0
+        self.x_hat = 0.0
         self.P = 1.0
 
     def _addOne(self, _data_struct: DataStruct):
         index = _data_struct.index()[0]
         value = _data_struct[self.use_key][0]
 
-        xhatminus = self.xhat
-        pminus = self.P + self.Q
-        k = pminus / (pminus + self.R)
-        self.xhat = xhatminus + k * (value - xhatminus)
-        self.P = (1 - k) * pminus
+        x_hat_minus = self.x_hat
+        p_minus = self.P + self.Q
+        k = p_minus / (p_minus + self.R)
+        self.x_hat = x_hat_minus + k * (value - x_hat_minus)
+        self.P = (1 - k) * p_minus
 
-        self.data.addRow(
-            [index, self.xhat],
-            [self.idx_key, self.ret_key]
-        )
+        self.data.addDict({
+            self.idx_key: index,
+            self.ret_key: self.x_hat
+        })
