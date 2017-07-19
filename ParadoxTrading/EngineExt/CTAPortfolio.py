@@ -486,12 +486,103 @@ class CTAEqualFundPortfolio(CTAPortfolio):
         self._iter_send_order()
 
 
-# class CTAEqualFundReducePortfolio(CTAPortfolio):
-#     """
-#
-#
-#     """
-#     pass
+class CTAEqualFundReducePortfolio(CTAPortfolio):
+    """
+    it also equally alloc the fund, however only triggered when
+    signal adjusted
+    """
+
+    def __init__(
+            self,
+            _fetcher: FetchAbstract,
+            _init_fund: float = 0.0,
+            _margin_rate: float = 1.0,
+            _settlement_price_index: str = 'closeprice'
+    ):
+        super().__init__(
+            _fetcher, _init_fund, _settlement_price_index
+        )
+
+        self.margin_rate = _margin_rate
+        self.total_fund: float = 0.0
+        self.last_signal_status: typing.Set[str] = set()
+        self.signal_status: typing.Set[str] = set()
+
+    def _iter_signal_status(self):
+        for s in self.strategy_table.values():
+            for p in s:
+                if p.strength != 0:
+                    self.signal_status.add('{}_{}_{}'.format(
+                        s.strategy, p.product, p.strength
+                    ))
+
+    def _iter_update_next_position(self, _tradingday):
+        if self.signal_status == self.last_signal_status:
+            # if signal status not changed
+            for s in self.strategy_table.values():
+                for p in s:
+                    if p.strength == 0:
+                        p.next_quantity = 0
+                    else:
+                        p.next_instrument = self.fetcher.fetchSymbol(
+                            _tradingday, _product=p.product
+                        )
+                        p.next_quantity = p.cur_quantity
+        else:
+            # if changed, then get current number of signals
+            parted = len(self.signal_status)
+            for s in self.strategy_table.values():
+                for p in s:
+                    if p.strength == 0:
+                        p.next_quantity = 0
+                    else:
+                        p.next_instrument = self.fetcher.fetchSymbol(
+                            _tradingday, _product=p.product
+                        )
+                        price = self.fetcher.fetchData(
+                            _tradingday, p.next_instrument
+                        )[self.settlement_price_index][0]
+                        tmp = int(
+                            self.margin_rate * self.total_fund
+                            / parted / price
+                        )
+                        if p.strength > 0:
+                            p.next_quantity = tmp
+                        elif p.strength < 0:
+                            p.next_quantity = -tmp
+                        else:
+                            raise Exception('p.strength == 0 ???')
+
+    def dealSettlement(self, _tradingday, _next_tradingday):
+        # check it's the end of prev tradingday
+        assert _tradingday
+
+        # 1. get the table map symbols to their price
+        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        # 2. set portfolio settlement
+        self._iter_portfolio_settlement(
+            _tradingday, _next_tradingday,
+            symbol_price_dict
+        )
+
+        # 3 compute current total fund
+        self.total_fund = self.portfolio.getFund(
+        ) + self.portfolio.getUnfilledFund(symbol_price_dict)
+
+        # deal with new signal status
+        self._iter_signal_status()
+
+        # 4. update each strategy's positions to current status
+        self._iter_update_cur_position()
+
+        # 5. update next status
+        self._iter_update_next_position(_tradingday)
+        # 6. send new orders
+        self._iter_send_order()
+
+        # reset signal status
+        self.last_signal_status = self.signal_status
+        self.signal_status: typing.Set[str] = set()
 
 
 class CTAConstAllocPortfolio(CTAPortfolio):
