@@ -7,7 +7,7 @@ from ParadoxTrading.Utils import DataStruct
 class MIN(IndicatorAbstract):
     def __init__(
             self, _period: int, _use_key: str = 'closeprice',
-            _idx_key: str = 'time', _ret_key: str = 'ma'
+            _idx_key: str = 'time', _ret_key: str = 'min'
     ):
         super().__init__()
 

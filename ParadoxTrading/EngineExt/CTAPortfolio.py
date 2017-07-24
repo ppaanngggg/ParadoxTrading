@@ -602,11 +602,13 @@ class CTAConstAllocPortfolio(CTAPortfolio):
         self.alloc_rate: float = _alloc_rate
         self.total_fund: float = None
 
-    def _calc_next_position(self, _tradingday, _symbol) -> int:
+    def _calc_next_position(self, _tradingday, _symbol, _strength) -> int:
         price = self.fetcher.fetchData(
             _tradingday, _symbol
         )[self.settlement_price_index][0]
-        return int(self.total_fund * self.alloc_rate / price)
+        return int(
+            _strength * self.total_fund * self.alloc_rate / price
+        )
 
     def _iter_update_next_position(self, _tradingday):
         for s in self.strategy_table.values():
@@ -619,7 +621,7 @@ class CTAConstAllocPortfolio(CTAPortfolio):
                         p.next_quantity = p.cur_quantity
                     else:
                         p.next_quantity = self._calc_next_position(
-                            _tradingday, p.next_instrument
+                            _tradingday, p.next_instrument, p.strength
                         )
                 elif p.strength < 0:  # short position
                     p.next_instrument = self.fetcher.fetchSymbol(
@@ -628,8 +630,8 @@ class CTAConstAllocPortfolio(CTAPortfolio):
                     if p.cur_quantity < 0:  # has short position now
                         p.next_quantity = p.cur_quantity
                     else:
-                        p.next_quantity = -self._calc_next_position(
-                            _tradingday, p.next_instrument
+                        p.next_quantity = self._calc_next_position(
+                            _tradingday, p.next_instrument, p.strength
                         )
                 else:  # no position
                     p.next_quantity = 0

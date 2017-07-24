@@ -3,6 +3,7 @@ from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta
 
 import h5py
+import pandas as pd
 import tabulate
 
 
@@ -308,6 +309,24 @@ class DataStruct:
                 datastruct.float2datetime(k)
 
         f.close()
+        return datastruct
+
+    def toPandas(self) -> pd.DataFrame:
+        df = pd.DataFrame(data=self.data, index=self.index())
+        del df[self.index_name]
+        df.index.name = self.index_name
+        return df
+
+    @staticmethod
+    def fromPandas(df: pd.DataFrame) -> 'DataStruct':
+        columns = list(df)
+        index_name = df.index.name
+        columns.append(index_name)
+        datastruct = DataStruct(columns, index_name)
+        sorted_df = df.sort_index()
+        datastruct.data[datastruct.index_name] = sorted_df.index.tolist()
+        for column in df:
+            datastruct.data[column] = df[column].tolist()
         return datastruct
 
     def index(self) -> list:

@@ -68,3 +68,8 @@ print(a.clone(['closeprice', 'volume']))
 print(a)
 a.toHDF5('hdf_sample.hdf5')
 print(DataStruct.fromHDF5('hdf_sample.hdf5'))
+
+df = a.toPandas()
+print(df)
+
+print(DataStruct.fromPandas(df))
