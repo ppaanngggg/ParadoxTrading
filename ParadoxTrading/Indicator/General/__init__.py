@@ -11,3 +11,4 @@ from .STD import STD
 from .Volatility import Volatility
 from .MAX import MAX
 from .MIN import MIN
+from .ZigZag import ZigZag
