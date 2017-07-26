@@ -603,12 +603,17 @@ class FetchFutureDay(FetchFutureTick):
         if _symbol is None:
             return None
         assert isinstance(_symbol, str)
-        symbol = _symbol.lower()
 
-        ret = self.fetchDayData(
-            _tradingday, _symbol=symbol, _index=_index)
-        if len(ret) > 0:
-            return ret
+        con, cur = self._get_psql_con_cur()
+        query = "select * from {} where {}='{}'".format(
+            _symbol.lower(), _index.lower(), _tradingday
+        )
+        cur.execute(query)
+        datas = list(cur.fetchall())
+        datastruct = DataStruct(self.columns, _index.lower(), datas)
+
+        if len(datastruct) > 0:
+            return datastruct
         return None
 
     def fetchDayData(

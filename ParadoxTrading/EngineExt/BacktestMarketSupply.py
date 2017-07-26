@@ -3,8 +3,8 @@ import operator
 import typing
 from datetime import datetime, timedelta
 
-from ParadoxTrading.Engine import MarketSupplyAbstract, ReturnSettlement, \
-    ReturnMarket
+from ParadoxTrading.Engine import (MarketSupplyAbstract, ReturnMarket,
+                                   ReturnSettlement)
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -13,7 +13,6 @@ class DataGenerator:
     """
     JUST FOR BACKTEST !!!
     """
-
     def __init__(
             self,
             _tradingday: str,
@@ -29,7 +28,6 @@ class DataGenerator:
         :param _register_dict:
         :param _symbol_dict:
         """
-        logging.info('Fetch Day: {}'.format(_tradingday))
         self.data_dict: typing.Dict[str, DataStruct] = {}
         self.index_dict: typing.Dict[str, int] = {}
         self.datetime: typing.Union[str, datetime] = None
@@ -38,22 +36,22 @@ class DataGenerator:
         _symbol_dict.clear()
 
         for k, v in _register_dict.items():
-            inst = _fetcher.fetchSymbol(
+            symbol = _fetcher.fetchSymbol(
                 _tradingday, **v.toKwargs()
             )
-            # whether inst exists
-            if inst is not None:
+            # whether symbol exists
+            if symbol is not None:
                 # fetch data and set index to 0 init
-                self.data_dict[inst] = _fetcher.fetchData(
-                    _tradingday, _symbol=inst)
-                self.index_dict[inst] = 0
+                self.data_dict[symbol] = _fetcher.fetchData(
+                    _tradingday, _symbol=symbol)
+                self.index_dict[symbol] = 0
 
                 # map symbol to market register key
                 try:
-                    _symbol_dict[inst].add(k)
+                    _symbol_dict[symbol].add(k)
                 except KeyError:
-                    _symbol_dict[inst] = {k}
-        logging.info('Available symbol: {}'.format(_symbol_dict.keys()))
+                    _symbol_dict[symbol] = {k}
+        logging.debug('Available symbol: {}'.format(_symbol_dict.keys()))
 
     def gen(self) -> typing.Union[None, typing.Tuple[str, DataStruct]]:
         """
@@ -74,12 +72,12 @@ class DataGenerator:
             # get the latest market data of all
             tmp.sort(key=operator.itemgetter(1))
 
-            inst = tmp[0][0]
+            symbol = tmp[0][0]
 
-            index = self.index_dict[inst]
+            index = self.index_dict[symbol]
             ret: typing.Tuple[str, DataStruct] = (
-                inst, self.data_dict[inst].iloc[index])
-            self.index_dict[inst] += 1  # point to next one
+                symbol, self.data_dict[symbol].iloc[index])
+            self.index_dict[symbol] += 1  # point to next one
 
             # set cur datetime to latest tick's happentime
             self.datetime = tmp[0][1]
@@ -109,6 +107,9 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         self.end_day: str = _end_day
 
         self.tradingday: str = self.begin_day
+        self.tradingday_obj: datetime = datetime.strptime(
+            self.tradingday, '%Y%m%d'
+        )
         self.datetime: typing.Union[str, datetime] = None
         self.data_generator: DataGenerator = None
 
@@ -118,9 +119,8 @@ class BacktestMarketSupply(MarketSupplyAbstract):
 
         :return: cur date
         """
-        tmp = datetime.strptime(self.tradingday, '%Y%m%d')
-        tmp += timedelta(days=1)
-        self.tradingday = tmp.strftime('%Y%m%d')
+        self.tradingday_obj += timedelta(days=1)
+        self.tradingday = self.tradingday_obj.strftime('%Y%m%d')
         return self.tradingday
 
     def updateData(self) -> typing.Union[
@@ -145,7 +145,10 @@ class BacktestMarketSupply(MarketSupplyAbstract):
             if not self.symbol_dict:
                 self.incDate()
                 self.data_generator: DataGenerator = None
-
+            else:
+                logging.info('TradingDay: {}, Product: {}'.format(
+                    self.tradingday, self.symbol_dict.keys()
+                ))
         # try to gen one tick data from data generator
         ret = self.data_generator.gen()
         if ret is None:  # this tradingday is end

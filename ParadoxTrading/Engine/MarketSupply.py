@@ -66,7 +66,7 @@ class MarketSupplyAbstract:
 
     def addSettlementEvent(self, _tradingday):
         self.engine.addEvent(SettlementEvent(_tradingday))
-        logging.info('Settlement - tradingday:{}'.format(
+        logging.debug('Settlement - tradingday:{}'.format(
             _tradingday
         ))
         return ReturnSettlement(_tradingday)
