@@ -1,7 +1,5 @@
 from collections import deque
 
-import numpy as np
-
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -33,5 +31,5 @@ class MA(IndicatorAbstract):
         self.buf.append(_data_struct.getColumn(self.use_key)[0])
         self.data.addDict({
             self.idx_key: index_value,
-            self.ret_key: np.mean(self.buf),
+            self.ret_key: sum(self.buf) / len(self.buf),
         })

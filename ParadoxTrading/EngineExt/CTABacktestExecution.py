@@ -32,7 +32,7 @@ class CTABacktestExecution(ExecutionAbstract):
         fill_price = self.fetcher.fetchData(
             self.engine.getTradingDay(),
             _order_event.symbol,
-        ).toDict()[self.price_idx]
+        )[self.price_idx][0]
 
         fill_event = FillEvent(
             _index=_order_event.index,

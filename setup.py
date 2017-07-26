@@ -26,7 +26,7 @@ setup(
         'PyQt5',
         'PyQtChart',
         'arrow',
-        'pandas',
+        'pandas', 'diskcache',
         # 'PyCTP'
     ],
     dependency_links=[

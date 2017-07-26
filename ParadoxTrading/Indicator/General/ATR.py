@@ -1,7 +1,5 @@
 from collections import deque
 
-import numpy as np
-
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -40,6 +38,6 @@ class ATR(IndicatorAbstract):
             self.buf.append(tr_value)
             self.data.addDict({
                 self.idx_key: index_value,
-                self.ret_key: np.mean(self.buf),
+                self.ret_key: sum(self.buf) / len(self.buf),
             })
         self.last_close_price = _data_struct[self.close_key][0]
