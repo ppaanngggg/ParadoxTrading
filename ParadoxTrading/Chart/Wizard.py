@@ -43,8 +43,7 @@ class Wizard:
 
     def _calcSetX(self) -> (dict, list):
         """
-
-        :return: x2idx and idx2x, because idx is int, then idx2x is list 
+        :return: x2idx and idx2x, because idx is int, then idx2x is list
         """
         # join all x
         tmp = set()

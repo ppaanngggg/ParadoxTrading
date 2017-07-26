@@ -3,27 +3,27 @@ from ParadoxTrading.Indicator.Stop.StopIndicatorAbstract import StopIndicatorAbs
 from ParadoxTrading.Utils import DataStruct
 
 
-class VolatilityTrailingStop(StopIndicatorAbstract):
+class ATRTrailingStop(StopIndicatorAbstract):
     def __init__(
             self,
             _price_data: DataStruct,
-            _volatility_data: DataStruct,
+            _atr_data: DataStruct,
             _stop_type: int,
-            _rate: float = 4,
+            _rate: float = 3,
             _price_use_key: str = 'closeprice',
-            _volatility_use_key: str = 'volatility',
+            _atr_use_key: str = 'atr',
             _idx_key: str = 'time',
             _ret_key: str = 'stopprice',
     ):
         super().__init__()
 
         assert len(_price_data) == 1
-        assert len(_volatility_data) == 1
+        assert len(_atr_data) == 1
 
         self.stop_type = _stop_type
         self.rate = _rate
         self.price_use_key = _price_use_key
-        self.volatility_use_key = _volatility_use_key
+        self.atr_use_key = _atr_use_key
         self.idx_key = _idx_key
         self.ret_key = _ret_key
 
@@ -32,52 +32,46 @@ class VolatilityTrailingStop(StopIndicatorAbstract):
             self.idx_key,
         )
 
-        self._addOne(_price_data, _volatility_data)
+        self.best_price = _price_data[self.price_use_key][0]
+        self._addOne(_price_data, _atr_data)
 
-    def get_stop_price(self, _price, _volatility):
-        if len(self.data):
-            last_stop_price = self.data[self.ret_key][-1]
-            if self.stop_type == SignalType.LONG:
-                return max(_price * (1 - self.rate * _volatility), last_stop_price)
-            elif self.stop_type == SignalType.SHORT:
-                return min(_price * (1 + self.rate * _volatility), last_stop_price)
-            else:
-                raise Exception('unknown type')
+    def get_stop_price(self, _price, _atr) -> float:
+        if self.stop_type == SignalType.LONG:
+            self.best_price = max(self.best_price, _price)
+            return self.best_price - self.rate * _atr
+        elif self.stop_type == SignalType.SHORT:
+            self.best_price = min(self.best_price, _price)
+            return self.best_price + self.rate * _atr
         else:
-            if self.stop_type == SignalType.LONG:
-                return _price * (1 - self.rate * _volatility)
-            elif self.stop_type == SignalType.SHORT:
-                return _price * (1 + self.rate * _volatility)
-            else:
-                raise Exception('unknown type')
+            raise Exception('unknown type')
 
     def addOne(
             self, _data_struct: DataStruct,
-            _volatility_data: DataStruct = None,
+            _atr_data: DataStruct = None,
     ) -> bool:
         if not self.is_stop:
             assert len(_data_struct) == 1
-            self._addOne(_data_struct, _volatility_data)
+            self._addOne(_data_struct, _atr_data)
             self._isStop(_data_struct)
 
         return self.is_stop
 
     def _addOne(
             self, _price_data: DataStruct,
-            _volatility_data: DataStruct = None,
+            _atr_data: DataStruct = None,
     ):
-        assert len(_volatility_data) == 1
+        assert len(_atr_data) == 1
 
         price = _price_data.toDict()[self.price_use_key]
-        volatility = _volatility_data.toDict()[self.volatility_use_key]
+        atr = _atr_data.toDict()[self.atr_use_key]
 
         price_time = _price_data.index()[0]
-        volatility_time = _volatility_data.index()[0]
-        assert price_time == volatility_time
+        atr_time = _atr_data.index()[0]
+        assert price_time == atr_time
 
         self.data.addDict({
             self.idx_key: price_time,
-            self.ret_key: self.get_stop_price(price, volatility),
+            self.ret_key: self.get_stop_price(price, atr),
         })
 
     def _isStop(self, _data_struct: DataStruct):

@@ -31,6 +31,6 @@ class StopIndicatorAbstract(IndicatorAbstract):
 
     def addMany(
             self,
-            _data_list: typing.Union[DataStruct, typing.List[DataStruct]] = None,
+            _data_list: typing.Union[DataStruct, typing.List[DataStruct]],
     ):
         raise Exception('loss indicator has no addMany()')
