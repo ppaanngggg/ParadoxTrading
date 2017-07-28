@@ -6,9 +6,12 @@ from .EMA import EMA
 from .Kalman import Kalman
 from .MA import MA
 from .MACD import MACD
-from .ReturnRate import ReturnRate
-from .STD import STD
-from .Volatility import Volatility
 from .MAX import MAX
 from .MIN import MIN
+from .Momentum import Momentum
+from .ReturnRate import ReturnRate
+from .STD import STD
+from .SharpRate import SharpRate
+from .SimMA import SimMA
+from .Volatility import Volatility
 from .ZigZag import ZigZag

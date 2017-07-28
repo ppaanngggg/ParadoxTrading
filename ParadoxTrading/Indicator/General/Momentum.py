@@ -1,11 +1,13 @@
+from collections import deque
+
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class EMA(IndicatorAbstract):
+class Momentum(IndicatorAbstract):
     def __init__(
-            self, _period: int, _use_key: str='closeprice',
-            _idx_key: str = 'time', _ret_key: str = 'ema'
+            self, _period: int, _use_key: str = 'closeprice',
+            _idx_key: str = 'time', _ret_key: str = 'momentum'
     ):
         super().__init__()
 
@@ -17,15 +19,14 @@ class EMA(IndicatorAbstract):
             self.idx_key
         )
 
-        self.period = _period
+        self.buf = deque(maxlen=_period)
 
     def _addOne(self, _data_struct: DataStruct):
         index_value = _data_struct.index()[0]
-        tmp_value = _data_struct[self.use_key][0]
-        if len(self) > 0:
-            last_ret = self.getLastData().toDict()[self.ret_key]
-            tmp_value = (tmp_value - last_ret) / self.period + last_ret
+        cur_value = _data_struct[self.use_key][0]
+        self.buf.append(cur_value)
+
         self.data.addDict({
             self.idx_key: index_value,
-            self.ret_key: tmp_value,
+            self.ret_key: cur_value / self.buf[0],
         })

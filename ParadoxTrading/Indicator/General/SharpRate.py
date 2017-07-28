@@ -6,10 +6,10 @@ from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class Volatility(IndicatorAbstract):
+class SharpRate(IndicatorAbstract):
     def __init__(
             self, _period: int, _use_key: str = 'closeprice',
-            _idx_key: str = 'time', _ret_key: str = 'volatility',
+            _idx_key: str = 'time', _ret_key: str = 'sharprate',
     ):
         super().__init__()
 
@@ -31,8 +31,10 @@ class Volatility(IndicatorAbstract):
         if self.last_price is not None:
             chg_rate = math.log(price_value / self.last_price)
             self.buf.append(chg_rate)
-            self.data.addDict({
-                self.idx_key: index_value,
-                self.ret_key: statistics.pstdev(self.buf),
-            })
-            self.last_price = price_value
+            buf_std = statistics.pstdev(self.buf)
+            if buf_std != 0:
+                self.data.addDict({
+                    self.idx_key: index_value,
+                    self.ret_key: statistics.mean(self.buf) / buf_std,
+                })
+        self.last_price = price_value

@@ -1,3 +1,5 @@
+import math
+
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -5,7 +7,7 @@ from ParadoxTrading.Utils import DataStruct
 class ReturnRate(IndicatorAbstract):
     def __init__(
             self, _use_key: str = 'closeprice',
-            _idx_key: str = 'time', _ret_key: str = 'rate'
+            _idx_key: str = 'time', _ret_key: str = 'returnrate'
     ):
         super().__init__()
 
@@ -24,6 +26,6 @@ class ReturnRate(IndicatorAbstract):
         if self.last_value is not None:
             self.data.addDict({
                 self.idx_key: index,
-                self.ret_key: value / self.last_value - 1,
+                self.ret_key: math.log(value / self.last_value),
             })
         self.last_value = value
