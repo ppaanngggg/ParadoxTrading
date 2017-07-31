@@ -486,7 +486,9 @@ class CTAEqualFundPortfolio(CTAPortfolio):
 class CTAEqualFundReducePortfolio(CTAPortfolio):
     """
     it also equally alloc the fund, however only triggered when
-    signal adjusted
+    signal adjusted. if the strategies, their products or strengths
+    changes, it will adjust fund allocation according to their
+    strengths
     """
 
     def __init__(
@@ -502,6 +504,8 @@ class CTAEqualFundReducePortfolio(CTAPortfolio):
 
         self.margin_rate = _margin_rate
         self.total_fund: float = 0.0
+
+        # to check whether the signals change
         self.last_signal_status: typing.Set[str] = set()
         self.signal_status: typing.Set[str] = set()
 
@@ -518,6 +522,7 @@ class CTAEqualFundReducePortfolio(CTAPortfolio):
             # if signal status not changed
             for s in self.strategy_table.values():
                 for p in s:
+                    # just copy the last position status
                     if p.strength == 0:
                         p.next_quantity = 0
                     else:
@@ -526,8 +531,12 @@ class CTAEqualFundReducePortfolio(CTAPortfolio):
                         )
                         p.next_quantity = p.cur_quantity
         else:
-            # if changed, then get current number of signals
-            parted = len(self.signal_status)
+            # if changed, then get the total num of strengths
+            total_strength = 0.0
+            for s in self.strategy_table.values():
+                for p in s:
+                    total_strength += abs(p.strength)
+            # alloc according to strength
             for s in self.strategy_table.values():
                 for p in s:
                     if p.strength == 0:
@@ -539,16 +548,10 @@ class CTAEqualFundReducePortfolio(CTAPortfolio):
                         price = self.fetcher.fetchData(
                             _tradingday, p.next_instrument
                         )[self.settlement_price_index][0]
-                        tmp = int(
-                            self.margin_rate * self.total_fund
-                            / parted / price
+                        p.next_quantity = int(
+                            p.strength / total_strength *
+                            self.total_fund * self.margin_rate / price
                         )
-                        if p.strength > 0:
-                            p.next_quantity = tmp
-                        elif p.strength < 0:
-                            p.next_quantity = -tmp
-                        else:
-                            raise Exception('p.strength == 0 ???')
 
     def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
