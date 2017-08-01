@@ -406,11 +406,12 @@ class CTAPortfolio(PortfolioAbstract):
         pass
 
 
-class CTAEqualFundPortfolio(CTAPortfolio):
+class CTAWeightedPortfolio(CTAPortfolio):
     """
-    a bit more complex allocation. It will keep all the current positions
-    equally using total_fund * margin_rate. Because it always keep the
-    positions, it will adjust positions when fund changes. It's a little
+    a bit more complex allocation.
+    It will keep all the current positions weighted by strength.
+    (strength / total_strength * total_fund * margin_rate)
+    Because it always adjusts the positions, it's a little
     ugly and expensive in commissions.
     """
 
@@ -428,9 +429,12 @@ class CTAEqualFundPortfolio(CTAPortfolio):
         # used for allocQuantity()
         self.margin_rate = _margin_rate
         self.total_fund: float = 0.0
-        self.parted_num: float = 0.0
 
     def _iter_update_next_position(self, _tradingday):
+        total_strength = 0.0
+        for s in self.strategy_table.values():
+            for p in s:
+                total_strength += abs(p.strength)
         for s in self.strategy_table.values():
             for p in s:
                 if p.strength == 0:  # no position at all
@@ -443,16 +447,10 @@ class CTAEqualFundPortfolio(CTAPortfolio):
                     price = self.fetcher.fetchData(
                         _tradingday, p.next_instrument
                     )[self.settlement_price_index][0]
-                    tmp = int(
-                        self.margin_rate * self.total_fund
-                        / self.parted_num / price
+                    p.next_quantity = int(
+                        p.strength / total_strength *
+                        self.total_fund * self.margin_rate / price
                     )
-                    if p.strength > 0:
-                        p.next_quantity = tmp
-                    elif p.strength < 0:
-                        p.next_quantity = -tmp
-                    else:
-                        raise Exception('p.strength == 0 ???')
 
     def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
@@ -465,15 +463,9 @@ class CTAEqualFundPortfolio(CTAPortfolio):
             _tradingday, symbol_price_dict
         )
 
-        # 3.1 compute current total fund
+        # 3 compute current total fund
         self.total_fund = self.portfolio.getFund(
         ) + self.portfolio.getUnfilledFund(symbol_price_dict)
-        # 3.2 compute how many parts to be divided
-        self.parted_num = 0
-        for strategy_p in self.strategy_table.values():
-            for product_p in strategy_p:
-                if product_p.strength != 0:
-                    self.parted_num += 1
 
         # 4. update each strategy's positions to current status
         self._iter_update_cur_position()
@@ -483,7 +475,7 @@ class CTAEqualFundPortfolio(CTAPortfolio):
         self._iter_send_order()
 
 
-class CTAEqualFundReducePortfolio(CTAPortfolio):
+class CTAWeightedStablePortfolio(CTAPortfolio):
     """
     it also equally alloc the fund, however only triggered when
     signal adjusted. if the strategies, their products or strengths
@@ -568,7 +560,7 @@ class CTAEqualFundReducePortfolio(CTAPortfolio):
         self.total_fund = self.portfolio.getFund(
         ) + self.portfolio.getUnfilledFund(symbol_price_dict)
 
-        # deal with new signal status
+        # 3.1 deal with new signal status
         self._iter_signal_status()
 
         # 4. update each strategy's positions to current status
@@ -579,12 +571,71 @@ class CTAEqualFundReducePortfolio(CTAPortfolio):
         # 6. send new orders
         self._iter_send_order()
 
-        # reset signal status
+        # 7. reset signal status
         self.last_signal_status = self.signal_status
         self.signal_status: typing.Set[str] = set()
 
 
-class CTAConstAllocPortfolio(CTAPortfolio):
+class CTAAllocPortfolio(CTAPortfolio):
+    """
+    It will always alloc a rate of fund position according to strength
+
+    """
+
+    def __init__(
+            self,
+            _fetcher: FetchAbstract,
+            _init_fund: float = 0.0,
+            _alloc_rate: float = 0.05,
+            _settlement_price_index: str = 'closeprice',
+    ):
+        super().__init__(
+            _fetcher, _init_fund, _settlement_price_index
+        )
+
+        self.alloc_rate: float = _alloc_rate
+        self.total_fund: float = None
+
+    def _iter_update_next_position(self, _tradingday):
+        for s in self.strategy_table.values():
+            for p in s:
+                if p.strength == 0:
+                    p.next_quantity = 0
+                else:
+                    p.next_instrument = self.fetcher.fetchSymbol(
+                        _tradingday, _product=p.product
+                    )
+                    price = self.fetcher.fetchData(
+                        _tradingday, p.next_instrument
+                    )[self.settlement_price_index][0]
+                    p.next_quantity = int(
+                        self.total_fund * self.alloc_rate * p.strength / price
+                    )
+
+    def dealSettlement(self, _tradingday):
+        # check it's the end of prev tradingday
+        assert _tradingday
+
+        # 1. get the table map symbols to their price
+        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        # 2. set portfolio settlement
+        self._iter_portfolio_settlement(
+            _tradingday, symbol_price_dict
+        )
+
+        # 3 compute current total fund
+        self.total_fund = self.portfolio.getFund(
+        ) + self.portfolio.getUnfilledFund(symbol_price_dict)
+
+        # 4. update each strategy's positions to current status
+        self._iter_update_cur_position()
+        # 5. update next status
+        self._iter_update_next_position(_tradingday)
+        # 6. send new orders
+        self._iter_send_order()
+
+
+class CTAAllocStablePortfolio(CTAPortfolio):
     """
     it will create a const position according to alloc_rate when
     receive a open signal. It will the position unchanged until

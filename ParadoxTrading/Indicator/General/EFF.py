@@ -1,15 +1,13 @@
-import math
-import statistics
 from collections import deque
 
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class SharpRate(IndicatorAbstract):
+class EFF(IndicatorAbstract):
     def __init__(
             self, _period: int, _use_key: str = 'closeprice',
-            _idx_key: str = 'time', _ret_key: str = 'sharprate',
+            _idx_key: str = 'time', _ret_key: str = 'eff'
     ):
         super().__init__()
 
@@ -21,20 +19,18 @@ class SharpRate(IndicatorAbstract):
             self.idx_key
         )
 
-        self.last_price = None
         self.period = _period
         self.buf = deque(maxlen=self.period)
 
     def _addOne(self, _data_struct: DataStruct):
         index_value = _data_struct.index()[0]
-        price_value = _data_struct[self.use_key][0]
-        if self.last_price is not None:
-            chg_rate = price_value / self.last_price - 1
-            self.buf.append(chg_rate)
-            buf_std = statistics.pstdev(self.buf)
-            if buf_std != 0:
-                self.data.addDict({
-                    self.idx_key: index_value,
-                    self.ret_key: statistics.mean(self.buf) / buf_std,
-                })
-        self.last_price = price_value
+        self.buf.append(_data_struct.getColumn(self.use_key)[0])
+        if len(self.buf) == self.period:
+            buf_list = list(self.buf)
+            tmp = 0.0
+            for a, b in zip(buf_list[:-1], buf_list[1:]):
+                tmp += abs(b - a)
+            self.data.addDict({
+                self.idx_key: index_value,
+                self.ret_key: (self.buf[-1] - self.buf[0]) / tmp,
+            })

@@ -3,8 +3,8 @@ from .BacktestMarketSupply import BacktestMarketSupply
 from .BarBacktestExecution import BarBacktestExecution
 from .BarPortfolio import BarPortfolio
 from .CTABacktestExecution import CTABacktestExecution
-from .CTAPortfolio import CTAPortfolio, CTAEqualFundPortfolio, \
-    CTAEqualFundReducePortfolio, CTAConstAllocPortfolio
+from .CTAPortfolio import CTAPortfolio, CTAWeightedPortfolio, \
+    CTAWeightedStablePortfolio, CTAAllocPortfolio, CTAAllocStablePortfolio
 from .CTAStrategy import CTAStrategy, CTAStatusType
 # from .CTPExecution import CTPExecution
 from .TickBacktestExecution import TickBacktestExecution

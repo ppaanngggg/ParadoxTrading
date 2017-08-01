@@ -2,6 +2,7 @@ from .ATR import ATR
 from .AdaBBands import AdaBBands
 from .BBands import BBands
 from .Diff import Diff
+from .EFF import EFF
 from .EMA import EMA
 from .Kalman import Kalman
 from .MA import MA
