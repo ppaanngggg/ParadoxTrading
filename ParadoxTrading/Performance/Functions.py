@@ -21,8 +21,7 @@ def avgYearReturn(
         _fund_index: str = 'total_fund'
 ) -> float:
     fund = _returns[_fund_index]
-    rate = fund[-1] / fund[0] - 1
-    return rate / len(fund) * _factor
+    return (fund[-1] / fund[0]) ** (_factor / len(fund)) - 1
 
 
 def sharpRatio(
