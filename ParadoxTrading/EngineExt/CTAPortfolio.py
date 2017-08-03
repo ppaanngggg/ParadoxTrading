@@ -9,6 +9,7 @@ from ParadoxTrading.Utils import DataStruct
 class ProductPosition:
     def __init__(self, _product):
         self.product = _product
+        self.prev_strength = 0.0
         self.strength = 0.0
         self.cur_instrument = None
         self.cur_quantity = 0
@@ -27,7 +28,10 @@ class ProductPosition:
         """
         self.strength = _event.strength
 
-    def resetDetail(self):
+    def reset(self):
+        self.prev_strength = self.strength
+        self.next_instrument = None
+        self.next_quantity = 0
         self.detail: typing.Dict[str, int] = {}
 
     def dealFill(self, _event: FillEvent):
@@ -53,13 +57,15 @@ class ProductPosition:
     def __repr__(self) -> str:
         return \
             '\tPRODUCT: {}\n' \
+            '\tPREV_STRENGTH: {}\n' \
             '\tSTRENGTH: {}\n' \
             '\tCUR_INSTRUMENT: {}\n' \
             '\tCUR_QUANTITY: {}\n' \
             '\tNEXT_INSTRUMENT: {}\n' \
             '\tNEXT_QUANTITY: {}\n' \
             '\tDETAIL: {}\n'.format(
-                self.product, self.strength,
+                self.product,
+                self.prev_strength, self.strength,
                 self.cur_instrument, self.cur_quantity,
                 self.next_instrument, self.next_quantity,
                 self.detail
@@ -246,6 +252,12 @@ class CTAPortfolio(PortfolioAbstract):
         )
 
     def _iter_update_next_position(self, _tradingday):
+        """
+        just for test
+
+        :param _tradingday:
+        :return:
+        """
         for s in self.strategy_table.values():
             for p in s:
                 p.next_quantity = int(p.strength)
@@ -374,13 +386,7 @@ class CTAPortfolio(PortfolioAbstract):
                     )
                     self.portfolio.dealOrderEvent(s.strategy, o)
                 # reset next status
-                self._reset_position_status(p)
-
-    @staticmethod
-    def _reset_position_status(_p: ProductPosition):
-        _p.next_instrument = None
-        _p.next_quantity = 0
-        _p.resetDetail()
+                p.reset()
 
     def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
@@ -405,6 +411,21 @@ class CTAPortfolio(PortfolioAbstract):
     def dealMarket(self, _symbol: str, _data: DataStruct):
         pass
 
+    # utility
+    def _detect_change(self) -> bool:
+        for s in self.strategy_table.values():
+            for p in s:
+                if p.strength != p.prev_strength:
+                    return True
+        return False
+
+    def _calc_total_strength(self) -> float:
+        total_strength = 0.0
+        for s in self.strategy_table.values():
+            for p in s:
+                total_strength += abs(p.strength)
+        return total_strength
+
 
 class CTAWeightedPortfolio(CTAPortfolio):
     """
@@ -420,6 +441,7 @@ class CTAWeightedPortfolio(CTAPortfolio):
             _fetcher: FetchAbstract,
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
+            _alloc_limit: float = 0.1,
             _settlement_price_index: str = 'closeprice',
     ):
         super().__init__(
@@ -428,13 +450,11 @@ class CTAWeightedPortfolio(CTAPortfolio):
 
         # used for allocQuantity()
         self.margin_rate = _margin_rate
+        self.alloc_limit = _alloc_limit
         self.total_fund: float = 0.0
 
     def _iter_update_next_position(self, _tradingday):
-        total_strength = 0.0
-        for s in self.strategy_table.values():
-            for p in s:
-                total_strength += abs(p.strength)
+        total_strength = self._calc_total_strength()
         for s in self.strategy_table.values():
             for p in s:
                 if p.strength == 0:  # no position at all
@@ -448,7 +468,7 @@ class CTAWeightedPortfolio(CTAPortfolio):
                         _tradingday, p.next_instrument
                     )[self.settlement_price_index][0]
                     p.next_quantity = int(
-                        p.strength / total_strength *
+                        min(self.alloc_limit, p.strength / total_strength) *
                         self.total_fund * self.margin_rate / price
                     )
 
@@ -488,6 +508,7 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
             _fetcher: FetchAbstract,
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
+            _alloc_limit: float = 0.1,
             _settlement_price_index: str = 'closeprice'
     ):
         super().__init__(
@@ -495,55 +516,32 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
         )
 
         self.margin_rate = _margin_rate
+        self.alloc_limit = _alloc_limit
         self.total_fund: float = 0.0
 
-        # to check whether the signals change
-        self.last_signal_status: typing.Set[str] = set()
-        self.signal_status: typing.Set[str] = set()
+    def _iter_update_next_position(self, _tradingday):
+        total_strength = self._calc_total_strength()
+        flag = self._detect_change()
 
-    def _iter_signal_status(self):
         for s in self.strategy_table.values():
             for p in s:
-                if p.strength != 0:
-                    self.signal_status.add('{}_{}_{}'.format(
-                        s.strategy, p.product, p.strength
-                    ))
-
-    def _iter_update_next_position(self, _tradingday):
-        if self.signal_status == self.last_signal_status:
-            # if signal status not changed
-            for s in self.strategy_table.values():
-                for p in s:
-                    # just copy the last position status
-                    if p.strength == 0:
-                        p.next_quantity = 0
-                    else:
-                        p.next_instrument = self.fetcher.fetchSymbol(
-                            _tradingday, _product=p.product
-                        )
-                        p.next_quantity = p.cur_quantity
-        else:
-            # if changed, then get the total num of strengths
-            total_strength = 0.0
-            for s in self.strategy_table.values():
-                for p in s:
-                    total_strength += abs(p.strength)
-            # alloc according to strength
-            for s in self.strategy_table.values():
-                for p in s:
-                    if p.strength == 0:
-                        p.next_quantity = 0
-                    else:
-                        p.next_instrument = self.fetcher.fetchSymbol(
-                            _tradingday, _product=p.product
-                        )
+                if p.strength == 0:
+                    p.next_quantity = 0
+                else:
+                    p.next_instrument = self.fetcher.fetchSymbol(
+                        _tradingday, _product=p.product
+                    )
+                    if flag or p.next_instrument != p.cur_instrument:
+                        # if strength status changes or instrument changes
                         price = self.fetcher.fetchData(
                             _tradingday, p.next_instrument
                         )[self.settlement_price_index][0]
                         p.next_quantity = int(
-                            p.strength / total_strength *
+                            min(self.alloc_limit, p.strength / total_strength) *
                             self.total_fund * self.margin_rate / price
                         )
+                    else:
+                        p.next_quantity = p.cur_quantity
 
     def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
@@ -560,9 +558,6 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
         self.total_fund = self.portfolio.getFund(
         ) + self.portfolio.getUnfilledFund(symbol_price_dict)
 
-        # 3.1 deal with new signal status
-        self._iter_signal_status()
-
         # 4. update each strategy's positions to current status
         self._iter_update_cur_position()
 
@@ -570,10 +565,6 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
         self._iter_update_next_position(_tradingday)
         # 6. send new orders
         self._iter_send_order()
-
-        # 7. reset signal status
-        self.last_signal_status = self.signal_status
-        self.signal_status: typing.Set[str] = set()
 
 
 class CTAAllocPortfolio(CTAPortfolio):
@@ -667,28 +658,19 @@ class CTAAllocStablePortfolio(CTAPortfolio):
     def _iter_update_next_position(self, _tradingday):
         for s in self.strategy_table.values():
             for p in s:
-                if p.strength > 0:  # long position
-                    p.next_instrument = self.fetcher.fetchSymbol(
-                        _tradingday, _product=p.product
-                    )
-                    if p.cur_quantity > 0:  # has long position now
-                        p.next_quantity = p.cur_quantity
-                    else:
-                        p.next_quantity = self._calc_next_position(
-                            _tradingday, p.next_instrument, p.strength
-                        )
-                elif p.strength < 0:  # short position
-                    p.next_instrument = self.fetcher.fetchSymbol(
-                        _tradingday, _product=p.product
-                    )
-                    if p.cur_quantity < 0:  # has short position now
-                        p.next_quantity = p.cur_quantity
-                    else:
-                        p.next_quantity = self._calc_next_position(
-                            _tradingday, p.next_instrument, p.strength
-                        )
-                else:  # no position
+                if p.strength == 0:
                     p.next_quantity = 0
+                else:
+                    p.next_instrument = self.fetcher.fetchSymbol(
+                        _tradingday, _product=p.product
+                    )
+                    if p.strength != p.prev_strength or p.next_instrument != p.cur_instrument:
+                        # if strength changes or instrument changes
+                        p.next_quantity = self._calc_next_position(
+                            _tradingday, p.next_instrument, p.strength
+                        )
+                    else:
+                        p.next_quantity = p.cur_quantity
 
     def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
