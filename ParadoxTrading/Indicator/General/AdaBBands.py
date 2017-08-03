@@ -1,4 +1,4 @@
-import numpy as np
+import statistics
 
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
@@ -35,14 +35,14 @@ class AdaBBands(IndicatorAbstract):
         self.buf.append(_data_struct.getColumn(self.use_key)[0])
 
         if len(self.data) > self.period:
-            const_std = np.std(self.buf[-self.period:])
+            const_std = statistics.pstdev(self.buf[-self.period:])
             self.dynamic_n *= const_std / self.prev_std
             self.dynamic_n = max(self.min_n, self.dynamic_n)
             self.dynamic_n = min(self.max_n, self.dynamic_n)
             tmp_n = int(round(self.dynamic_n))
 
-            mean = np.mean(self.buf[-tmp_n:])
-            std = np.std(self.buf[-tmp_n:])
+            mean = statistics.mean(self.buf[-tmp_n:])
+            std = statistics.pstdev(self.buf[-tmp_n:])
 
             self.data.addRow(
                 [index_value, mean + self.rate * std,
@@ -53,7 +53,7 @@ class AdaBBands(IndicatorAbstract):
             self.prev_std = const_std
         else:
             if len(self.data) == self.period:
-                self.prev_std = np.std(self.buf)
+                self.prev_std = statistics.pstdev(self.buf)
 
             self.data.addRow(
                 [index_value, None, None, None],

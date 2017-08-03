@@ -1,3 +1,2 @@
-from .DailyReturn import dailyReturn
-from .SharpRatio import sharpRatio
+from .Functions import dailyReturn, sharpRatio, avgYearReturn, maxDrawdown, calmarRatio, performance
 from .Utils import FetchRecord

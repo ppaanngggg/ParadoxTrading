@@ -1,6 +1,5 @@
+import statistics
 from collections import deque
-
-import numpy as np
 
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
@@ -29,5 +28,5 @@ class STD(IndicatorAbstract):
         self.buf.append(_data_struct.getColumn(self.use_key)[0])
         self.data.addDict({
             self.idx_key: index_value,
-            self.ret_key: np.std(self.buf),
+            self.ret_key: statistics.pstdev(self.buf),
         })
