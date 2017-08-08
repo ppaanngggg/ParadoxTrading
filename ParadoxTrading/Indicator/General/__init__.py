@@ -10,6 +10,7 @@ from .MACD import MACD
 from .MAX import MAX
 from .MIN import MIN
 from .Momentum import Momentum
+from .Plunge import Plunge
 from .ReturnRate import ReturnRate
 from .STD import STD
 from .SharpRate import SharpRate
