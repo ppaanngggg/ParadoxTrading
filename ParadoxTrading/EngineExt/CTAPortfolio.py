@@ -3,6 +3,7 @@ import typing
 from ParadoxTrading.Engine import FillEvent, SignalEvent, OrderEvent, OrderType, ActionType, DirectionType
 from ParadoxTrading.Engine import PortfolioAbstract
 from ParadoxTrading.Fetch.FetchAbstract import FetchAbstract
+from ParadoxTrading.Indicator import ATR
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -419,12 +420,30 @@ class CTAPortfolio(PortfolioAbstract):
                     return True
         return False
 
+    def _detect_sign_change(self) -> bool:
+        for s in self.strategy_table.values():
+            for p in s:
+                if p.strength > 0 and p.prev_strength > 0:
+                    continue
+                if p.strength < 0 and p.prev_strength < 0:
+                    continue
+                return True
+        return False
+
     def _calc_total_strength(self) -> float:
         total_strength = 0.0
         for s in self.strategy_table.values():
             for p in s:
                 total_strength += abs(p.strength)
         return total_strength
+
+    def _calc_parts(self) -> int:
+        parts = 0
+        for s in self.strategy_table.values():
+            for p in s:
+                if p.strength != 0:
+                    parts += 1
+        return parts
 
 
 class CTAWeightedPortfolio(CTAPortfolio):
@@ -565,6 +584,92 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
         self._iter_update_next_position(_tradingday)
         # 6. send new orders
         self._iter_send_order()
+
+
+class CTAEqualRiskATRPortfolio(CTAPortfolio):
+    def __init__(
+            self,
+            _fetcher: FetchAbstract,
+            _init_fund: float = 0.0,
+            _risk_rate: float = 0.01,
+            _adjust_period: int = 5,
+            _atr_period: int = 50,
+            _settlement_price_index: str = 'closeprice'
+    ):
+        super().__init__(
+            _fetcher, _init_fund, _settlement_price_index
+        )
+
+        self.risk_rate: float = _risk_rate
+        self.total_fund: float = 0.0
+
+        self.adjust_period = _adjust_period
+        self.adjust_count = 0
+        self.atr_period = _atr_period
+        self.atr_table: typing.Dict[str, ATR] = {}
+
+    def _iter_update_next_position(self, _tradingday):
+        flag = self._detect_sign_change()
+        # inc adjust count, adjust if count reach limit period
+        self.adjust_count += 1
+        if self.adjust_count >= self.adjust_period:
+            flag = True
+        # reset count if adjust
+        if flag:
+            self.adjust_count = 0
+        parts = self._calc_parts()
+
+        for s in self.strategy_table.values():
+            for p in s:
+                if p.strength == 0:
+                    p.next_quantity = 0
+                else:
+                    p.next_instrument = self.fetcher.fetchSymbol(
+                        _tradingday, _product=p.product
+                    )
+                    if flag:
+                        # if strength status changes or instrument changes
+                        atr = self.atr_table[p.product].getLastData()['atr'][0]
+                        if p.strength > 0:
+                            p.next_quantity = int(
+                                self.total_fund * self.risk_rate / parts / atr
+                            )
+                        if p.strength < 0:
+                            p.next_quantity = -int(
+                                self.total_fund * self.risk_rate / parts / atr
+                            )
+                    else:
+                        p.next_quantity = p.cur_quantity
+
+    def dealSettlement(self, _tradingday):
+        # check it's the end of prev tradingday
+        assert _tradingday
+
+        # 1. get the table map symbols to their price
+        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        # 2. set portfolio settlement
+        self._iter_portfolio_settlement(
+            _tradingday, symbol_price_dict
+        )
+
+        # 3 compute current total fund
+        self.total_fund = self.portfolio.getFund(
+        ) + self.portfolio.getUnfilledFund(symbol_price_dict)
+
+        # 4. update each strategy's positions to current status
+        self._iter_update_cur_position()
+
+        # 5. update next status
+        self._iter_update_next_position(_tradingday)
+        # 6. send new orders
+        self._iter_send_order()
+
+    def dealMarket(self, _symbol: str, _data: DataStruct):
+        try:
+            self.atr_table[_symbol].addOne(_data)
+        except KeyError:
+            self.atr_table[_symbol] = ATR(self.atr_period)
+            self.atr_table[_symbol].addOne(_data)
 
 
 class CTAAllocPortfolio(CTAPortfolio):
