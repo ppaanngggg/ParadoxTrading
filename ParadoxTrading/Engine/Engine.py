@@ -7,7 +7,6 @@ from ParadoxTrading.Engine.Execution import ExecutionAbstract
 from ParadoxTrading.Engine.MarketSupply import MarketSupplyAbstract
 from ParadoxTrading.Engine.Portfolio import PortfolioAbstract
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
-from ParadoxTrading.Utils import DataStruct
 
 
 class EngineAbstract:

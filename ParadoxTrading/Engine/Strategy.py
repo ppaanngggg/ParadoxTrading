@@ -1,4 +1,5 @@
 import logging
+import pickle
 import typing
 
 import ParadoxTrading.Engine
@@ -19,6 +20,7 @@ class StrategyAbstract:
         # common variables
         self.engine: ParadoxTrading.Engine.Engine.EngineAbstract = None
         self.registers: typing.Set[str] = set()
+        self.pickles: typing.Set[str] = set()
 
     def setEngine(self,
                   _engine: 'ParadoxTrading.Engine.EngineAbstract'):
@@ -94,6 +96,32 @@ class StrategyAbstract:
             _strength,
             self.engine.getDatetime()
         ))
+
+    def addPickleSet(self, *args):
+        for a in args:
+            assert a in vars(self).keys()
+            self.pickles.add(a)
+
+    def save(self, _path: str):
+        tmp = {}
+        for k in self.pickles:
+            tmp[k] = vars(self)[k]
+        path = _path
+        if not path.endswith('/'):
+            path += '/'
+        path = '{}{}.pkl'.format(path, self.name)
+        logging.info('Strategy({}) save to {}'.format(self.name, path))
+        pickle.dump(tmp, open(path, 'wb'))
+
+    def load(self, _path: str):
+        path = _path
+        if not path.endswith('/'):
+            path += '/'
+        path = '{}{}.pkl'.format(path, self.name)
+        logging.info('Strategy({}) load from {}'.format(self.name, path))
+        tmp: typing.Dict[str, typing.Any] = pickle.load(open(path, 'rb'))
+        for k, v in tmp.items():
+            self.__dict__[k] = v
 
     def __repr__(self) -> str:
         ret = 'Strategy:\n\t{}\nMarket Register:\n\t{}'
