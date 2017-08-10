@@ -570,7 +570,7 @@ class FetchFutureDay(FetchFutureTick):
 
         con, cur = self._get_psql_con_cur()
 
-        query = "select * from {} where {} >= '{}' and {} <= '{}'".format(
+        query = "select * from {} where {} >= '{}' and {} < '{}'".format(
             _symbol.lower(),
             _index.lower(), begin_day,
             _index.lower(), end_day,

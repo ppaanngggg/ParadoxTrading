@@ -1,5 +1,3 @@
-import typing
-
 from ParadoxTrading.Engine import StrategyAbstract, SettlementEvent, MarketEvent, SignalType
 
 
@@ -38,7 +36,8 @@ class CTAStrategy(StrategyAbstract):
 
     def addEvent(
             self, _symbol: str,
-            _strength: typing.Any = None
+            _strength: float,
+            _signal_type: int = None,
     ):
         if _strength > 0:
             signal_type = SignalType.LONG
@@ -58,6 +57,9 @@ class CTAStrategy(StrategyAbstract):
         # deal with status change or not change
         self.dealStatus(_market_event)
 
+    def do_deal(self, _market_event: MarketEvent):
+        raise NotImplementedError('deal not implemented')
+
     def getStatus(self):
         return self.status_mgr.getStatus()
 
@@ -69,9 +71,6 @@ class CTAStrategy(StrategyAbstract):
             self.dealStatusNotChanged(_market_event)
         else:
             self.dealStatusChanged(_market_event)
-
-    def do_deal(self, _market_event: MarketEvent):
-        raise NotImplementedError('deal not implemented')
 
     def settlement(self, _settlement_event: SettlementEvent):
         raise NotImplementedError('settlement not implemented')

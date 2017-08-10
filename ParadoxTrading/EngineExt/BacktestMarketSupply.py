@@ -13,6 +13,7 @@ class DataGenerator:
     """
     JUST FOR BACKTEST !!!
     """
+
     def __init__(
             self,
             _tradingday: str,
@@ -133,7 +134,7 @@ class BacktestMarketSupply(MarketSupplyAbstract):
         """
 
         while self.data_generator is None:
-            if self.tradingday > self.end_day:
+            if self.tradingday >= self.end_day:
                 return None
 
             self.data_generator = DataGenerator(

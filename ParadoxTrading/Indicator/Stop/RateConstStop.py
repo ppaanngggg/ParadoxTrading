@@ -3,7 +3,7 @@ from ParadoxTrading.Indicator.Stop.StopIndicatorAbstract import StopIndicatorAbs
 from ParadoxTrading.Utils import DataStruct
 
 
-class ConstStopLoss(StopIndicatorAbstract):
+class RateConstStop(StopIndicatorAbstract):
     def __init__(
             self,
             _data: DataStruct,
@@ -23,7 +23,7 @@ class ConstStopLoss(StopIndicatorAbstract):
         self.idx_key = _idx_key
         self.ret_key = _ret_key
 
-        price = _data.toDict()[self.use_key]
+        price = _data[self.use_key][0]
         if self.stop_type == SignalType.LONG:
             stop_price = price * (1 - self.stop_rate)
         elif self.stop_type == SignalType.SHORT:
@@ -48,7 +48,7 @@ class ConstStopLoss(StopIndicatorAbstract):
         })
 
     def _isStop(self, _data_struct: DataStruct):
-        price = _data_struct.toDict()[self.use_key]
+        price = _data_struct[self.use_key][0]
         stop_price = self.data[self.ret_key][-1]
         if self.stop_type == SignalType.LONG:
             if price < stop_price:

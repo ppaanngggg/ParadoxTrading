@@ -25,14 +25,14 @@ class EngineAbstract:
         self.portfolio: PortfolioAbstract = None
         self.strategy_dict: typing.Dict[str, StrategyAbstract] = {}
 
-        self._addMarketSupply(_market_supply)
-        self._addExecution(_execution)
-        self._addPortfolio(_portfolio)
+        self._add_market_supply(_market_supply)
+        self._add_execution(_execution)
+        self._add_portfolio(_portfolio)
         if isinstance(_strategy, StrategyAbstract):
-            self._addStrategy(_strategy)
+            self._add_strategy(_strategy)
         else:
             for s in _strategy:
-                self._addStrategy(s)
+                self._add_strategy(s)
 
     def addEvent(self, _event: EventAbstract):
         """
@@ -44,7 +44,7 @@ class EngineAbstract:
         assert isinstance(_event, EventAbstract)
         self.event_queue.append(_event)
 
-    def _addMarketSupply(self, _market_supply: MarketSupplyAbstract):
+    def _add_market_supply(self, _market_supply: MarketSupplyAbstract):
         """
         set marketsupply
         
@@ -56,7 +56,7 @@ class EngineAbstract:
         self.market_supply = _market_supply
         _market_supply.setEngine(self)
 
-    def _addExecution(self, _execution: ExecutionAbstract):
+    def _add_execution(self, _execution: ExecutionAbstract):
         """
         set execution
 
@@ -68,7 +68,7 @@ class EngineAbstract:
         self.execution = _execution
         _execution.setEngine(self)
 
-    def _addPortfolio(self, _portfolio: PortfolioAbstract):
+    def _add_portfolio(self, _portfolio: PortfolioAbstract):
         """
         set portfolio
 
@@ -80,7 +80,7 @@ class EngineAbstract:
         self.portfolio = _portfolio
         _portfolio.setEngine(self)
 
-    def _addStrategy(self, _strategy: StrategyAbstract):
+    def _add_strategy(self, _strategy: StrategyAbstract):
         """
         Register strategy to engine
 
@@ -94,7 +94,6 @@ class EngineAbstract:
 
         self.strategy_dict[_strategy.name] = _strategy
         _strategy.setEngine(self)
-
         self.market_supply.addStrategy(_strategy)
 
     def getTradingDay(self) -> str:
@@ -112,23 +111,6 @@ class EngineAbstract:
         :return: datetime
         """
         return self.market_supply.getDatetime()
-
-    def getSymbolList(self) -> typing.List[str]:
-        """
-        get the symbol list
-        
-        :return: 
-        """
-        return self.market_supply.getSymbolList()
-
-    def getSymbolData(self, _symbol: str) -> DataStruct:
-        """
-        Return data
-
-        :param _symbol:
-        :return:
-        """
-        return self.market_supply.getSymbolData(_symbol)
 
     def run(self):
         raise NotImplementedError('run not implemented')

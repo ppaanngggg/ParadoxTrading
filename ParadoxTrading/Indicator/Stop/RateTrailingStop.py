@@ -3,7 +3,7 @@ from ParadoxTrading.Indicator.Stop.StopIndicatorAbstract import StopIndicatorAbs
 from ParadoxTrading.Utils import DataStruct
 
 
-class MoveStopLoss(StopIndicatorAbstract):
+class RateTrailingStop(StopIndicatorAbstract):
     def __init__(
             self,
             _data: DataStruct,
