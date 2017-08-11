@@ -5,7 +5,7 @@ from datetime import datetime
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import MarketEvent, SettlementEvent
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
-from ParadoxTrading.Utils import DataStruct
+from ParadoxTrading.Utils import DataStruct, Serializable
 
 
 class ReturnMarket:
@@ -27,12 +27,14 @@ class ReturnSettlement:
         )
 
 
-class MarketSupplyAbstract:
+class MarketSupplyAbstract(Serializable):
     def __init__(self, _fetcher: FetchAbstract):
         """
         base class market supply
 
         """
+        super().__init__()
+
         self.fetcher: FetchAbstract = _fetcher
 
         # map market register's key to its object
@@ -62,14 +64,16 @@ class MarketSupplyAbstract:
             # add strategy into market register
             self.register_dict[key].addStrategy(_strategy)
 
-    def addSettlementEvent(self, _tradingday):
+    def addSettlementEvent(self, _tradingday) -> ReturnSettlement:
         self.engine.addEvent(SettlementEvent(_tradingday))
         logging.debug('Settlement - tradingday:{}'.format(
             _tradingday
         ))
         return ReturnSettlement(_tradingday)
 
-    def addMarketEvent(self, _symbol: str, _data: DataStruct):
+    def addMarketEvent(
+            self, _symbol: str, _data: DataStruct
+    ) -> ReturnMarket:
         """
         add new tick data into market register, and add event
 
@@ -87,10 +91,12 @@ class MarketSupplyAbstract:
     def getTradingDay(self) -> str:
         raise NotImplementedError('getTradingDay not implemented')
 
-    def getDatetime(self) -> datetime:
+    def getDatetime(self) -> typing.Union[str, datetime]:
         raise NotImplementedError('getDatetime not implemented')
 
-    def updateData(self) -> typing.Union[ReturnMarket, ReturnSettlement]:
+    def updateData(self) -> typing.Union[
+        None, ReturnMarket, ReturnSettlement
+    ]:
         """
         update data tick by tick, or bar by bar
 
@@ -106,6 +112,13 @@ class MarketSupplyAbstract:
         ret += '\n### SYMBOL ###'
         for k, v in self.symbol_dict.items():
             ret += '\n' + k + ': ' + str(v)
-        ret += '\n### DATA ###'
 
         return ret
+
+    def save(self, _path: str, _filename: str = 'MarketSupply'):
+        super().save(_path, _filename)
+        logging.info('MarketSupply save to {}'.format(_path))
+
+    def load(self, _path: str, _filename: str = 'MarketSupply'):
+        super().load(_path, _filename)
+        logging.info('MarketSupply load from {}'.format(_path))

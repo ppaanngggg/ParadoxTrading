@@ -29,7 +29,7 @@ class Wizard:
 
     def addView(
             self, _name: str, _view_stretch: int = 1,
-            _adaptive=False, _chart_stretch: int = 15
+            _adaptive=True, _chart_stretch: int = 15
     ) -> 'ParadoxTrading.Chart.View.View':
         assert _name not in self.view_dict.keys()
         assert _view_stretch > 0

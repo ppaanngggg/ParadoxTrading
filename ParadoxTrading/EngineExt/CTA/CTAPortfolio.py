@@ -159,6 +159,8 @@ class CTAPortfolio(PortfolioAbstract):
         # map order to its order info
         self.order_table: typing.Dict[int, OrderStrategyProduct] = {}
 
+        self.addPickleSet('strategy_table', 'order_table')
+
     def dealSignal(self, _event: SignalEvent):
         """
         deal the signal from a CTA strategy,
@@ -191,7 +193,7 @@ class CTAPortfolio(PortfolioAbstract):
         :return:
         """
         # 1. store position change into position mgr
-        order_sp: OrderStrategyProduct = self.order_table[_event.index]
+        order_sp: OrderStrategyProduct = self.order_table.pop(_event.index)
         strategy_p = self.strategy_table[order_sp.strategy]
         product_p = strategy_p.product_table[order_sp.product]
         product_p.dealFill(_event)
@@ -607,6 +609,8 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
         self.adjust_count = 0
         self.atr_period = _atr_period
         self.atr_table: typing.Dict[str, ATR] = {}
+
+        self.addPickleSet('adjust_count', 'atr_table')
 
     def _iter_update_next_position(self, _tradingday):
         flag = self._detect_sign_change()

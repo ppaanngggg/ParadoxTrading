@@ -1,3 +1,4 @@
+import logging
 import typing
 from collections import deque
 from datetime import datetime
@@ -7,9 +8,10 @@ from ParadoxTrading.Engine.Execution import ExecutionAbstract
 from ParadoxTrading.Engine.MarketSupply import MarketSupplyAbstract
 from ParadoxTrading.Engine.Portfolio import PortfolioAbstract
 from ParadoxTrading.Engine.Strategy import StrategyAbstract
+from ParadoxTrading.Utils import Serializable
 
 
-class EngineAbstract:
+class EngineAbstract(Serializable):
     def __init__(
             self,
             _market_supply: MarketSupplyAbstract,
@@ -17,6 +19,8 @@ class EngineAbstract:
             _portfolio: PortfolioAbstract,
             _strategy: typing.Union[StrategyAbstract, typing.Iterable[StrategyAbstract]]
     ):
+        super().__init__()
+
         self.event_queue: deque = deque()  # store event
 
         self.market_supply: MarketSupplyAbstract = None
@@ -32,6 +36,8 @@ class EngineAbstract:
         else:
             for s in _strategy:
                 self._add_strategy(s)
+
+        self.addPickleSet('event_queue')
 
     def addEvent(self, _event: EventAbstract):
         """
@@ -113,3 +119,18 @@ class EngineAbstract:
 
     def run(self):
         raise NotImplementedError('run not implemented')
+
+    def save(self, _path: str, _filename: str = 'Engine'):
+        super().save(_path, _filename)
+        logging.info('Engine save to {}'.format(_path))
+
+    def load(self, _path: str, _filename: str = 'Engine'):
+        super().load(_path, _filename)
+        logging.info('Engine load from {}'.format(_path))
+
+    def __repr__(self) -> str:
+        ret = '[[[ EVENT QUEUE ]]]\n'
+        for d in self.event_queue:
+            ret += '{}\n'.format(d)
+        ret += '[[[ STRATEGY ]]]\n{}'.format(self.strategy_dict.keys())
+        return ret

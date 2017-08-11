@@ -1,26 +1,25 @@
 import logging
-import pickle
 import typing
 
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import MarketEvent, SignalEvent, SignalType, SettlementEvent
 from ParadoxTrading.Fetch import RegisterAbstract
+from ParadoxTrading.Utils import Serializable
 
 
-class StrategyAbstract:
+class StrategyAbstract(Serializable):
     def __init__(self, _name: str):
         """
         base class of strategy
 
         :param _name: name of this strategy
         """
-
+        super().__init__()
         self.name: str = _name
 
         # common variables
         self.engine: ParadoxTrading.Engine.Engine.EngineAbstract = None
         self.registers: typing.Set[str] = set()
-        self.pickles: typing.Set[str] = set()
 
     def setEngine(self,
                   _engine: 'ParadoxTrading.Engine.EngineAbstract'):
@@ -97,31 +96,23 @@ class StrategyAbstract:
             self.engine.getDatetime()
         ))
 
-    def addPickleSet(self, *args):
-        for a in args:
-            assert a in vars(self).keys()
-            self.pickles.add(a)
+    def save(self, _path: str, _filename: str = None):
+        filename = self.name
+        if _filename is not None:
+            filename = _filename
+        super().save(_path, filename)
+        logging.info(
+            'Strategy({}) save to {}'.format(self.name, _path)
+        )
 
-    def save(self, _path: str):
-        tmp = {}
-        for k in self.pickles:
-            tmp[k] = vars(self)[k]
-        path = _path
-        if not path.endswith('/'):
-            path += '/'
-        path = '{}{}.pkl'.format(path, self.name)
-        logging.info('Strategy({}) save to {}'.format(self.name, path))
-        pickle.dump(tmp, open(path, 'wb'))
-
-    def load(self, _path: str):
-        path = _path
-        if not path.endswith('/'):
-            path += '/'
-        path = '{}{}.pkl'.format(path, self.name)
-        logging.info('Strategy({}) load from {}'.format(self.name, path))
-        tmp: typing.Dict[str, typing.Any] = pickle.load(open(path, 'rb'))
-        for k, v in tmp.items():
-            self.__dict__[k] = v
+    def load(self, _path: str, _filename: str = None):
+        filename = self.name
+        if _filename is not None:
+            filename = _filename
+        super().load(_path, filename)
+        logging.info(
+            'Strategy({}) load from {}'.format(self.name, _path)
+        )
 
     def __repr__(self) -> str:
         ret = 'Strategy:\n\t{}\nMarket Register:\n\t{}'

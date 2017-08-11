@@ -10,6 +10,7 @@ import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
     DirectionType, FillEvent, OrderEvent, SignalEvent, EventType
 from ParadoxTrading.Utils import DataStruct
+from ParadoxTrading.Utils import Serializable
 
 
 class PositionMgr:
@@ -379,14 +380,12 @@ class PortfolioMgr:
 
     def __repr__(self) -> str:
         ret = '@@@ POSITION @@@\n'
-
         table = []
         for k, v in self.position_mgr.items():
             table.append([k, v.long, v.short])
-        ret += tabulate.tabulate(table, ['symbol', 'LONG', 'SHORT'])
+        ret += tabulate.tabulate(table, ['SYMBOL', 'LONG', 'SHORT'])
 
         ret += '\n@@@ UNFILLED ORDER @@@\n'
-
         table = []
         for k, v in self.unfilled_order.items():
             table.append([
@@ -396,30 +395,45 @@ class PortfolioMgr:
                 v.quantity
             ])
         ret += tabulate.tabulate(
-            table, ['index', 'symbol', 'ACTION', 'DIRECTION', 'QUANTITY']
+            table, ['INDEX', 'SYMBOL', 'ACTION', 'DIRECTION', 'QUANTITY']
         )
 
         ret += '\n@@@ RECORD @@@\n'
-        ret += ' - Signal: {}\n'.format(len(self.signal_record))
-        ret += ' - Order: {}\n'.format(len(self.order_record))
-        ret += ' - Fill: {}\n'.format(len(self.fill_record))
-        ret += ' - Settlement: {}\n'.format(len(self.settlement_record))
+        ret += ' - Signal - NUM: {}, LAST: {}\n'.format(
+            len(self.signal_record),
+            self.signal_record[-1] if self.signal_record else None
+        )
+        ret += ' - Order - NUM: {}, LAST: {}\n'.format(
+            len(self.order_record),
+            self.order_record[-1] if self.order_record else None
+        )
+        ret += ' - Fill - NUM: {}, LAST: {}\n'.format(
+            len(self.fill_record),
+            self.fill_record[-1] if self.fill_record else None
+        )
+        ret += ' - Settlement - NUM: {}, LAST: {}\n'.format(
+            len(self.settlement_record),
+            self.settlement_record[-1] if self.settlement_record else None
+        )
 
-        ret += '\n@@@ FUND @@@\n'
-        ret += ' - Fund: {}\n'.format(self.getFund())
+        ret += '@@@ FUND @@@\n'
+        ret += ' - Fund: {}'.format(self.getFund())
 
         return ret
 
 
-class PortfolioAbstract:
+class PortfolioAbstract(Serializable):
     def __init__(self, _init_fund: float = 0.0):
+        super().__init__()
+
         self.engine: ParadoxTrading.Engine.EngineAbstract = None
 
         # init order index, and create a map from order to strategy
         self.order_index: int = 0  # cur unused order index
-
         # the global portfolio,
         self.portfolio: PortfolioMgr = PortfolioMgr(_init_fund)
+
+        self.addPickleSet('order_index', 'portfolio')
 
     def setEngine(self, _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
@@ -472,6 +486,7 @@ class PortfolioAbstract:
             _backtest_key: str,
             _mongo_host: str = 'localhost',
             _mongo_database: str = 'Backtest',
+            _clear: bool = True,
     ):
         """
         !!! This func will delete the old coll of _backtest_key !!!
@@ -480,21 +495,23 @@ class PortfolioAbstract:
         :param _backtest_key:
         :param _mongo_host:
         :param _mongo_database:
+        :param _clear:
         :return:
         """
         client = MongoClient(host=_mongo_host)
         db = client[_mongo_database]
         # clear old backtest records
-        if _backtest_key in db.collection_names():
+        if _backtest_key in db.collection_names() and _clear:
             db.drop_collection(_backtest_key)
 
         coll = db[_backtest_key]
-        coll.create_index([
-            ('type', pymongo.ASCENDING),
-            ('strategy', pymongo.ASCENDING),
-            ('tradingday', pymongo.ASCENDING),
-            ('datetime', pymongo.ASCENDING),
-        ])
+        if _backtest_key not in db.collection_names():
+            coll.create_index([
+                ('type', pymongo.ASCENDING),
+                ('strategy', pymongo.ASCENDING),
+                ('tradingday', pymongo.ASCENDING),
+                ('datetime', pymongo.ASCENDING),
+            ], unique=True)
         self.portfolio.storeRecords(coll)
 
         client.close()
@@ -522,3 +539,21 @@ class PortfolioAbstract:
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         raise NotImplementedError('dealMarket not implemented')
+
+    def addPickleSet(self, *args):
+        for a in args:
+            assert a in vars(self).keys()
+            self.pickles.add(a)
+
+    def save(self, _path: str, _filename: str = 'Portfolio'):
+        super().save(_path, _filename)
+        logging.info('Portfolio save to {}'.format(_path))
+
+    def load(self, _path: str, _filename: str = 'Portfolio'):
+        super().load(_path, _filename)
+        logging.info('Portfolio load from {}'.format(_path))
+
+    def __repr__(self) -> str:
+        return '@@@ ORDER INDEX @@@\n{}\n{}'.format(
+            self.order_index, self.portfolio
+        )

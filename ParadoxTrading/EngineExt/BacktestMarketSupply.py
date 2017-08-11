@@ -42,10 +42,11 @@ class DataGenerator:
             )
             # whether symbol exists
             if symbol is not None:
-                # fetch data and set index to 0 init
-                self.data_dict[symbol] = _fetcher.fetchData(
-                    _tradingday, _symbol=symbol)
-                self.index_dict[symbol] = 0
+                if symbol not in self.data_dict.keys():
+                    # fetch data and set index to 0 init
+                    self.data_dict[symbol] = _fetcher.fetchData(
+                        _tradingday, _symbol=symbol)
+                    self.index_dict[symbol] = 0
 
                 # map symbol to market register key
                 try:

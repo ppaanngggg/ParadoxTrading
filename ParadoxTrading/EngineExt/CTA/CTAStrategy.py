@@ -33,6 +33,7 @@ class CTAStrategy(StrategyAbstract):
         super().__init__(_name)
 
         self.status_mgr = CTAStatusMgr()
+        self.addPickleSet('status_mgr')
 
     def addEvent(
             self, _symbol: str,
