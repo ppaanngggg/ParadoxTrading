@@ -20,6 +20,7 @@ class FetchGuoJinTick(FetchFutureTick):
 
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
+        self.mongo_tradingday_db = 'GuoJinTradingDay'
 
         self.psql_dbname = 'GuoJinTick'
 
@@ -54,6 +55,7 @@ class FetchGuoJinTickIndex(FetchFutureTickIndex):
 
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
+        self.mongo_tradingday_db = 'GuoJinTradingDay'
 
         self.psql_dbname = 'GuoJinTick'
 
@@ -80,6 +82,7 @@ class FetchGuoJinMin(FetchFutureMin):
 
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
+        self.mongo_tradingday_db = 'GuoJinTradingDay'
 
         self.psql_dbname = 'GuoJinMin'
 
@@ -114,6 +117,7 @@ class FetchGuoJinMinIndex(FetchFutureMinIndex):
 
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
+        self.mongo_tradingday_db = 'GuoJinTradingDay'
 
         self.psql_dbname = 'GuoJinMin'
 
@@ -174,6 +178,7 @@ class FetchGuoJinDay(FetchFutureDay):
 
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
+        self.mongo_tradingday_db = 'GuoJinTradingDay'
 
         self.psql_dbname = 'GuoJinDay'
 
@@ -196,6 +201,7 @@ class FetchGuoJinDayIndex(FetchFutureDayIndex):
 
         self.mongo_prod_db = 'GuoJinProd'
         self.mongo_inst_db = 'GuoJinInst'
+        self.mongo_tradingday_db = 'GuoJinTradingDay'
 
         self.psql_dbname = 'GuoJinDay'
 

@@ -85,6 +85,7 @@ class FetchFutureTick(FetchAbstract):
         self.mongo_host: str = 'localhost'
         self.mongo_prod_db: str = 'FutureProd'
         self.mongo_inst_db: str = 'FutureInst'
+        self.mongo_tradingday_db: str = 'FutureTradingDay'
 
         self.psql_host: str = 'localhost'
         self.psql_dbname: str = 'FutureTick'
@@ -96,6 +97,7 @@ class FetchFutureTick(FetchAbstract):
         self._mongo_client: MongoClient = None
         self._mongo_prod: pymongo.database.Database = None
         self._mongo_inst: pymongo.database.Database = None
+        self._mongo_tradingday: pymongo.database.Database = None
         self._psql_con: psycopg2.extensions.connection = None
         self._psql_cur: psycopg2.extensions.cursor = None
 
@@ -118,7 +120,8 @@ class FetchFutureTick(FetchAbstract):
         if not self._mongo_prod:
             if not self._mongo_client:
                 self._mongo_client: MongoClient = MongoClient(
-                    host=self.mongo_host)
+                    host=self.mongo_host
+                )
             self._mongo_prod: pymongo.database.Database = self._mongo_client[
                 self.mongo_prod_db]
         return self._mongo_prod
@@ -127,10 +130,22 @@ class FetchFutureTick(FetchAbstract):
         if not self._mongo_inst:
             if not self._mongo_client:
                 self._mongo_client: MongoClient = MongoClient(
-                    host=self.mongo_host)
+                    host=self.mongo_host
+                )
             self._mongo_inst: pymongo.database.Database = self._mongo_client[
                 self.mongo_inst_db]
         return self._mongo_inst
+
+    def _get_mongo_tradingday(self) -> pymongo.database.Database:
+        if not self._mongo_tradingday:
+            if not self._mongo_client:
+                self._mongo_client: MongoClient = MongoClient(
+                    host=self.mongo_host
+                )
+            self._mongo_tradingday: pymongo.database.Database = self._mongo_client[
+                self.mongo_tradingday_db
+            ]
+        return self._mongo_tradingday
 
     def _get_psql_con_cur(self) -> typing.Tuple[
         psycopg2.extensions.connection, psycopg2.extensions.cursor
@@ -147,7 +162,7 @@ class FetchFutureTick(FetchAbstract):
 
         return self._psql_con, self._psql_cur
 
-    def productList(self) -> list:
+    def allProductList(self) -> list:
         """
         get all product list stored in mongo
 
@@ -155,6 +170,18 @@ class FetchFutureTick(FetchAbstract):
         """
         db = self._get_mongo_prod()
         return db.collection_names()
+
+    def fetchTradeProduct(self, _tradingday: str) -> list:
+        data = self.fetchTradingDayInfo(_tradingday)
+        ret = []
+        if data is not None:
+            ret = data['ProductList']
+        return ret
+
+    def isTradingDay(self, _tradingday: str) -> bool:
+        return self.fetchTradingDayInfo(
+            _tradingday
+        ) is not None
 
     def productIsTrade(
             self, _product: str, _tradingday: str
@@ -273,6 +300,19 @@ class FetchFutureTick(FetchAbstract):
             ret = data['SubDominant']
 
         return ret
+
+    def fetchTradingDayInfo(
+            self, _tradingday: str
+    ) -> typing.Union[None, typing.Dict]:
+        key = 'tradingday_{}'.format(_tradingday)
+        try:
+            return self.cache[key]
+        except KeyError:
+            db = self._get_mongo_tradingday()
+            coll = db.tradingday
+            data = coll.find_one({'TradingDay': _tradingday})
+            self.cache[key] = data
+            return data
 
     def fetchProductInfo(
             self, _product: str, _tradingday: str

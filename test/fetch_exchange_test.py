@@ -3,6 +3,10 @@ from ParadoxTrading.Fetch import (FetchExchangeMarket, FetchExchangeMarketIndex,
 
 print('--- FetchSHFEDay')
 fetcher = FetchExchangeMarket()
+fetcher.psql_host = '192.168.4.103'
+fetcher.psql_user = 'ubuntu'
+fetcher.mongo_host = '192.168.4.103'
+
 print(fetcher.fetchSymbol(
     '20160506', **RegisterExchangeMarket('rb').toKwargs()
 ))
@@ -24,8 +28,14 @@ print(len(fetcher.fetchDayData('20170101', '20170601', 'rb1709')))
 
 print('--- FetchSHFEDayIndex')
 fetcher = FetchExchangeMarketIndex()
+fetcher.psql_host = '192.168.4.103'
+fetcher.psql_user = 'ubuntu'
+fetcher.mongo_host = '192.168.4.103'
+
 print(fetcher.fetchSymbol(
     '20160506', **RegisterExchangeMarketIndex('ag').toKwargs()
 ))
 print(len(fetcher.fetchData('20160506', 'ag')))
 print(len(fetcher.fetchDayData('20160101', '20170101', 'ag')))
+print(fetcher.isTradingDay('20160506'))
+print(fetcher.fetchTradeProduct('20160506'))

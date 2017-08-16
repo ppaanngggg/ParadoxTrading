@@ -16,6 +16,7 @@ class FetchExchangeMarket(FetchFutureDay):
 
         self.mongo_prod_db = 'ExchangeProd'
         self.mongo_inst_db = 'ExchangeInst'
+        self.mongo_tradingday_db = 'ExchangeTradingDay'
 
         self.psql_dbname = 'ExchangeMarket'
 
@@ -47,6 +48,7 @@ class FetchExchangeMarketIndex(FetchFutureDayIndex):
 
         self.mongo_prod_db = 'ExchangeProd'
         self.mongo_inst_db = 'ExchangeInst'
+        self.mongo_tradingday_db = 'ExchangeTradingDay'
 
         self.psql_dbname = 'ExchangeMarket'
 
