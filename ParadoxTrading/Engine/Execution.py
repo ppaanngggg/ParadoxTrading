@@ -15,6 +15,7 @@ class ExecutionAbstract(Serializable):
 
         self.engine: ParadoxTrading.Engine.Engine.EngineAbstract = None
 
+        # map order's index to order event
         self.order_dict: typing.Dict[
             int, ParadoxTrading.Engine.Event.OrderEvent] = {}
 
@@ -42,11 +43,11 @@ class ExecutionAbstract(Serializable):
 
     def save(self, _path: str, _filename: str = 'Execution'):
         super().save(_path, _filename)
-        logging.info('Execution save to {}'.format(_path))
+        logging.debug('Execution save to {}'.format(_path))
 
     def load(self, _path: str, _filename: str = 'Execution'):
         super().load(_path, _filename)
-        logging.info('Execution load from {}'.format(_path))
+        logging.debug('Execution load from {}'.format(_path))
 
     def __repr__(self) -> str:
         ret = '<<< ORDER DICT >>>\n'

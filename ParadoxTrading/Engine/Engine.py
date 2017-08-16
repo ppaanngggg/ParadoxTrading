@@ -122,11 +122,11 @@ class EngineAbstract(Serializable):
 
     def save(self, _path: str, _filename: str = 'Engine'):
         super().save(_path, _filename)
-        logging.info('Engine save to {}'.format(_path))
+        logging.debug('Engine save to {}'.format(_path))
 
     def load(self, _path: str, _filename: str = 'Engine'):
         super().load(_path, _filename)
-        logging.info('Engine load from {}'.format(_path))
+        logging.debug('Engine load from {}'.format(_path))
 
     def __repr__(self) -> str:
         ret = '[[[ EVENT QUEUE ]]]\n'

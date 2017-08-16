@@ -117,8 +117,8 @@ class MarketSupplyAbstract(Serializable):
 
     def save(self, _path: str, _filename: str = 'MarketSupply'):
         super().save(_path, _filename)
-        logging.info('MarketSupply save to {}'.format(_path))
+        logging.debug('MarketSupply save to {}'.format(_path))
 
     def load(self, _path: str, _filename: str = 'MarketSupply'):
         super().load(_path, _filename)
-        logging.info('MarketSupply load from {}'.format(_path))
+        logging.debug('MarketSupply load from {}'.format(_path))

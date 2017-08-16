@@ -43,6 +43,17 @@ class SignalType:
         else:
             raise Exception('unknown signal type')
 
+    @staticmethod
+    def fromStr(_value: str) -> int:
+        if _value == 'LONG':
+            return SignalType.LONG
+        elif _value == 'SHORT':
+            return SignalType.SHORT
+        elif _value == 'EMPTY':
+            return SignalType.EMPTY
+        else:
+            raise Exception('unknown signal type')
+
 
 class OrderType:
     MARKET = 1
@@ -54,6 +65,15 @@ class OrderType:
             return 'MARKET'
         elif _value == OrderType.LIMIT:
             return 'LIMIT'
+        else:
+            raise Exception()
+
+    @staticmethod
+    def fromStr(_value: str) -> int:
+        if _value == 'MARKET':
+            return OrderType.MARKET
+        elif _value == 'LIMIT':
+            return OrderType.LIMIT
         else:
             raise Exception()
 
@@ -71,6 +91,15 @@ class ActionType:
         else:
             raise Exception()
 
+    @staticmethod
+    def fromStr(_value: str) -> int:
+        if _value == 'OPEN':
+            return ActionType.OPEN
+        elif _value == 'CLOSE':
+            return ActionType.CLOSE
+        else:
+            raise Exception()
+
 
 class DirectionType:
     BUY = 1
@@ -82,6 +111,15 @@ class DirectionType:
             return 'BUY'
         elif _value == DirectionType.SELL:
             return 'SELL'
+        else:
+            raise Exception()
+
+    @staticmethod
+    def fromStr(_value: str) -> int:
+        if _value == 'BUY':
+            return DirectionType.BUY
+        elif _value == 'SELL':
+            return DirectionType.SELL
         else:
             raise Exception()
 

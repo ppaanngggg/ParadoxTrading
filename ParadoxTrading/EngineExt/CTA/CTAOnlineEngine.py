@@ -24,6 +24,8 @@ class CTAOnlineEngine(EngineAbstract):
             _market_supply, _execution, _portfolio, _strategy
         )
         self.dump_path = _dump_path
+
+        logging.info('0. load status')
         if os.path.isdir(self.dump_path):
             self.load(self.dump_path)
             self.market_supply.load(self.dump_path)
@@ -44,7 +46,10 @@ class CTAOnlineEngine(EngineAbstract):
         assert self.portfolio is not None
         assert self.execution is not None
 
-        logging.info('Begin RUN!')
+        logging.info('1. load fill csv, and send fill event')
+        self.execution.loadCSV()
+
+        logging.info('2. deal market data')
         while True:
             ret = self.market_supply.updateData()
             if ret is None:
@@ -72,15 +77,27 @@ class CTAOnlineEngine(EngineAbstract):
 
             # deal something after all events if necessary
             if isinstance(ret, ReturnSettlement):
+                logging.info('3. portfolio management and send order event')
                 self.portfolio.dealSettlement(
                     ret.tradingday
                 )
+                logging.info('4. deal order event, and save order csv')
+                while True:
+                    if len(self.event_queue):
+                        event = self.event_queue.popleft()
+                        if event.type == EventType.ORDER:
+                            self.execution.dealOrderEvent(event)
+                        else:
+                            raise Exception('Except ORDER event')
+                    else:
+                        break
+                self.execution.saveCSV()
             elif isinstance(ret, ReturnMarket):
                 self.portfolio.dealMarket(ret.symbol, ret.data)
             else:
                 raise Exception('unknown ret instance')
 
-        logging.info('End RUN!')
+        logging.info('5. save status')
         self.save(self.dump_path)
         self.market_supply.save(self.dump_path)
         self.execution.save(self.dump_path)

@@ -101,7 +101,7 @@ class StrategyAbstract(Serializable):
         if _filename is not None:
             filename = _filename
         super().save(_path, filename)
-        logging.info(
+        logging.debug(
             'Strategy({}) save to {}'.format(self.name, _path)
         )
 
@@ -110,7 +110,7 @@ class StrategyAbstract(Serializable):
         if _filename is not None:
             filename = _filename
         super().load(_path, filename)
-        logging.info(
+        logging.debug(
             'Strategy({}) load from {}'.format(self.name, _path)
         )
 

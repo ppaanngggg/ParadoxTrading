@@ -547,11 +547,11 @@ class PortfolioAbstract(Serializable):
 
     def save(self, _path: str, _filename: str = 'Portfolio'):
         super().save(_path, _filename)
-        logging.info('Portfolio save to {}'.format(_path))
+        logging.debug('Portfolio save to {}'.format(_path))
 
     def load(self, _path: str, _filename: str = 'Portfolio'):
         super().load(_path, _filename)
-        logging.info('Portfolio load from {}'.format(_path))
+        logging.debug('Portfolio load from {}'.format(_path))
 
     def __repr__(self) -> str:
         return '@@@ ORDER INDEX @@@\n{}\n{}'.format(
