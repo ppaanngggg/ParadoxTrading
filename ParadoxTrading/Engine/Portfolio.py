@@ -510,7 +510,7 @@ class PortfolioAbstract(Serializable):
             ('strategy', pymongo.ASCENDING),
             ('tradingday', pymongo.ASCENDING),
             ('datetime', pymongo.ASCENDING),
-        ], unique=True)
+        ])
         self.portfolio.storeRecords(coll)
 
         client.close()
