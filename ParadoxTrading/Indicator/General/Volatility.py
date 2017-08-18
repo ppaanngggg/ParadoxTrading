@@ -29,10 +29,10 @@ class Volatility(IndicatorAbstract):
         index_value = _data_struct.index()[0]
         price_value = _data_struct[self.use_key][0]
         if self.last_price is not None:
-            chg_rate = math.log(price_value / self.last_price)
+            chg_rate = price_value / self.last_price - 1
             self.buf.append(chg_rate)
             self.data.addDict({
                 self.idx_key: index_value,
                 self.ret_key: statistics.pstdev(self.buf),
             })
-            self.last_price = price_value
+        self.last_price = price_value

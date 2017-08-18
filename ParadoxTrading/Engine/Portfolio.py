@@ -505,13 +505,12 @@ class PortfolioAbstract(Serializable):
             db.drop_collection(_backtest_key)
 
         coll = db[_backtest_key]
-        if _backtest_key not in db.collection_names():
-            coll.create_index([
-                ('type', pymongo.ASCENDING),
-                ('strategy', pymongo.ASCENDING),
-                ('tradingday', pymongo.ASCENDING),
-                ('datetime', pymongo.ASCENDING),
-            ], unique=True)
+        coll.create_index([
+            ('type', pymongo.ASCENDING),
+            ('strategy', pymongo.ASCENDING),
+            ('tradingday', pymongo.ASCENDING),
+            ('datetime', pymongo.ASCENDING),
+        ], unique=True)
         self.portfolio.storeRecords(coll)
 
         client.close()
