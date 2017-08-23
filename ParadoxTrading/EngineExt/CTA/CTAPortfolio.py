@@ -147,9 +147,10 @@ class CTAPortfolio(PortfolioAbstract):
             self,
             _fetcher: FetchAbstract,
             _init_fund: float = 0.0,
+            _margin_rate: float = 1.0,
             _settlement_price_index: str = 'closeprice',
     ):
-        super().__init__(_init_fund)
+        super().__init__(_init_fund, _margin_rate)
 
         self.fetcher = _fetcher
         self.settlement_price_index = _settlement_price_index
@@ -245,7 +246,7 @@ class CTAPortfolio(PortfolioAbstract):
             )[self.settlement_price_index][0]
         return symbol_price_dict
 
-    def _iter_portfolio_settlement(
+    def _portfolio_settlement(
             self, _tradingday,
             _symbol_price_dict: typing.Dict[str, float]
     ):
@@ -398,7 +399,7 @@ class CTAPortfolio(PortfolioAbstract):
         # 1. get the table map symbols to their price
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
-        self._iter_portfolio_settlement(
+        self._portfolio_settlement(
             _tradingday, symbol_price_dict
         )
 
@@ -462,15 +463,15 @@ class CTAWeightedPortfolio(CTAPortfolio):
             _fetcher: FetchAbstract,
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
+            _leverage: float = 1.0,
             _alloc_limit: float = 0.1,
             _settlement_price_index: str = 'closeprice',
     ):
         super().__init__(
-            _fetcher, _init_fund, _settlement_price_index
+            _fetcher, _init_fund, _margin_rate, _settlement_price_index
         )
 
-        # used for allocQuantity()
-        self.margin_rate = _margin_rate
+        self.leverage = _leverage
         self.alloc_limit = _alloc_limit
         self.total_fund: float = 0.0
 
@@ -490,7 +491,7 @@ class CTAWeightedPortfolio(CTAPortfolio):
                     )[self.settlement_price_index][0]
                     p.next_quantity = int(
                         min(self.alloc_limit, p.strength / total_strength) *
-                        self.total_fund * self.margin_rate / price
+                        self.total_fund * self.leverage / price
                     )
 
     def dealSettlement(self, _tradingday):
@@ -500,7 +501,7 @@ class CTAWeightedPortfolio(CTAPortfolio):
         # 1. get the table map symbols to their price
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
-        self._iter_portfolio_settlement(
+        self._portfolio_settlement(
             _tradingday, symbol_price_dict
         )
 
@@ -529,14 +530,15 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
             _fetcher: FetchAbstract,
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
+            _leverage: float = 1.0,
             _alloc_limit: float = 0.1,
             _settlement_price_index: str = 'closeprice'
     ):
         super().__init__(
-            _fetcher, _init_fund, _settlement_price_index
+            _fetcher, _init_fund, _margin_rate, _settlement_price_index
         )
 
-        self.margin_rate = _margin_rate
+        self.leverage = _leverage
         self.alloc_limit = _alloc_limit
         self.total_fund: float = 0.0
 
@@ -559,7 +561,7 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
                         )[self.settlement_price_index][0]
                         p.next_quantity = int(
                             min(self.alloc_limit, p.strength / total_strength) *
-                            self.total_fund * self.margin_rate / price
+                            self.total_fund * self.leverage / price
                         )
                     else:
                         p.next_quantity = p.cur_quantity
@@ -571,7 +573,7 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
         # 1. get the table map symbols to their price
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
-        self._iter_portfolio_settlement(
+        self._portfolio_settlement(
             _tradingday, symbol_price_dict
         )
 
@@ -593,13 +595,14 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
             self,
             _fetcher: FetchAbstract,
             _init_fund: float = 0.0,
+            _margin_rate: float = 1.0,
             _risk_rate: float = 0.01,
             _adjust_period: int = 5,
             _atr_period: int = 50,
             _settlement_price_index: str = 'closeprice'
     ):
         super().__init__(
-            _fetcher, _init_fund, _settlement_price_index
+            _fetcher, _init_fund, _margin_rate, _settlement_price_index
         )
 
         self.risk_rate: float = _risk_rate
@@ -652,7 +655,7 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
         # 1. get the table map symbols to their price
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
-        self._iter_portfolio_settlement(
+        self._portfolio_settlement(
             _tradingday, symbol_price_dict
         )
 
@@ -686,11 +689,12 @@ class CTAAllocPortfolio(CTAPortfolio):
             self,
             _fetcher: FetchAbstract,
             _init_fund: float = 0.0,
+            _margin_rate: float = 1.0,
             _alloc_rate: float = 0.05,
             _settlement_price_index: str = 'closeprice',
     ):
         super().__init__(
-            _fetcher, _init_fund, _settlement_price_index
+            _fetcher, _init_fund, _margin_rate, _settlement_price_index
         )
 
         self.alloc_rate: float = _alloc_rate
@@ -719,7 +723,7 @@ class CTAAllocPortfolio(CTAPortfolio):
         # 1. get the table map symbols to their price
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
-        self._iter_portfolio_settlement(
+        self._portfolio_settlement(
             _tradingday, symbol_price_dict
         )
 
@@ -746,11 +750,12 @@ class CTAAllocStablePortfolio(CTAPortfolio):
             self,
             _fetcher: FetchAbstract,
             _init_fund: float = 0.0,
+            _margin_rate: float = 1.0,
             _alloc_rate: float = 0.05,
             _settlement_price_index: str = 'closeprice',
     ):
         super().__init__(
-            _fetcher, _init_fund, _settlement_price_index
+            _fetcher, _init_fund, _margin_rate, _settlement_price_index
         )
 
         self.alloc_rate: float = _alloc_rate
@@ -788,7 +793,7 @@ class CTAAllocStablePortfolio(CTAPortfolio):
         # 1. get the table map symbols to their price
         symbol_price_dict = self._get_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
-        self._iter_portfolio_settlement(
+        self._portfolio_settlement(
             _tradingday, symbol_price_dict
         )
 

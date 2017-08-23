@@ -1,9 +1,10 @@
 import math
 import statistics
 
+from tabulate import tabulate
+
 from ParadoxTrading.Performance.Utils import FetchRecord
 from ParadoxTrading.Utils import DataStruct
-from tabulate import tabulate
 
 
 def dailyReturn(
@@ -13,6 +14,15 @@ def dailyReturn(
 ) -> DataStruct:
     fetcher = FetchRecord(_mongo_host, _mongo_database)
     return fetcher.settlement(_backtest_key).clone(['total_fund'])
+
+
+def marginRate(
+        _backtest_key: str,
+        _mongo_host: str = 'localhost',
+        _mongo_database='Backtest'
+) -> DataStruct:
+    fetcher = FetchRecord(_mongo_host, _mongo_database)
+    return fetcher.settlement(_backtest_key).clone(['margin'])
 
 
 def avgYearReturn(
