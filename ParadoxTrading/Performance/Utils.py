@@ -105,7 +105,8 @@ class FetchRecord:
         settlement_list = self.fetchSettlementRecords(_backtest_key)
         keys = [
             'tradingday', 'type',
-            'fund', 'unfilled_fund', 'total_fund'
+            'fund', 'unfilled_fund', 'total_fund',
+            'margin'
         ]
         ret = DataStruct(keys, 'tradingday')
         for d in settlement_list:
