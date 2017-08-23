@@ -1,6 +1,5 @@
 import typing
 
-import numpy as np
 from PyQt5.Qt import QColor
 from PyQt5.QtChart import QChart, QValueAxis, QCandlestickSet, QCandlestickSeries
 from PyQt5.QtWidgets import QGroupBox, QLineEdit, QFormLayout, QLabel
@@ -34,8 +33,9 @@ class CandleSeries(SeriesAbstract):
         tmp_y = self.x2y.loc[_begin_x:_end_x]['y']
         if len(tmp_y) == 0:
             return None, None
-        tmp_y = np.array(tmp_y)
-        return tmp_y.min(), tmp_y.max()
+        min_value = min([min(d) for d in tmp_y])
+        max_value = max([max(d) for d in tmp_y])
+        return min_value, max_value
 
     def addSeries(
             self, _x2idx: typing.Dict, _idx2x: list, _chart: QChart,
