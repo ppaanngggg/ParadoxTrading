@@ -49,8 +49,13 @@ class PositionMgr:
 
 
 class FundMgr:
-    def __init__(self, _init_fund: float):
+    def __init__(
+            self,
+            _init_fund: float,
+            _margin_rate: float,
+    ):
         self.fund: float = _init_fund
+        self.margin_rate: float = _margin_rate
 
     def dealFill(self, _fill_event: FillEvent):
         self.fund -= _fill_event.commission
@@ -60,6 +65,9 @@ class FundMgr:
             self.fund += _fill_event.price * _fill_event.quantity
         else:
             raise Exception('unknown direction')
+
+    def getFund(self) -> float:
+        return self.fund
 
     @staticmethod
     def getUnfilledFund(
@@ -82,12 +90,25 @@ class FundMgr:
                 unfilled_fund -= _symbol_price_dict[p.symbol] * p.short
         return unfilled_fund
 
-    def getFund(self) -> float:
-        return self.fund
+    def getMargin(
+            self, _position_mgr: typing.Dict[str, PositionMgr],
+            _symbol_price_dict: typing.Dict[str, float],
+    ) -> float:
+        margin = 0.0
+        for p in _position_mgr.values():
+            if p.long:
+                margin += _symbol_price_dict[p.symbol] * p.long * self.margin_rate
+            if p.short:
+                margin += _symbol_price_dict[p.symbol] * p.short * self.margin_rate
+        return margin
 
 
 class PortfolioMgr:
-    def __init__(self, _init_fund: float = 0.0):
+    def __init__(
+            self,
+            _init_fund: float = 0.0,
+            _margin_rate: float = 1.0,
+    ):
         # records for signal, order and fill
         self.signal_record: typing.List[typing.Dict] = []
         self.order_record: typing.List[typing.Dict] = []
@@ -101,7 +122,9 @@ class PortfolioMgr:
         # position_mgr will map symbols to a PositionMgr
         # fund_mgr manager total fund
         self.position_mgr: typing.Dict[str, PositionMgr] = {}
-        self.fund_mgr: FundMgr = FundMgr(_init_fund)
+        self.fund_mgr: FundMgr = FundMgr(
+            _init_fund, _margin_rate
+        )
 
     def getSymbolList(self) -> typing.List[str]:
         """
@@ -121,12 +144,25 @@ class PortfolioMgr:
             self, _symbol_price_dict: typing.Dict[str, float]
     ) -> float:
         """
-        compute current fund according to prices
+        compute current unfilled fund according to prices
 
         :param _symbol_price_dict:
         :return:
         """
         return self.fund_mgr.getUnfilledFund(
+            self.position_mgr, _symbol_price_dict
+        )
+
+    def getMargin(
+            self, _symbol_price_dict: typing.Dict[str, float]
+    ) -> float:
+        """
+        compute current margin according to prices
+
+        :param _symbol_price_dict:
+        :return:
+        """
+        return self.fund_mgr.getMargin(
             self.position_mgr, _symbol_price_dict
         )
 
@@ -355,12 +391,14 @@ class PortfolioMgr:
         :return:
         """
         unfilled_fund = self.getUnfilledFund(_symbol_price_dict)
+        margin = self.getMargin(_symbol_price_dict)
         self.settlement_record.append({
             'tradingday': _tradingday,
             'type': EventType.SETTLEMENT,
             'fund': self.getFund(),
             'unfilled_fund': unfilled_fund,
             'total_fund': self.getFund() + unfilled_fund,
+            'margin': margin,
         })
 
     def storeRecords(self, _coll: Collection):
@@ -423,7 +461,11 @@ class PortfolioMgr:
 
 
 class PortfolioAbstract(Serializable):
-    def __init__(self, _init_fund: float = 0.0):
+    def __init__(
+            self,
+            _init_fund: float = 0.0,
+            _margin_rate: float = 1.0,
+    ):
         super().__init__()
 
         self.engine: ParadoxTrading.Engine.EngineAbstract = None
@@ -431,7 +473,9 @@ class PortfolioAbstract(Serializable):
         # init order index, and create a map from order to strategy
         self.order_index: int = 0  # cur unused order index
         # the global portfolio,
-        self.portfolio: PortfolioMgr = PortfolioMgr(_init_fund)
+        self.portfolio: PortfolioMgr = PortfolioMgr(
+            _init_fund, _margin_rate
+        )
 
         self.addPickleSet('order_index', 'portfolio')
 
