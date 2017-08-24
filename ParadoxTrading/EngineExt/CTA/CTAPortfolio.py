@@ -1,6 +1,7 @@
 import typing
 
-from ParadoxTrading.Engine import FillEvent, SignalEvent, OrderEvent, OrderType, ActionType, DirectionType
+from ParadoxTrading.Engine import FillEvent, SignalEvent, \
+    OrderEvent, OrderType, ActionType, DirectionType
 from ParadoxTrading.Engine import PortfolioAbstract
 from ParadoxTrading.Fetch.FetchAbstract import FetchAbstract
 from ParadoxTrading.Indicator import ATR
@@ -299,22 +300,26 @@ class CTAPortfolio(PortfolioAbstract):
         # close cur
         if _p.cur_quantity > 0:
             ret_list.append(self._create_order(
-                _p.cur_instrument, ActionType.CLOSE, DirectionType.SELL, _p.cur_quantity
+                _p.cur_instrument, ActionType.CLOSE,
+                DirectionType.SELL, _p.cur_quantity
             ))
         elif _p.cur_quantity < 0:
             ret_list.append(self._create_order(
-                _p.cur_instrument, ActionType.CLOSE, DirectionType.BUY, -_p.cur_quantity
+                _p.cur_instrument, ActionType.CLOSE,
+                DirectionType.BUY, -_p.cur_quantity
             ))
         else:
             assert _p.cur_quantity != 0
         # open next
         if _p.next_quantity > 0:
             ret_list.append(self._create_order(
-                _p.next_instrument, ActionType.OPEN, DirectionType.BUY, _p.next_quantity
+                _p.next_instrument, ActionType.OPEN,
+                DirectionType.BUY, _p.next_quantity
             ))
         elif _p.next_quantity < 0:
             ret_list.append(self._create_order(
-                _p.next_instrument, ActionType.OPEN, DirectionType.SELL, -_p.next_quantity
+                _p.next_instrument, ActionType.OPEN,
+                DirectionType.SELL, -_p.next_quantity
             ))
         else:
             assert _p.next_quantity != 0
@@ -326,22 +331,26 @@ class CTAPortfolio(PortfolioAbstract):
             if _p.next_quantity > 0:  # keep long position
                 if quantity_diff > 0:  # inc long position
                     return [self._create_order(
-                        _p.next_instrument, ActionType.OPEN, DirectionType.BUY, quantity_diff
+                        _p.next_instrument, ActionType.OPEN,
+                        DirectionType.BUY, quantity_diff
                     )]
                 elif quantity_diff < 0:  # dec long position
                     return [self._create_order(
-                        _p.next_instrument, ActionType.CLOSE, DirectionType.SELL, -quantity_diff
+                        _p.next_instrument, ActionType.CLOSE,
+                        DirectionType.SELL, -quantity_diff
                     )]
                 else:
                     assert quantity_diff != 0
             elif _p.next_quantity < 0:  # keep short position
                 if quantity_diff < 0:  # inc short position
                     return [self._create_order(
-                        _p.next_instrument, ActionType.OPEN, DirectionType.SELL, -quantity_diff
+                        _p.next_instrument, ActionType.OPEN,
+                        DirectionType.SELL, -quantity_diff
                     )]
                 elif quantity_diff > 0:  # dec short position
                     return [self._create_order(
-                        _p.next_instrument, ActionType.CLOSE, DirectionType.BUY, quantity_diff
+                        _p.next_instrument, ActionType.CLOSE,
+                        DirectionType.BUY, quantity_diff
                     )]
                 else:
                     assert quantity_diff != 0
@@ -353,7 +362,8 @@ class CTAPortfolio(PortfolioAbstract):
     def _gen_orders(self, _p: ProductPosition) -> typing.List[OrderEvent]:
         if _p.cur_quantity != 0:  # cur is not empty
             if _p.next_quantity != 0:  # next is not empty, need to adjust position
-                if _p.cur_instrument != _p.next_instrument or _p.cur_quantity * _p.next_quantity < 0:
+                if _p.cur_instrument != _p.next_instrument \
+                        or _p.cur_quantity * _p.next_quantity < 0:
                     # change instrument, or change direction,
                     # need to close cur and open next
                     return self._close_cur_open_next(_p)
@@ -363,11 +373,13 @@ class CTAPortfolio(PortfolioAbstract):
             else:  # next is empty, need to close position
                 if _p.cur_quantity > 0:
                     return [self._create_order(
-                        _p.cur_instrument, ActionType.CLOSE, DirectionType.SELL, _p.cur_quantity
+                        _p.cur_instrument, ActionType.CLOSE,
+                        DirectionType.SELL, _p.cur_quantity
                     )]
                 elif _p.cur_quantity < 0:
                     return [self._create_order(
-                        _p.cur_instrument, ActionType.CLOSE, DirectionType.BUY, -_p.cur_quantity
+                        _p.cur_instrument, ActionType.CLOSE,
+                        DirectionType.BUY, -_p.cur_quantity
                     )]
                 else:
                     assert _p.cur_quantity != 0
@@ -375,11 +387,13 @@ class CTAPortfolio(PortfolioAbstract):
             # check if next is not empty, to open position
             if _p.next_quantity > 0:  # open buy
                 return [self._create_order(
-                    _p.next_instrument, ActionType.OPEN, DirectionType.BUY, _p.next_quantity
+                    _p.next_instrument, ActionType.OPEN,
+                    DirectionType.BUY, _p.next_quantity
                 )]
             elif _p.next_quantity < 0:  # open sell
                 return [self._create_order(
-                    _p.next_instrument, ActionType.OPEN, DirectionType.SELL, -_p.next_quantity
+                    _p.next_instrument, ActionType.OPEN,
+                    DirectionType.SELL, -_p.next_quantity
                 )]
             else:
                 # next is empty, nothing to do
@@ -808,7 +822,8 @@ class CTAAllocStablePortfolio(CTAPortfolio):
                     p.next_instrument = self.fetcher.fetchSymbol(
                         _tradingday, _product=p.product
                     )
-                    if p.strength != p.prev_strength or p.next_instrument != p.cur_instrument:
+                    if p.strength != p.prev_strength \
+                            or p.next_instrument != p.cur_instrument:
                         # if strength changes or instrument changes
                         p.next_quantity = self._calc_next_position(
                             _tradingday, p.next_instrument, p.strength
