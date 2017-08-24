@@ -440,6 +440,11 @@ class CTAPortfolio(PortfolioAbstract):
 
     # utility
     def _detect_change(self) -> bool:
+        """
+        detect any strength changes
+
+        :return:
+        """
         for s in self.strategy_table.values():
             for p in s:
                 if p.strength != p.prev_strength:
@@ -447,6 +452,11 @@ class CTAPortfolio(PortfolioAbstract):
         return False
 
     def _detect_sign_change(self) -> bool:
+        """
+        detect sign of strength changes
+
+        :return:
+        """
         for s in self.strategy_table.values():
             for p in s:
                 if p.strength > 0 and p.prev_strength > 0:
@@ -457,6 +467,11 @@ class CTAPortfolio(PortfolioAbstract):
         return False
 
     def _calc_total_strength(self) -> float:
+        """
+        sum all the strength
+
+        :return:
+        """
         total_strength = 0.0
         for s in self.strategy_table.values():
             for p in s:
@@ -464,6 +479,11 @@ class CTAPortfolio(PortfolioAbstract):
         return total_strength
 
     def _calc_parts(self) -> int:
+        """
+        count how many strategies open positions
+
+        :return:
+        """
         parts = 0
         for s in self.strategy_table.values():
             for p in s:
@@ -667,7 +687,7 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
                     p.next_instrument = self.fetcher.fetchSymbol(
                         _tradingday, _product=p.product
                     )
-                    if flag:
+                    if flag or p.next_instrument != p.cur_instrument:
                         # if strength status changes or instrument changes
                         atr = self.atr_table[p.product].getLastData()['atr'][0]
                         if p.strength > 0:

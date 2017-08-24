@@ -124,6 +124,9 @@ class FundMgr:
         # reset each tradingday
         self.commission: float = 0.0
 
+    def setStaticFund(self, _fund: float):
+        self.static_fund = _fund
+
     def getStaticFund(self) -> float:
         return self.static_fund
 
@@ -180,6 +183,9 @@ class PortfolioMgr:
         return sum([
             p.margin for p in self.position_mgr.values()
         ])
+
+    def setStaticFund(self, _fund: float):
+        self.fund_mgr.setStaticFund(_fund)
 
     def getStaticFund(self) -> float:
         return self.fund_mgr.getStaticFund()
