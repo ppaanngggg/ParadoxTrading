@@ -15,12 +15,17 @@ from ParadoxTrading.Utils import Serializable
 
 class PositionMgr:
     def __init__(
-            self, _symbol: str,
-            _init_long: int = 0, _init_short: int = 0
+            self, _symbol: str
     ):
         self.symbol: str = _symbol
-        self.long: int = _init_long
-        self.short: int = _init_short
+
+        self.long: int = 0
+        self.long_price: float = 0.0
+        self.short: int = 0
+        self.short_price: float = 0.0
+
+        self.margin_count: int = 0
+        self.margin: float = 0.0
 
     def getPosition(self, _type: int) -> int:
         if _type == SignalType.LONG:
@@ -30,77 +35,109 @@ class PositionMgr:
         else:
             raise Exception('unavailable type')
 
-    def incPosition(self, _type: int, _quantity: int):
+    def updateMargin(self, _price: float, _margin_rate: float):
+        # margin count is the max of long or short
+        cur_margin_count = max(self.long, self.short)
+        if cur_margin_count > self.margin_count:
+            # if margin inc, add margin according to price and margin rate
+            self.margin += _margin_rate * _price * (
+                cur_margin_count - self.margin_count
+            )
+        elif cur_margin_count < self.margin_count:
+            # if margin dec, sub margin as dec rate
+            self.margin *= cur_margin_count / self.margin_count
+        else:
+            pass
+
+        self.margin_count = cur_margin_count
+
+    def incPosition(
+            self, _type: int,
+            _quantity: int, _price: float,
+            _margin_rate: float
+    ):
+        """
+        :param _type: long or short
+        :param _quantity: how many
+        :param _price: how much money
+        :param _margin_rate:
+        :return:
+        """
         if _type == SignalType.LONG:
+            tmp = self.long * self.long_price + _quantity * _price
             self.long += _quantity
+            self.long_price = tmp / self.long
         elif _type == SignalType.SHORT:
+            tmp = self.short * self.short_price + _quantity * _price
             self.short += _quantity
+            self.short_price = tmp / self.short
         else:
             raise Exception('unavailable type')
 
-    def decPosition(self, _type: int, _quantity: int):
+        self.updateMargin(_price, _margin_rate)
+
+    def decPosition(
+            self, _type: int,
+            _quantity: int, _price: float,
+            _margin_rate: float
+    ):
+        """
+        :param _type: long or short
+        :param _quantity: how many
+        :param _price: how much money
+        :param _margin_rate:
+        :return:
+        """
         assert self.getPosition(_type) >= _quantity
         if _type == SignalType.LONG:
+            tmp = self.long * self.long_price
             self.long -= _quantity
+            if self.long == 0:
+                self.long_price = 0.0
+            else:
+                self.long_price = (tmp - _quantity * _price) / self.long
         elif _type == SignalType.SHORT:
+            tmp = self.short * self.short_price
             self.short -= _quantity
+            if self.short == 0:
+                self.short_price = 0.0
+            else:
+                self.short_price = (tmp - _quantity * _price) / self.short
         else:
             raise Exception('unavailable type')
+
+        self.updateMargin(_price, _margin_rate)
+
+    def dealSettlement(self, _price: float, _margin_rate: float):
+        self.long_price = _price
+        self.short_price = _price
+        self.margin_count = max(self.long, self.short)
+        self.margin = _margin_rate * _price * self.margin_count
 
 
 class FundMgr:
     def __init__(
-            self,
-            _init_fund: float,
-            _margin_rate: float,
+            self, _init_fund: float,
     ):
-        self.fund: float = _init_fund
-        self.margin_rate: float = _margin_rate
+        # update each tradingday
+        self.static_fund: float = _init_fund
+        # reset each tradingday
+        self.commission: float = 0.0
 
-    def dealFill(self, _fill_event: FillEvent):
-        self.fund -= _fill_event.commission
-        if _fill_event.direction == DirectionType.BUY:
-            self.fund -= _fill_event.price * _fill_event.quantity
-        elif _fill_event.direction == DirectionType.SELL:
-            self.fund += _fill_event.price * _fill_event.quantity
-        else:
-            raise Exception('unknown direction')
+    def getStaticFund(self) -> float:
+        return self.static_fund
 
-    def getFund(self) -> float:
-        return self.fund
+    def getDynamicFund(self, _profit_and_loss: float) -> float:
+        return self.static_fund - self.commission + _profit_and_loss
 
-    @staticmethod
-    def getUnfilledFund(
-            _position_mgr: typing.Dict[str, PositionMgr],
-            _symbol_price_dict: typing.Dict[str, float],
-    ) -> float:
-        """
-        compute unfilled fund according current positions and
-        current prices
+    def getCommission(self) -> float:
+        return self.commission
 
-        :param _position_mgr:
-        :param _symbol_price_dict:
-        :return:
-        """
-        unfilled_fund = 0.0
-        for p in _position_mgr.values():
-            if p.long:
-                unfilled_fund += _symbol_price_dict[p.symbol] * p.long
-            if p.short:
-                unfilled_fund -= _symbol_price_dict[p.symbol] * p.short
-        return unfilled_fund
+    def incCommission(self, _commission: float):
+        self.commission += _commission
 
-    def getMargin(
-            self, _position_mgr: typing.Dict[str, PositionMgr],
-            _symbol_price_dict: typing.Dict[str, float],
-    ) -> float:
-        margin = 0.0
-        for p in _position_mgr.values():
-            if p.long:
-                margin += _symbol_price_dict[p.symbol] * p.long * self.margin_rate
-            if p.short:
-                margin += _symbol_price_dict[p.symbol] * p.short * self.margin_rate
-        return margin
+    def dealSettlement(self, _profit_and_loss: float):
+        self.static_fund += - self.commission + _profit_and_loss
 
 
 class PortfolioMgr:
@@ -121,10 +158,9 @@ class PortfolioMgr:
         # position mgr and fund mgr
         # position_mgr will map symbols to a PositionMgr
         # fund_mgr manager total fund
+        self.margin_rate = _margin_rate
         self.position_mgr: typing.Dict[str, PositionMgr] = {}
-        self.fund_mgr: FundMgr = FundMgr(
-            _init_fund, _margin_rate
-        )
+        self.fund_mgr: FundMgr = FundMgr(_init_fund)
 
     def getSymbolList(self) -> typing.List[str]:
         """
@@ -137,162 +173,83 @@ class PortfolioMgr:
             if p.long or p.short
         ]
 
-    def getFund(self) -> float:
-        return self.fund_mgr.getFund()
+    def getMargin(self) -> float:
+        """
+        get current total margin
+        """
+        return sum([
+            p.margin for p in self.position_mgr.values()
+        ])
 
-    def getUnfilledFund(
+    def getStaticFund(self) -> float:
+        return self.fund_mgr.getStaticFund()
+
+    def getDynamicFund(self, _profit_and_loss: float) -> float:
+        return self.fund_mgr.getDynamicFund(_profit_and_loss)
+
+    def getCommission(self) -> float:
+        return self.fund_mgr.getCommission()
+
+    def getProfitAndLoss(
             self, _symbol_price_dict: typing.Dict[str, float]
     ) -> float:
-        """
-        compute current unfilled fund according to prices
+        ret = 0
+        for k, v in self.position_mgr.items():
+            price = _symbol_price_dict[k]
+            ret += v.long * (price - v.long_price)
+            ret += v.short * (v.short_price - price)
+        return ret
 
-        :param _symbol_price_dict:
-        :return:
-        """
-        return self.fund_mgr.getUnfilledFund(
-            self.position_mgr, _symbol_price_dict
-        )
-
-    def getMargin(
-            self, _symbol_price_dict: typing.Dict[str, float]
-    ) -> float:
-        """
-        compute current margin according to prices
-
-        :param _symbol_price_dict:
-        :return:
-        """
-        return self.fund_mgr.getMargin(
-            self.position_mgr, _symbol_price_dict
-        )
-
-    def incPosition(self, _symbol: str, _type: int, _quantity: int = 1):
+    def incPosition(
+            self, _symbol: str, _type: int,
+            _quantity: int, _price: float
+    ):
         """
         inc position of symbol
 
         :param _symbol: symbol to inc
         :param _type: long or short
         :param _quantity: how many
+        :param _price: how much money
         :return:
         """
         assert _type == SignalType.LONG or _type == SignalType.SHORT
         assert _quantity > 0
         try:
             # try to add directly
-            self.position_mgr[_symbol].incPosition(_type, _quantity)
+            self.position_mgr[_symbol].incPosition(
+                _type, _quantity, _price, self.margin_rate
+            )
         except KeyError:
             # create if failed
             self.position_mgr[_symbol] = PositionMgr(_symbol)
-            self.position_mgr[_symbol].incPosition(_type, _quantity)
+            self.position_mgr[_symbol].incPosition(
+                _type, _quantity, _price, self.margin_rate
+            )
 
-    def decPosition(self, _symbol: str, _type: int, _quantity: int = 1):
+    def decPosition(
+            self, _symbol: str, _type: int,
+            _quantity: int, _price: float
+    ):
         """
         dec position of symbol
 
         :param _symbol: symbol to inc
         :param _type: long or short
         :param _quantity: how many
+        :param _price: how much money
         :return:
         """
         assert _type == SignalType.LONG or _type == SignalType.SHORT
         assert _quantity > 0
         assert _symbol in self.position_mgr.keys()
-        self.position_mgr[_symbol].decPosition(_type, _quantity)
-
-    def getPosition(self, _symbol: str, _type: int) -> int:
-        """
-        get _type position of symbol
-
-        :param _symbol: which symbol
-        :param _type: long or short
-        :return: number of position
-        """
-        if _symbol in self.position_mgr.keys():
-            return self.position_mgr[_symbol].getPosition(_type)
-        return 0
-
-    def getLongPosition(self, _symbol: str) -> int:
-        """
-        get long position of symbol
-
-        :param _symbol: which symbol
-        :return: number of position
-        """
-        return self.getPosition(_symbol, SignalType.LONG)
-
-    def getShortPosition(self, _symbol: str) -> int:
-        """
-        get short position of symbol
-
-        :param _symbol: which symbol
-        :return: number of position
-        """
-        return self.getPosition(_symbol, SignalType.SHORT)
-
-    def getUnfilledOrder(
-            self, _symbol: str,
-            _action: int, _direction: int
-    ) -> int:
-        """
-        get number of unfilled orders for _instrument
-
-        :param _symbol: which symbol
-        :param _action: open or close
-        :param _direction: buy or sell
-        :return: number of unfilled order
-        """
-        num = 0
-        for order in self.unfilled_order.values():
-            if order.symbol == _symbol and \
-                            order.action == _action and \
-                            order.direction == _direction:
-                num += order.quantity
-
-        return num
-
-    def getOpenBuyUnfilledOrder(self, _symbol: str) -> int:
-        """
-        number of unfilled order which is OPEN and BUY
-
-        :param _symbol:
-        :return:
-        """
-        return self.getUnfilledOrder(
-            _symbol, ActionType.OPEN, DirectionType.BUY
+        tmp = self.position_mgr[_symbol]
+        tmp.decPosition(
+            _type, _quantity, _price, self.margin_rate
         )
-
-    def getOpenSellUnfilledOrder(self, _symbol: str) -> int:
-        """
-        number of unfilled order which is OPEN and SELL
-
-        :param _symbol:
-        :return:
-        """
-        return self.getUnfilledOrder(
-            _symbol, ActionType.OPEN, DirectionType.SELL
-        )
-
-    def getCloseBuyUnfilledOrder(self, _symbol: str) -> int:
-        """
-        number of unfilled order which is CLOSE and BUY
-
-        :param _symbol:
-        :return:
-        """
-        return self.getUnfilledOrder(
-            _symbol, ActionType.CLOSE, DirectionType.BUY
-        )
-
-    def getCloseSellUnfilledOrder(self, _symbol: str) -> int:
-        """
-        number of unfilled order which is CLOSE and SELL
-
-        :param _symbol:
-        :return:
-        """
-        return self.getUnfilledOrder(
-            _symbol, ActionType.CLOSE, DirectionType.SELL
-        )
+        # delete if empty, speed up and reduce memory
+        if tmp.long == 0 and tmp.short == 0:
+            del self.position_mgr[_symbol]
 
     def dealSignalEvent(
             self, _signal_event: SignalEvent
@@ -308,8 +265,7 @@ class PortfolioMgr:
         )
 
     def dealOrderEvent(
-            self, _strategy: str,
-            _order_event: OrderEvent
+            self, _strategy: str, _order_event: OrderEvent
     ):
         """
         deal order event to set inner state
@@ -323,11 +279,11 @@ class PortfolioMgr:
         order_dict = _order_event.toDict()
         order_dict['strategy'] = _strategy
         self.order_record.append(order_dict)
+        # add to unfilled table
         self.unfilled_order[_order_event.index] = _order_event
 
     def dealFillEvent(
-            self, _strategy: str,
-            _fill_event: FillEvent
+            self, _strategy: str, _fill_event: FillEvent
     ):
         """
         deal fill event to set inner state
@@ -337,47 +293,47 @@ class PortfolioMgr:
         :return:
         """
         assert _fill_event.index in self.unfilled_order.keys()
+
         # store record
         fill_dict = _fill_event.toDict()
         fill_dict['strategy'] = _strategy
         self.fill_record.append(fill_dict)
+
         # delete unfilled order record
         del self.unfilled_order[_fill_event.index]
+
         # update position
         if _fill_event.action == ActionType.OPEN:
             if _fill_event.direction == DirectionType.BUY:
                 self.incPosition(
-                    _fill_event.symbol,
-                    SignalType.LONG,
-                    _fill_event.quantity
+                    _fill_event.symbol, SignalType.LONG,
+                    _fill_event.quantity, _fill_event.price,
                 )
             elif _fill_event.direction == DirectionType.SELL:
                 self.incPosition(
-                    _fill_event.symbol,
-                    SignalType.SHORT,
-                    _fill_event.quantity
+                    _fill_event.symbol, SignalType.SHORT,
+                    _fill_event.quantity, _fill_event.price,
                 )
             else:
                 raise Exception('unknown direction')
         elif _fill_event.action == ActionType.CLOSE:
             if _fill_event.direction == DirectionType.BUY:
                 self.decPosition(
-                    _fill_event.symbol,
-                    SignalType.SHORT,
-                    _fill_event.quantity
+                    _fill_event.symbol, SignalType.SHORT,
+                    _fill_event.quantity, _fill_event.price,
                 )
             elif _fill_event.direction == DirectionType.SELL:
                 self.decPosition(
-                    _fill_event.symbol,
-                    SignalType.LONG,
-                    _fill_event.quantity
+                    _fill_event.symbol, SignalType.LONG,
+                    _fill_event.quantity, _fill_event.price,
                 )
             else:
                 raise Exception('unknown direction')
         else:
             raise Exception('unknown action')
-        # update fund
-        self.fund_mgr.dealFill(_fill_event)
+
+        # add commission
+        self.fund_mgr.incCommission(_fill_event.commission)
 
     def dealSettlement(
             self, _tradingday: str,
@@ -390,16 +346,19 @@ class PortfolioMgr:
         :param _symbol_price_dict:
         :return:
         """
-        unfilled_fund = self.getUnfilledFund(_symbol_price_dict)
-        margin = self.getMargin(_symbol_price_dict)
+        profit_loss = self.getProfitAndLoss(_symbol_price_dict)
+
         self.settlement_record.append({
             'tradingday': _tradingday,
             'type': EventType.SETTLEMENT,
-            'fund': self.getFund(),
-            'unfilled_fund': unfilled_fund,
-            'total_fund': self.getFund() + unfilled_fund,
-            'margin': margin,
+            'fund': self.getDynamicFund(profit_loss),
+            'commission': self.getCommission(),
+            'margin': self.getMargin(),
         })
+
+        self.fund_mgr.dealSettlement(profit_loss)
+        for k, v in self.position_mgr.items():
+            v.dealSettlement(_symbol_price_dict[k], self.margin_rate)
 
     def storeRecords(self, _coll: Collection):
         """
@@ -455,7 +414,7 @@ class PortfolioMgr:
         )
 
         ret += '@@@ FUND @@@\n'
-        ret += ' - Fund: {}'.format(self.getFund())
+        ret += ' - Static Fund: {}'.format(self.getStaticFund())
 
         return ret
 
@@ -466,6 +425,10 @@ class PortfolioAbstract(Serializable):
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
     ):
+        """
+        :param _init_fund: init fund for portfolio mgr
+        :param _margin_rate: margin rate for portfolio mgr
+        """
         super().__init__()
 
         self.engine: ParadoxTrading.Engine.EngineAbstract = None

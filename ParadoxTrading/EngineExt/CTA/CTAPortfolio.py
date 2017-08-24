@@ -159,6 +159,8 @@ class CTAPortfolio(PortfolioAbstract):
         self.strategy_table: typing.Dict[str, StrategyProduct] = {}
         # map order to its order info
         self.order_table: typing.Dict[int, OrderStrategyProduct] = {}
+        # map symbol to latest price, need to be reset after settlement
+        self.symbol_price_dict: typing.Dict[str, float] = {}
 
         self.addPickleSet('strategy_table', 'order_table')
 
@@ -173,7 +175,7 @@ class CTAPortfolio(PortfolioAbstract):
         :return:
         """
 
-        # deal the position
+        # deal the strategy mgr
         try:
             strategy_product = self.strategy_table[_event.strategy]
         except KeyError:
@@ -235,16 +237,16 @@ class CTAPortfolio(PortfolioAbstract):
                 # update position according to fill event
                 self._update_cur_position(p)
 
-    def _get_symbol_price_dict(
+    def _update_symbol_price_dict(
             self, _tradingday
-    ) -> typing.Dict[str, float]:
+    ):
         # get price dict for each portfolio
-        symbol_price_dict = {}
+        keys = self.symbol_price_dict.keys()
         for symbol in self.portfolio.getSymbolList():
-            symbol_price_dict[symbol] = self.fetcher.fetchData(
-                _tradingday, symbol
-            )[self.settlement_price_index][0]
-        return symbol_price_dict
+            if symbol not in keys:
+                self.symbol_price_dict[symbol] = self.fetcher.fetchData(
+                    _tradingday, symbol
+                )[self.settlement_price_index][0]
 
     def _portfolio_settlement(
             self, _tradingday,
@@ -402,10 +404,10 @@ class CTAPortfolio(PortfolioAbstract):
         assert _tradingday
 
         # 1. get the table map symbols to their price
-        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        self._update_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._portfolio_settlement(
-            _tradingday, symbol_price_dict
+            _tradingday, self.symbol_price_dict
         )
 
         # 3. update each strategy's positions to current status
@@ -416,9 +418,11 @@ class CTAPortfolio(PortfolioAbstract):
         self._iter_update_next_position(_tradingday)
         # 5. send new orders
         self._iter_send_order()
+        # 6. reset price table
+        self.symbol_price_dict = {}
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
-        pass
+        self.symbol_price_dict[_symbol] = _data[self.settlement_price_index][0]
 
     # utility
     def _detect_change(self) -> bool:
@@ -491,9 +495,13 @@ class CTAWeightedPortfolio(CTAPortfolio):
                     p.next_instrument = self.fetcher.fetchSymbol(
                         _tradingday, _product=p.product
                     )
-                    price = self.fetcher.fetchData(
-                        _tradingday, p.next_instrument
-                    )[self.settlement_price_index][0]
+                    try:
+                        price = self.symbol_price_dict[p.next_instrument]
+                    except KeyError:
+                        price = self.fetcher.fetchData(
+                            _tradingday, p.next_instrument
+                        )[self.settlement_price_index][0]
+                        self.symbol_price_dict[p.next_instrument] = price
                     p.next_quantity = int(
                         min(self.alloc_limit, p.strength / total_strength) *
                         self.total_fund * self.leverage / price
@@ -504,15 +512,14 @@ class CTAWeightedPortfolio(CTAPortfolio):
         assert _tradingday
 
         # 1. get the table map symbols to their price
-        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        self._update_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._portfolio_settlement(
-            _tradingday, symbol_price_dict
+            _tradingday, self.symbol_price_dict
         )
 
         # 3 compute current total fund
-        self.total_fund = self.portfolio.getFund(
-        ) + self.portfolio.getUnfilledFund(symbol_price_dict)
+        self.total_fund = self.portfolio.getStaticFund()
 
         # 4. update each strategy's positions to current status
         self._iter_update_cur_position()
@@ -520,6 +527,8 @@ class CTAWeightedPortfolio(CTAPortfolio):
         self._iter_update_next_position(_tradingday)
         # 6. send new orders
         self._iter_send_order()
+        # 7. reset price table
+        self.symbol_price_dict = {}
 
 
 class CTAWeightedStablePortfolio(CTAPortfolio):
@@ -561,9 +570,13 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
                     )
                     if flag or p.next_instrument != p.cur_instrument:
                         # if strength status changes or instrument changes
-                        price = self.fetcher.fetchData(
-                            _tradingday, p.next_instrument
-                        )[self.settlement_price_index][0]
+                        try:
+                            price = self.symbol_price_dict[p.next_instrument]
+                        except KeyError:
+                            price = self.fetcher.fetchData(
+                                _tradingday, p.next_instrument
+                            )[self.settlement_price_index][0]
+                            self.symbol_price_dict[p.next_instrument] = price
                         p.next_quantity = int(
                             min(self.alloc_limit, p.strength / total_strength) *
                             self.total_fund * self.leverage / price
@@ -576,15 +589,14 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
         assert _tradingday
 
         # 1. get the table map symbols to their price
-        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        self._update_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._portfolio_settlement(
-            _tradingday, symbol_price_dict
+            _tradingday, self.symbol_price_dict
         )
 
         # 3 compute current total fund
-        self.total_fund = self.portfolio.getFund(
-        ) + self.portfolio.getUnfilledFund(symbol_price_dict)
+        self.total_fund = self.portfolio.getStaticFund()
 
         # 4. update each strategy's positions to current status
         self._iter_update_cur_position()
@@ -593,6 +605,8 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
         self._iter_update_next_position(_tradingday)
         # 6. send new orders
         self._iter_send_order()
+        # 7. reset price table
+        self.symbol_price_dict = {}
 
 
 class CTAEqualRiskATRPortfolio(CTAPortfolio):
@@ -658,15 +672,14 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
         assert _tradingday
 
         # 1. get the table map symbols to their price
-        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        self._update_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._portfolio_settlement(
-            _tradingday, symbol_price_dict
+            _tradingday, self.symbol_price_dict
         )
 
         # 3 compute current total fund
-        self.total_fund = self.portfolio.getFund(
-        ) + self.portfolio.getUnfilledFund(symbol_price_dict)
+        self.total_fund = self.portfolio.getStaticFund()
 
         # 4. update each strategy's positions to current status
         self._iter_update_cur_position()
@@ -675,8 +688,11 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
         self._iter_update_next_position(_tradingday)
         # 6. send new orders
         self._iter_send_order()
+        # 7. reset price table
+        self.symbol_price_dict = {}
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
+        self.symbol_price_dict[_symbol] = _data[self.settlement_price_index][0]
         try:
             self.atr_table[_symbol].addOne(_data)
         except KeyError:
@@ -714,9 +730,13 @@ class CTAAllocPortfolio(CTAPortfolio):
                     p.next_instrument = self.fetcher.fetchSymbol(
                         _tradingday, _product=p.product
                     )
-                    price = self.fetcher.fetchData(
-                        _tradingday, p.next_instrument
-                    )[self.settlement_price_index][0]
+                    try:
+                        price = self.symbol_price_dict[p.next_instrument]
+                    except KeyError:
+                        price = self.fetcher.fetchData(
+                            _tradingday, p.next_instrument
+                        )[self.settlement_price_index][0]
+                        self.symbol_price_dict[p.next_instrument] = price
                     p.next_quantity = int(
                         self.total_fund * self.alloc_rate * p.strength / price
                     )
@@ -726,15 +746,14 @@ class CTAAllocPortfolio(CTAPortfolio):
         assert _tradingday
 
         # 1. get the table map symbols to their price
-        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        self._update_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._portfolio_settlement(
-            _tradingday, symbol_price_dict
+            _tradingday, self.symbol_price_dict
         )
 
         # 3 compute current total fund
-        self.total_fund = self.portfolio.getFund(
-        ) + self.portfolio.getUnfilledFund(symbol_price_dict)
+        self.total_fund = self.portfolio.getStaticFund()
 
         # 4. update each strategy's positions to current status
         self._iter_update_cur_position()
@@ -742,6 +761,8 @@ class CTAAllocPortfolio(CTAPortfolio):
         self._iter_update_next_position(_tradingday)
         # 6. send new orders
         self._iter_send_order()
+        # 7. reset price table
+        self.symbol_price_dict = {}
 
 
 class CTAAllocStablePortfolio(CTAPortfolio):
@@ -767,9 +788,13 @@ class CTAAllocStablePortfolio(CTAPortfolio):
         self.total_fund: float = None
 
     def _calc_next_position(self, _tradingday, _symbol, _strength) -> int:
-        price = self.fetcher.fetchData(
-            _tradingday, _symbol
-        )[self.settlement_price_index][0]
+        try:
+            price = self.symbol_price_dict[_symbol]
+        except KeyError:
+            price = self.fetcher.fetchData(
+                _tradingday, _symbol
+            )[self.settlement_price_index][0]
+            self.symbol_price_dict[_symbol] = price
         return int(
             _strength * self.total_fund * self.alloc_rate / price
         )
@@ -796,15 +821,14 @@ class CTAAllocStablePortfolio(CTAPortfolio):
         assert _tradingday
 
         # 1. get the table map symbols to their price
-        symbol_price_dict = self._get_symbol_price_dict(_tradingday)
+        self._update_symbol_price_dict(_tradingday)
         # 2. set portfolio settlement
         self._portfolio_settlement(
-            _tradingday, symbol_price_dict
+            _tradingday, self.symbol_price_dict
         )
 
         # 3 compute current total fund
-        self.total_fund = self.portfolio.getFund(
-        ) + self.portfolio.getUnfilledFund(symbol_price_dict)
+        self.total_fund = self.portfolio.getStaticFund()
 
         # 4. update each strategy's positions to current status
         self._iter_update_cur_position()
@@ -812,3 +836,5 @@ class CTAAllocStablePortfolio(CTAPortfolio):
         self._iter_update_next_position(_tradingday)
         # 6. send new orders
         self._iter_send_order()
+        # 7. reset price table
+        self.symbol_price_dict = {}

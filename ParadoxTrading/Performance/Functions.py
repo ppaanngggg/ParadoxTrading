@@ -13,7 +13,7 @@ def dailyReturn(
         _mongo_database='Backtest'
 ) -> DataStruct:
     fetcher = FetchRecord(_mongo_host, _mongo_database)
-    return fetcher.settlement(_backtest_key).clone(['total_fund'])
+    return fetcher.settlement(_backtest_key).clone(['fund'])
 
 
 def marginRate(
@@ -28,7 +28,7 @@ def marginRate(
 def avgYearReturn(
         _returns: DataStruct,
         _factor: int = 252,
-        _fund_index: str = 'total_fund'
+        _fund_index: str = 'fund'
 ) -> float:
     fund = _returns[_fund_index]
     return (fund[-1] / fund[0]) ** (_factor / len(fund)) - 1
@@ -38,7 +38,7 @@ def sharpRatio(
         _returns: DataStruct,
         _factor: int = 252,
         _risk_free: float = 0.0,
-        _fund_index: str = 'total_fund'
+        _fund_index: str = 'fund'
 ) -> float:
     fund = _returns[_fund_index]
     tmp_list = [
@@ -55,7 +55,7 @@ def sharpRatio(
 
 def maxDrawdown(
         _returns: DataStruct,
-        _fund_index: str = 'total_fund'
+        _fund_index: str = 'fund'
 ) -> float:
     fund_list = _returns[_fund_index]
     max_drawdown = 0.0
@@ -72,7 +72,7 @@ def maxDrawdown(
 def calmarRatio(
         _returns: DataStruct,
         _factor: int = 252,
-        _fund_index: str = 'total_fund'
+        _fund_index: str = 'fund'
 ) -> float:
     return avgYearReturn(
         _returns, _factor, _fund_index
@@ -87,7 +87,7 @@ def performance(
         _mongo_database='Backtest',
         _factor: int = 252,
         _risk_free: float = 0.0,
-        _fund_index: str = 'total_fund'
+        _fund_index: str = 'fund'
 ):
     daily_return = dailyReturn(
         _backtest_key, _mongo_host, _mongo_database
