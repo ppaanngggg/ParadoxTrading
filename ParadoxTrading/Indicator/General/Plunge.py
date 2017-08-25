@@ -51,8 +51,9 @@ class Plunge(IndicatorAbstract):
         if self.last_close_price is not None:
             index_value = _data_struct.index()[0]
             # atr
-            tr_value = max(_data_struct[self.high_key][0], self.last_close_price) - \
-                       min(_data_struct[self.low_key][0], self.last_close_price)
+            tr_value = max(
+                _data_struct[self.high_key][0], self.last_close_price
+            ) - min(_data_struct[self.low_key][0], self.last_close_price)
             self.atr_buf.append(tr_value)
             atr_value = sum(self.atr_buf) / len(self.atr_buf)
             # ema

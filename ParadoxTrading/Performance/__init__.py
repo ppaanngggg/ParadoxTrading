@@ -1,4 +1,3 @@
-from .Functions import dailyReturn, marginRate, \
-    sharpRatio, avgYearReturn, maxDrawdown, calmarRatio, \
-    performance
+from .Functions import avgYearReturn, calmarRatio, dailyReturn, marginRate, \
+    maxDrawdown, performance, sharpRatio
 from .Utils import FetchRecord

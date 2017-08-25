@@ -5,14 +5,14 @@ from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class MA(IndicatorAbstract):
+class BIAS(IndicatorAbstract):
     """
     rolling ma
     """
 
     def __init__(
             self, _period: int, _use_key: str = 'closeprice',
-            _idx_key: str = 'time', _ret_key: str = 'ma'
+            _idx_key: str = 'time', _ret_key: str = 'bias'
     ):
         super().__init__()
 
@@ -29,8 +29,12 @@ class MA(IndicatorAbstract):
 
     def _addOne(self, _data_struct: DataStruct):
         index_value = _data_struct.index()[0]
-        self.buf.append(_data_struct[self.use_key][0])
+        price = _data_struct[self.use_key][0]
+
+        self.buf.append(price)
+        price_mean = statistics.mean(self.buf)
+
         self.data.addDict({
             self.idx_key: index_value,
-            self.ret_key: statistics.mean(self.buf),
+            self.ret_key: (price - price_mean) / price_mean * 100,
         })
