@@ -29,7 +29,7 @@ class BBands(IndicatorAbstract):
         index_value = _data_struct.index()[0]
         self.buf.append(_data_struct.getColumn(self.use_key)[0])
         mean = statistics.mean(self.buf)
-        std = statistics.pstdev(self.buf)
+        std = statistics.pstdev(self.buf, mu=mean)
         self.data.addRow(
             [index_value, mean + self.rate * std, mean, mean - self.rate * std],
             self.keys
