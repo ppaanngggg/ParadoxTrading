@@ -140,8 +140,8 @@ class FundMgr:
         self.commission += _commission
 
     def dealSettlement(self, _profit_and_loss: float):
-        self.commission = 0.0
         self.static_fund += - self.commission + _profit_and_loss
+        self.commission = 0.0
 
 
 class PortfolioMgr:

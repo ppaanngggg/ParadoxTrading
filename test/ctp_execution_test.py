@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 
 from ParadoxTrading.Engine import OrderEvent, OrderType, ActionType, DirectionType
-from ParadoxTrading.EngineExt import CTPExecution
+from ParadoxTrading.EngineExt.CTPExecution import CTPExecution
 from time import sleep
 
 logging.basicConfig(level=logging.INFO)
@@ -20,4 +20,3 @@ execution.dealOrderEvent(OrderEvent(
     _order_type=OrderType.MARKET, _action=ActionType.OPEN,
     _direction=DirectionType.BUY
 ))
-
