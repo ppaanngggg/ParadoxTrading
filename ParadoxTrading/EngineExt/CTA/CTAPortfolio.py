@@ -449,7 +449,7 @@ class CTAPortfolio(PortfolioAbstract):
         self.symbol_price_dict = {}
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
-        self.symbol_price_dict[_symbol] = _data[self.settlement_price_index][0]
+        pass
 
     # utility
     def _detect_change(self) -> bool:
@@ -739,7 +739,6 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
         self.symbol_price_dict = {}
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
-        self.symbol_price_dict[_symbol] = _data[self.settlement_price_index][0]
         try:
             self.atr_table[_symbol].addOne(_data)
         except KeyError:

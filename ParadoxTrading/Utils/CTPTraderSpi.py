@@ -102,7 +102,8 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
 
         self.eventClear()
         self.ret_data = DataStruct([
-            'InstrumentID', 'ProductID', 'VolumeMultiple', 'PriceTick'
+            'InstrumentID', 'ProductID', 'VolumeMultiple', 'PriceTick',
+            'DeliveryYear', 'DeliveryMonth'
         ], 'InstrumentID')
         logging.info('instrument TRY!')
         if self.api.ReqQryInstrument(qry, self.getRequestID()):
@@ -120,12 +121,16 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
-        self.ret_data.addDict({
-            'InstrumentID': _instrument.InstrumentID.decode(),
-            'ProductID': _instrument.ProductID.decode(),
-            'VolumeMultiple': _instrument.VolumeMultiple,
-            'PriceTick': _instrument.PriceTick,
-        })
+        symbol: str = _instrument.InstrumentID.decode()
+        if len(symbol) <= 6 and not symbol.endswith('efp'):
+            self.ret_data.addDict({
+                'InstrumentID': symbol,
+                'ProductID': _instrument.ProductID.decode(),
+                'VolumeMultiple': _instrument.VolumeMultiple,
+                'PriceTick': _instrument.PriceTick,
+                'DeliveryYear': _instrument.DeliveryYear.decode(),
+                'DeliveryMonth': _instrument.DeliveryMonth.decode(),
+            })
         if _is_last:
             logging.info('instrument DONE! (total: {})'.format(len(self.ret_data)))
             self.eventSet()

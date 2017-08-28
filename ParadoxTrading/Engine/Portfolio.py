@@ -386,8 +386,10 @@ class PortfolioMgr:
         ret = '@@@ POSITION @@@\n'
         table = []
         for k, v in self.position_mgr.items():
-            table.append([k, v.long, v.short])
-        ret += tabulate.tabulate(table, ['SYMBOL', 'LONG', 'SHORT'])
+            table.append([k, v.long, v.long_price, v.short, v.short_price])
+        ret += tabulate.tabulate(
+            table, ['SYMBOL', 'LONG', 'LONG PRICE', 'SHORT', 'SHORT PRICE']
+        )
 
         ret += '\n@@@ UNFILLED ORDER @@@\n'
         table = []
@@ -422,6 +424,7 @@ class PortfolioMgr:
 
         ret += '@@@ FUND @@@\n'
         ret += ' - Static Fund: {}'.format(self.getStaticFund())
+        ret += ' - Commission: {}'.format(self.getCommission())
 
         return ret
 
