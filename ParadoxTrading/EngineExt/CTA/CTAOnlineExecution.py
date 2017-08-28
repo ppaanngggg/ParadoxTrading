@@ -1,10 +1,12 @@
 import csv
 import logging
 import os
+import re
 import typing
 
 from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, OrderType, \
     DirectionType, ActionType, FillEvent
+from ParadoxTrading.EngineExt.CTA.CTAPortfolio import POINT_VALUE
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -17,6 +19,7 @@ class CTAOnlineExecution(ExecutionAbstract):
         if not self.path.endswith('/'):
             self.path += '/'
 
+        self.prog = re.compile(r'[a-z]+')
         self.order_buf: typing.List[OrderEvent] = []
 
     def matchMarket(self, _symbol: str, _data: DataStruct):
@@ -33,12 +36,14 @@ class CTAOnlineExecution(ExecutionAbstract):
             reader = csv.reader(f)
             for row in reader:
                 index = int(row[0])
+                instrument = row[1].lower()
+                product = self.prog.findall(instrument)[0]
                 assert index in self.order_dict.keys()
                 del self.order_dict[index]
                 self.addEvent(FillEvent(
-                    _index=index, _symbol=row[1],
+                    _index=index, _symbol=instrument,
                     _tradingday=row[2], _datetime=row[3],
-                    _quantity=int(row[4]),
+                    _quantity=int(row[4]) * POINT_VALUE[product],
                     _action=ActionType.fromStr(row[5]),
                     _direction=DirectionType.fromStr(row[6]),
                     _price=float(row[7]),
@@ -60,12 +65,13 @@ class CTAOnlineExecution(ExecutionAbstract):
             'Quantity', 'Price'
         ))
         for o in self.order_buf:
+            product = self.prog.findall(o.symbol.lower())[0]
             writer.writerow((
                 o.index, o.symbol,
                 o.tradingday, o.datetime,
                 OrderType.toStr(o.order_type),
                 ActionType.toStr(o.action),
                 DirectionType.toStr(o.direction),
-                o.quantity, o.price
+                o.quantity / POINT_VALUE[product], o.price
             ))
         f.close()
