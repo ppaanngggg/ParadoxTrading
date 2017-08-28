@@ -1,7 +1,7 @@
 from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, OrderType, \
     FillEvent
 from ParadoxTrading.Utils import DataStruct
-
+from ParadoxTrading.EngineExt.CTA.CTAPortfolio import POINT_VALUE
 
 class CTABacktestExecution(ExecutionAbstract):
     """

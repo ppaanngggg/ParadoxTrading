@@ -7,6 +7,19 @@ from ParadoxTrading.Fetch.FetchAbstract import FetchAbstract
 from ParadoxTrading.Indicator import ATR
 from ParadoxTrading.Utils import DataStruct
 
+POINT_VALUE = {
+    'if': 300, 'ic': 200, 'ih': 300, 't': 1000, 'tf': 1000,  # cffex
+    'cu': 5, 'al': 5, 'zn': 5, 'pb': 5, 'ni': 1, 'sn': 1,  # shfe
+    'au': 1000, 'ag': 15, 'rb': 10, 'wr': 10, 'hc': 10,  # shfe
+    'fu': 50, 'bu': 10, 'ru': 10,  # shfe
+    'c': 10, 'cs': 10, 'a': 10, 'b': 10, 'm': 10, 'y': 10, 'p': 10,  # dce
+    'fb': 500, 'bb': 500, 'jd': 10,  # dce
+    'l': 5, 'v': 5, 'pp': 5, 'j': 100, 'jm': 60, 'i': 100,  # dce
+    'wh': 20, 'pm': 50, 'ri': 20, 'jr': 20, 'lr': 20,  # czce
+    'cf': 5, 'cy': 5, 'sr': 10, 'rs': 10, 'rm': 10, 'ma': 10, 'oi': 10,  # czce
+    'tc': 200, 'zc': 100, 'sm': 5, 'sf': 5, 'ta': 5, 'fg': 20,  # czce
+}
+
 
 class ProductPosition:
     def __init__(self, _product):
@@ -268,9 +281,9 @@ class CTAPortfolio(PortfolioAbstract):
         for s in self.strategy_table.values():
             for p in s:
                 if p.strength > 0:
-                    p.next_quantity = 1
+                    p.next_quantity = POINT_VALUE[p.product]
                 elif p.strength < 0:
-                    p.next_quantity = -1
+                    p.next_quantity = -POINT_VALUE[p.product]
                 else:
                     p.next_quantity = 0
                 if p.next_quantity != 0:
@@ -538,8 +551,8 @@ class CTAWeightedPortfolio(CTAPortfolio):
                         self.symbol_price_dict[p.next_instrument] = price
                     p.next_quantity = int(
                         min(self.alloc_limit, p.strength / total_strength) *
-                        self.total_fund * self.leverage / price
-                    )
+                        self.total_fund * self.leverage / price / POINT_VALUE[p.product]
+                    ) * POINT_VALUE[p.product]
 
     def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
@@ -613,8 +626,8 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
                             self.symbol_price_dict[p.next_instrument] = price
                         p.next_quantity = int(
                             min(self.alloc_limit, p.strength / total_strength) *
-                            self.total_fund * self.leverage / price
-                        )
+                            self.total_fund * self.leverage / price / POINT_VALUE[p.product]
+                        ) * POINT_VALUE[p.product]
                     else:
                         p.next_quantity = p.cur_quantity
 
@@ -692,12 +705,12 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
                         atr = self.atr_table[p.product].getLastData()['atr'][0]
                         if p.strength > 0:
                             p.next_quantity = int(
-                                self.total_fund * self.risk_rate / parts / atr
-                            )
+                                self.total_fund * self.risk_rate / parts / atr / POINT_VALUE[p.product]
+                            ) * POINT_VALUE[p.product]
                         if p.strength < 0:
                             p.next_quantity = -int(
-                                self.total_fund * self.risk_rate / parts / atr
-                            )
+                                self.total_fund * self.risk_rate / parts / atr / POINT_VALUE[p.product]
+                            ) * POINT_VALUE[p.product]
                     else:
                         p.next_quantity = p.cur_quantity
 
@@ -737,7 +750,6 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
 class CTAAllocPortfolio(CTAPortfolio):
     """
     It will always alloc a rate of fund position according to strength
-
     """
 
     def __init__(
@@ -772,8 +784,8 @@ class CTAAllocPortfolio(CTAPortfolio):
                         )[self.settlement_price_index][0]
                         self.symbol_price_dict[p.next_instrument] = price
                     p.next_quantity = int(
-                        self.total_fund * self.alloc_rate * p.strength / price
-                    )
+                        self.total_fund * self.alloc_rate * p.strength / price / POINT_VALUE[p.product]
+                    ) * POINT_VALUE[p.product]
 
     def dealSettlement(self, _tradingday):
         # check it's the end of prev tradingday
@@ -821,18 +833,6 @@ class CTAAllocStablePortfolio(CTAPortfolio):
         self.alloc_rate: float = _alloc_rate
         self.total_fund: float = None
 
-    def _calc_next_position(self, _tradingday, _symbol, _strength) -> int:
-        try:
-            price = self.symbol_price_dict[_symbol]
-        except KeyError:
-            price = self.fetcher.fetchData(
-                _tradingday, _symbol
-            )[self.settlement_price_index][0]
-            self.symbol_price_dict[_symbol] = price
-        return int(
-            _strength * self.total_fund * self.alloc_rate / price
-        )
-
     def _iter_update_next_position(self, _tradingday):
         for s in self.strategy_table.values():
             for p in s:
@@ -845,9 +845,16 @@ class CTAAllocStablePortfolio(CTAPortfolio):
                     if p.strength != p.prev_strength \
                             or p.next_instrument != p.cur_instrument:
                         # if strength changes or instrument changes
-                        p.next_quantity = self._calc_next_position(
-                            _tradingday, p.next_instrument, p.strength
-                        )
+                        try:
+                            price = self.symbol_price_dict[p.next_instrument]
+                        except KeyError:
+                            price = self.fetcher.fetchData(
+                                _tradingday, p.next_instrument
+                            )[self.settlement_price_index][0]
+                            self.symbol_price_dict[p.next_instrument] = price
+                        p.next_quantity = int(
+                            self.total_fund * self.alloc_rate * p.strength / price / POINT_VALUE[p.product]
+                        ) * POINT_VALUE[p.product]
                     else:
                         p.next_quantity = p.cur_quantity
 
