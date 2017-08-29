@@ -4,8 +4,7 @@ import os
 import re
 import typing
 
-from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, OrderType, \
-    DirectionType, ActionType, FillEvent
+from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, DirectionType, ActionType, FillEvent
 from ParadoxTrading.EngineExt.CTA.CTAPortfolio import POINT_VALUE
 from ParadoxTrading.Utils import DataStruct
 
@@ -29,6 +28,15 @@ class CTAOnlineExecution(ExecutionAbstract):
         self.order_dict[_order_event.index] = _order_event
         self.order_buf.append(_order_event)
 
+    @staticmethod
+    def sampleCSV(_path: str):
+        f = open('{}.csv'.format(_path), 'w')
+        writer = csv.writer(f)
+        writer.writerow((
+            'Index', 'Symbol', 'Quantity',
+            'Action', 'Direction', 'Price', 'Commission'
+        ))
+
     def loadCSV(self):
         try:
             f = open('{}{}_fill.csv'.format(self.path, self.tradingday))
@@ -38,16 +46,23 @@ class CTAOnlineExecution(ExecutionAbstract):
                 index = int(row[0])
                 instrument = row[1].lower()
                 product = self.prog.findall(instrument)[0]
+                action = ActionType.fromStr(row[3])
+                direction = DirectionType.fromStr(row[4])
+
                 assert index in self.order_dict.keys()
-                del self.order_dict[index]
+                order = self.order_dict.pop(index)
+                assert action == order.action
+                assert direction == order.direction
+
                 self.addEvent(FillEvent(
                     _index=index, _symbol=instrument,
-                    _tradingday=row[2], _datetime=row[3],
-                    _quantity=int(row[4]) * POINT_VALUE[product],
-                    _action=ActionType.fromStr(row[5]),
-                    _direction=DirectionType.fromStr(row[6]),
-                    _price=float(row[7]),
-                    _commission=float(row[8]),
+                    _tradingday=self.tradingday,
+                    _datetime=self.tradingday,
+                    _quantity=int(row[2]) * POINT_VALUE[product],
+                    _action=action,
+                    _direction=direction,
+                    _price=float(row[-2]),
+                    _commission=float(row[-1]),
                 ))
             f.close()
         except FileNotFoundError as e:
@@ -60,18 +75,15 @@ class CTAOnlineExecution(ExecutionAbstract):
         writer = csv.writer(f)
         writer.writerow((
             'Index', 'Symbol',
-            'TradingDay', 'Datetime',
-            'Type', 'Action', 'Direction',
-            'Quantity', 'Price'
+            'Action', 'Direction', 'Quantity'
         ))
         for o in self.order_buf:
             product = self.prog.findall(o.symbol.lower())[0]
             writer.writerow((
                 o.index, o.symbol,
-                o.tradingday, o.datetime,
-                OrderType.toStr(o.order_type),
                 ActionType.toStr(o.action),
                 DirectionType.toStr(o.direction),
-                o.quantity / POINT_VALUE[product], o.price
+                o.quantity / POINT_VALUE[product],
             ))
+        self.order_buf = []  # clear it
         f.close()

@@ -2,18 +2,21 @@ import logging
 import os
 import typing
 
-from ParadoxTrading.Engine import EngineAbstract, EventType, ReturnMarket, \
-    ReturnSettlement, MarketSupplyAbstract, ExecutionAbstract, PortfolioAbstract, StrategyAbstract
+from ParadoxTrading.Engine import EngineAbstract, EventType, ReturnMarket, ReturnSettlement
+from ParadoxTrading.EngineExt.CTA.CTAOnlineExecution import CTAOnlineExecution
+from ParadoxTrading.EngineExt.CTA.CTAOnlineMarketSupply import CTAOnlineMarketSupply
+from ParadoxTrading.EngineExt.CTA.CTAPortfolio import CTAPortfolio
+from ParadoxTrading.EngineExt.CTA.CTAStrategy import CTAStrategy
 
 
 class CTAOnlineEngine(EngineAbstract):
     def __init__(
             self,
-            _market_supply: MarketSupplyAbstract,
-            _execution: ExecutionAbstract,
-            _portfolio: PortfolioAbstract,
+            _market_supply: CTAOnlineMarketSupply,
+            _execution: CTAOnlineExecution,
+            _portfolio: CTAPortfolio,
             _strategy: typing.Union[
-                StrategyAbstract, typing.Iterable[StrategyAbstract]
+                CTAStrategy, typing.Iterable[CTAStrategy]
             ],
             _dump_path: str = './save/'
     ):
@@ -25,6 +28,7 @@ class CTAOnlineEngine(EngineAbstract):
         )
         self.dump_path = _dump_path
 
+    def load_history(self):
         if os.path.isdir(self.dump_path):
             self.load(self.dump_path)
             self.market_supply.load(self.dump_path)
@@ -33,7 +37,64 @@ class CTAOnlineEngine(EngineAbstract):
             for s in self.strategy_dict.values():
                 s.load(self.dump_path)
         else:
+            logging.warning('{} not exists'.format(self.dump_path))
+
+    def save_history(self):
+        if not os.path.isdir(self.dump_path):
             os.mkdir(self.dump_path)
+        self.save(self.dump_path)
+        self.market_supply.save(self.dump_path)
+        self.execution.save(self.dump_path)
+        self.portfolio.save(self.dump_path)
+        for s in self.strategy_dict.values():
+            s.save(self.dump_path)
+
+    def update_position(self):
+        self.execution.loadCSV()
+
+    def update_market_info(self) -> typing.Union[None, str]:
+        while True:
+            ret = self.market_supply.updateData()
+            if ret is None:
+                return None
+
+            # strategy receive from market
+            # portfolio receive from strategy
+            while True:
+                if len(self.event_queue):  # deal all event at that moment
+                    event = self.event_queue.popleft()
+                    if event.type == EventType.MARKET:
+                        self.strategy_dict[event.strategy].deal(event)
+                    elif event.type == EventType.SIGNAL:
+                        self.portfolio.dealSignal(event)
+                    elif event.type == EventType.SETTLEMENT:
+                        for s in self.strategy_dict.values():
+                            s.settlement(event)
+                    else:
+                        raise Exception('unavailable event type!')
+                else:
+                    break
+
+            # update portfolio status if necessary
+            if isinstance(ret, ReturnMarket):
+                self.portfolio.dealMarket(ret.symbol, ret.data)
+            elif isinstance(ret, ReturnSettlement):
+                return ret.tradingday
+            else:
+                raise Exception('unknown return by market supply')
+
+    def update_orders(self, _tradingday):
+        self.portfolio.dealSettlement(_tradingday)
+        while True:
+            if len(self.event_queue):
+                event = self.event_queue.popleft()
+                if event.type == EventType.ORDER:
+                    self.execution.dealOrderEvent(event)
+                else:
+                    raise Exception('Except ORDER event')
+            else:
+                break
+        self.execution.saveCSV()
 
     def run(self):
         """
@@ -45,56 +106,13 @@ class CTAOnlineEngine(EngineAbstract):
         assert self.portfolio is not None
         assert self.execution is not None
 
-        self.execution.loadCSV()
+        assert len(self.event_queue) == 0
 
-        while True:
-            ret = self.market_supply.updateData()
-            if ret is None:
-                break
+        self.update_position()
+        ret = self.update_market_info()
+        if isinstance(ret, str):
+            self.update_orders(ret)
+        else:
+            logging.warning('market info is None')
 
-            # loop until finished all the events
-            while True:
-                if len(self.event_queue):  # deal all event at that moment
-                    event = self.event_queue.popleft()
-                    if event.type == EventType.MARKET:
-                        self.strategy_dict[event.strategy].deal(event)
-                    elif event.type == EventType.SIGNAL:
-                        self.portfolio.dealSignal(event)
-                    elif event.type == EventType.ORDER:
-                        self.execution.dealOrderEvent(event)
-                    elif event.type == EventType.FILL:
-                        self.portfolio.dealFill(event)
-                    elif event.type == EventType.SETTLEMENT:
-                        for s in self.strategy_dict.values():
-                            s.settlement(event)
-                    else:
-                        raise Exception('Unknown event type!')
-                else:
-                    break
-
-            # deal something after all events if necessary
-            if isinstance(ret, ReturnSettlement):
-                self.portfolio.dealSettlement(
-                    ret.tradingday
-                )
-                while True:
-                    if len(self.event_queue):
-                        event = self.event_queue.popleft()
-                        if event.type == EventType.ORDER:
-                            self.execution.dealOrderEvent(event)
-                        else:
-                            raise Exception('Except ORDER event')
-                    else:
-                        break
-                self.execution.saveCSV()
-            elif isinstance(ret, ReturnMarket):
-                self.portfolio.dealMarket(ret.symbol, ret.data)
-            else:
-                raise Exception('unknown ret instance')
-
-        self.save(self.dump_path)
-        self.market_supply.save(self.dump_path)
-        self.execution.save(self.dump_path)
-        self.portfolio.save(self.dump_path)
-        for s in self.strategy_dict.values():
-            s.save(self.dump_path)
+        assert len(self.event_queue) == 0
