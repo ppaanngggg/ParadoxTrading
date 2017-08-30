@@ -5,7 +5,8 @@ from .BarPortfolio import BarPortfolio
 from .CTA import CTABacktestExecution, CTAStrategy, CTAStatusType, \
     CTAPortfolio, CTAWeightedPortfolio, CTAWeightedStablePortfolio, \
     CTAAllocPortfolio, CTAAllocStablePortfolio, CTAEqualRiskATRPortfolio, \
-    CTAOnlineEngine, CTAOnlineMarketSupply, CTAOnlineExecution
+    CTAOnlineEngine, CTAOnlineMarketSupply, CTAOnlineExecution, \
+    CTAEqualRiskVolatilityPortfolio
 # from .CTPExecution import CTPExecution
 from .TickBacktestExecution import TickBacktestExecution
 from .TickPortfolio import TickPortfolio
