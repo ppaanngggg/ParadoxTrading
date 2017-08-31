@@ -293,7 +293,7 @@ class OrderEvent(EventAbstract):
               '\taction: {}\n' \
               '\tdirection: {}\n' \
               '\tquantity: {}\n' \
-              '\tprice: {}'
+              '\tprice: {}\n'
         return tmp.format(
             self.index, self.symbol,
             self.tradingday, self.datetime,

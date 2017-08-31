@@ -51,6 +51,15 @@ class CTAOnlineEngine(EngineAbstract):
 
     def update_position(self):
         self.execution.loadCSV()
+        while True:
+            if len(self.event_queue):
+                event = self.event_queue.popleft()
+                if event.type == EventType.FILL:
+                    self.portfolio.dealFill(event)
+                else:
+                    raise Exception('Except FILL event')
+            else:
+                break
 
     def update_market_info(self) -> typing.Union[None, str]:
         while True:
@@ -71,6 +80,7 @@ class CTAOnlineEngine(EngineAbstract):
                         for s in self.strategy_dict.values():
                             s.settlement(event)
                     else:
+                        logging.error(event)
                         raise Exception('unavailable event type!')
                 else:
                     break
@@ -107,12 +117,12 @@ class CTAOnlineEngine(EngineAbstract):
         assert self.execution is not None
 
         assert len(self.event_queue) == 0
-
         self.update_position()
+        assert len(self.event_queue) == 0
         ret = self.update_market_info()
+        assert len(self.event_queue) == 0
         if isinstance(ret, str):
             self.update_orders(ret)
         else:
             logging.warning('market info is None')
-
         assert len(self.event_queue) == 0
