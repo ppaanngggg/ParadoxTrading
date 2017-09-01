@@ -1,8 +1,7 @@
 import typing
 
-from ParadoxTrading.Engine import FillEvent, SignalEvent, \
-    OrderEvent, OrderType, ActionType, DirectionType
-from ParadoxTrading.Engine import PortfolioAbstract
+from ParadoxTrading.Engine import ActionType, DirectionType, FillEvent, \
+    OrderEvent, OrderType, PortfolioAbstract, SignalEvent
 from ParadoxTrading.Fetch.FetchAbstract import FetchAbstract
 from ParadoxTrading.Indicator import ATR, Volatility
 from ParadoxTrading.Utils import DataStruct
@@ -551,7 +550,8 @@ class CTAWeightedPortfolio(CTAPortfolio):
                         self.symbol_price_dict[p.next_instrument] = price
                     p.next_quantity = int(
                         min(self.alloc_limit, p.strength / total_strength) *
-                        self.total_fund * self.leverage / price / POINT_VALUE[p.product]
+                        self.total_fund * self.leverage /
+                        price / POINT_VALUE[p.product]
                     ) * POINT_VALUE[p.product]
 
     def dealSettlement(self, _tradingday):
@@ -626,7 +626,8 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
                             self.symbol_price_dict[p.next_instrument] = price
                         p.next_quantity = int(
                             min(self.alloc_limit, p.strength / total_strength) *
-                            self.total_fund * self.leverage / price / POINT_VALUE[p.product]
+                            self.total_fund * self.leverage /
+                            price / POINT_VALUE[p.product]
                         ) * POINT_VALUE[p.product]
                     else:
                         p.next_quantity = p.cur_quantity
@@ -703,14 +704,16 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
                     if flag or p.next_instrument != p.cur_instrument:
                         # if strength status changes or instrument changes
                         atr = self.atr_table[p.product].getLastData()['atr'][0]
+                        tmp_quantity = int(
+                            self.total_fund * self.risk_rate /
+                            parts / atr / POINT_VALUE[p.product]
+                        ) * POINT_VALUE[p.product]
                         if p.strength > 0:
-                            p.next_quantity = int(
-                                self.total_fund * self.risk_rate / parts / atr / POINT_VALUE[p.product]
-                            ) * POINT_VALUE[p.product]
-                        if p.strength < 0:
-                            p.next_quantity = -int(
-                                self.total_fund * self.risk_rate / parts / atr / POINT_VALUE[p.product]
-                            ) * POINT_VALUE[p.product]
+                            p.next_quantity = tmp_quantity
+                        elif p.strength < 0:
+                            p.next_quantity = -tmp_quantity
+                        else:
+                            raise Exception('unexpected strength')
                     else:
                         p.next_quantity = p.cur_quantity
 
@@ -794,7 +797,8 @@ class CTAEqualRiskVolatilityPortfolio(CTAPortfolio):
                     )
                     if flag or p.next_instrument != p.cur_instrument:
                         # if strength status changes or instrument changes
-                        volatility = self.volatility_table[p.product].getAllData()['volatility'][-1]
+                        tmp_v = self.volatility_table[p.product].getAllData()[
+                            'volatility'][-1]
                         try:
                             price = self.symbol_price_dict[p.next_instrument]
                         except KeyError:
@@ -804,12 +808,12 @@ class CTAEqualRiskVolatilityPortfolio(CTAPortfolio):
                             self.symbol_price_dict[p.next_instrument] = price
                         if p.strength > 0:
                             p.next_quantity = int(
-                                self.total_fund * self.risk_rate / parts / volatility
+                                self.total_fund * self.risk_rate / parts / tmp_v
                                 / price / POINT_VALUE[p.product]
                             ) * POINT_VALUE[p.product]
                         if p.strength < 0:
                             p.next_quantity = -int(
-                                self.total_fund * self.risk_rate / parts / volatility
+                                self.total_fund * self.risk_rate / parts / tmp_v
                                 / price / POINT_VALUE[p.product]
                             ) * POINT_VALUE[p.product]
                     else:
@@ -888,7 +892,8 @@ class CTAAllocPortfolio(CTAPortfolio):
                         )[self.settlement_price_index][0]
                         self.symbol_price_dict[p.next_instrument] = price
                     p.next_quantity = int(
-                        self.total_fund * self.alloc_rate * p.strength / price / POINT_VALUE[p.product]
+                        self.total_fund * self.alloc_rate *
+                        p.strength / price / POINT_VALUE[p.product]
                     ) * POINT_VALUE[p.product]
 
     def dealSettlement(self, _tradingday):
@@ -957,7 +962,8 @@ class CTAAllocStablePortfolio(CTAPortfolio):
                             )[self.settlement_price_index][0]
                             self.symbol_price_dict[p.next_instrument] = price
                         p.next_quantity = int(
-                            self.total_fund * self.alloc_rate * p.strength / price / POINT_VALUE[p.product]
+                            self.total_fund * self.alloc_rate *
+                            p.strength / price / POINT_VALUE[p.product]
                         ) * POINT_VALUE[p.product]
                     else:
                         p.next_quantity = p.cur_quantity
