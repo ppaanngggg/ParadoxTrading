@@ -6,7 +6,7 @@ from ParadoxTrading.Utils import DataStruct
 class RegisterAbstract:
     def __init__(self):
         # strategies linked to this market register
-        self.strategy_set: typing.Set = set()
+        self.strategy_set: typing.Set[str] = set()
 
     def addStrategy(self, _strategy):
         """

@@ -9,3 +9,4 @@ from .FetchGuoJin import (FetchGuoJinDay, FetchGuoJinDayIndex, FetchGuoJinHour,
                           RegisterGuoJinHourIndex, RegisterGuoJinMin,
                           RegisterGuoJinMinIndex, RegisterGuoJinTick,
                           RegisterGuoJinTickIndex)
+from .FetchLiqui import FetchLiqui, RegisterLiqui
