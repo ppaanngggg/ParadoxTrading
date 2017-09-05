@@ -14,9 +14,7 @@ from ParadoxTrading.Utils import Serializable
 
 
 class PositionMgr:
-    def __init__(
-            self, _symbol: str
-    ):
+    def __init__(self, _symbol: str):
         self.symbol: str = _symbol
 
         self.long: int = 0
@@ -41,8 +39,7 @@ class PositionMgr:
         if cur_margin_count > self.margin_count:
             # if margin inc, add margin according to price and margin rate
             self.margin += _margin_rate * _price * (
-                cur_margin_count - self.margin_count
-            )
+                cur_margin_count - self.margin_count)
         elif cur_margin_count < self.margin_count:
             # if margin dec, sub margin as dec rate
             self.margin *= cur_margin_count / self.margin_count
@@ -51,11 +48,11 @@ class PositionMgr:
 
         self.margin_count = cur_margin_count
 
-    def incPosition(
-            self, _type: int,
-            _quantity: int, _price: float,
-            _margin_rate: float
-    ):
+    def incPosition(self,
+                    _type: int,
+                    _quantity: int,
+                    _price: float,
+                    _margin_rate: float):
         """
         :param _type: long or short
         :param _quantity: how many
@@ -76,37 +73,34 @@ class PositionMgr:
 
         self.updateMargin(_price, _margin_rate)
 
-    def decPosition(
-            self, _type: int,
-            _quantity: int, _price: float,
-            _margin_rate: float
-    ):
+    def decPosition(self,
+                    _type: int,
+                    _quantity: int,
+                    _price: float,
+                    _margin_rate: float) -> float:
         """
         :param _type: long or short
         :param _quantity: how many
         :param _price: how much money
         :param _margin_rate:
-        :return:
+        :return: profit or loss
         """
         assert self.getPosition(_type) >= _quantity
+        profit_loss = 0.0
         if _type == SignalType.LONG:
             tmp = self.long * self.long_price
             self.long -= _quantity
-            if self.long == 0:
-                self.long_price = 0.0
-            else:
-                self.long_price = (tmp - _quantity * _price) / self.long
+            profit_loss = (_price - self.long_price) * _quantity
         elif _type == SignalType.SHORT:
             tmp = self.short * self.short_price
             self.short -= _quantity
-            if self.short == 0:
-                self.short_price = 0.0
-            else:
-                self.short_price = (tmp - _quantity * _price) / self.short
+            profit_loss = (self.short_price - _price) * _quantity
         else:
             raise Exception('unavailable type')
 
         self.updateMargin(_price, _margin_rate)
+
+        return profit_loss
 
     def dealSettlement(self, _price: float, _margin_rate: float):
         self.long_price = _price
@@ -117,8 +111,8 @@ class PositionMgr:
 
 class FundMgr:
     def __init__(
-            self, _init_fund: float,
-    ):
+            self,
+            _init_fund: float, ):
         # update each tradingday
         self.static_fund: float = _init_fund
         # reset each tradingday
@@ -140,16 +134,15 @@ class FundMgr:
         self.commission += _commission
 
     def dealSettlement(self, _profit_and_loss: float):
-        self.static_fund += - self.commission + _profit_and_loss
+        self.static_fund += -self.commission + _profit_and_loss
         self.commission = 0.0
 
 
 class PortfolioMgr:
     def __init__(
             self,
-            _init_fund: float = 0.0,
-            _margin_rate: float = 1.0,
-    ):
+            _init_fund: float=0.0,
+            _margin_rate: float=1.0, ):
         # records for signal, order and fill
         self.signal_record: typing.List[typing.Dict] = []
         self.order_record: typing.List[typing.Dict] = []
@@ -173,17 +166,14 @@ class PortfolioMgr:
         :return: return list of symbols
         """
         return [
-            p.symbol for p in self.position_mgr.values()
-            if p.long or p.short
+            p.symbol for p in self.position_mgr.values() if p.long or p.short
         ]
 
     def getMargin(self) -> float:
         """
         get current total margin
         """
-        return sum([
-            p.margin for p in self.position_mgr.values()
-        ])
+        return sum([p.margin for p in self.position_mgr.values()])
 
     def setStaticFund(self, _fund: float):
         self.fund_mgr.setStaticFund(_fund)
@@ -197,9 +187,8 @@ class PortfolioMgr:
     def getCommission(self) -> float:
         return self.fund_mgr.getCommission()
 
-    def getProfitAndLoss(
-            self, _symbol_price_dict: typing.Dict[str, float]
-    ) -> float:
+    def getProfitAndLoss(self,
+                         _symbol_price_dict: typing.Dict[str, float]) -> float:
         ret = 0
         for k, v in self.position_mgr.items():
             price = _symbol_price_dict[k]
@@ -207,10 +196,11 @@ class PortfolioMgr:
             ret += v.short * (v.short_price - price)
         return ret
 
-    def incPosition(
-            self, _symbol: str, _type: int,
-            _quantity: int, _price: float
-    ):
+    def incPosition(self,
+                    _symbol: str,
+                    _type: int,
+                    _quantity: int,
+                    _price: float):
         """
         inc position of symbol
 
@@ -224,20 +214,19 @@ class PortfolioMgr:
         assert _quantity > 0
         try:
             # try to add directly
-            self.position_mgr[_symbol].incPosition(
-                _type, _quantity, _price, self.margin_rate
-            )
+            self.position_mgr[_symbol].incPosition(_type, _quantity, _price,
+                                                   self.margin_rate)
         except KeyError:
             # create if failed
             self.position_mgr[_symbol] = PositionMgr(_symbol)
-            self.position_mgr[_symbol].incPosition(
-                _type, _quantity, _price, self.margin_rate
-            )
+            self.position_mgr[_symbol].incPosition(_type, _quantity, _price,
+                                                   self.margin_rate)
 
-    def decPosition(
-            self, _symbol: str, _type: int,
-            _quantity: int, _price: float
-    ):
+    def decPosition(self,
+                    _symbol: str,
+                    _type: int,
+                    _quantity: int,
+                    _price: float) -> float:
         """
         dec position of symbol
 
@@ -251,29 +240,24 @@ class PortfolioMgr:
         assert _quantity > 0
         assert _symbol in self.position_mgr.keys()
         tmp = self.position_mgr[_symbol]
-        tmp.decPosition(
-            _type, _quantity, _price, self.margin_rate
-        )
+        profit_loss = tmp.decPosition(_type, _quantity, _price,
+                                      self.margin_rate)
         # delete if empty, speed up and reduce memory
         if tmp.long == 0 and tmp.short == 0:
             del self.position_mgr[_symbol]
 
-    def dealSignalEvent(
-            self, _signal_event: SignalEvent
-    ):
+        return profit_loss
+
+    def dealSignalEvent(self, _signal_event: SignalEvent):
         """
         deal signal event to set inner state
 
         :param _signal_event:
         :return:
         """
-        self.signal_record.append(
-            _signal_event.toDict()
-        )
+        self.signal_record.append(_signal_event.toDict())
 
-    def dealOrderEvent(
-            self, _strategy: str, _order_event: OrderEvent
-    ):
+    def dealOrderEvent(self, _strategy: str, _order_event: OrderEvent):
         """
         deal order event to set inner state
 
@@ -289,9 +273,7 @@ class PortfolioMgr:
         # add to unfilled table
         self.unfilled_order[_order_event.index] = _order_event
 
-    def dealFillEvent(
-            self, _strategy: str, _fill_event: FillEvent
-    ):
+    def dealFillEvent(self, _strategy: str, _fill_event: FillEvent):
         """
         deal fill event to set inner state
 
@@ -313,39 +295,44 @@ class PortfolioMgr:
         if _fill_event.action == ActionType.OPEN:
             if _fill_event.direction == DirectionType.BUY:
                 self.incPosition(
-                    _fill_event.symbol, SignalType.LONG,
-                    _fill_event.quantity, _fill_event.price,
-                )
+                    _fill_event.symbol,
+                    SignalType.LONG,
+                    _fill_event.quantity,
+                    _fill_event.price, )
             elif _fill_event.direction == DirectionType.SELL:
                 self.incPosition(
-                    _fill_event.symbol, SignalType.SHORT,
-                    _fill_event.quantity, _fill_event.price,
-                )
+                    _fill_event.symbol,
+                    SignalType.SHORT,
+                    _fill_event.quantity,
+                    _fill_event.price, )
             else:
                 raise Exception('unknown direction')
         elif _fill_event.action == ActionType.CLOSE:
             if _fill_event.direction == DirectionType.BUY:
-                self.decPosition(
-                    _fill_event.symbol, SignalType.SHORT,
-                    _fill_event.quantity, _fill_event.price,
-                )
+                profit_loss = self.decPosition(
+                    _fill_event.symbol,
+                    SignalType.SHORT,
+                    _fill_event.quantity,
+                    _fill_event.price, )
             elif _fill_event.direction == DirectionType.SELL:
-                self.decPosition(
-                    _fill_event.symbol, SignalType.LONG,
-                    _fill_event.quantity, _fill_event.price,
-                )
+                profit_loss = self.decPosition(
+                    _fill_event.symbol,
+                    SignalType.LONG,
+                    _fill_event.quantity,
+                    _fill_event.price, )
             else:
                 raise Exception('unknown direction')
+            self.fund_mgr.setStaticFund(self.fund_mgr.getStaticFund() +
+                                        profit_loss)
         else:
             raise Exception('unknown action')
 
         # add commission
         self.fund_mgr.incCommission(_fill_event.commission)
 
-    def dealSettlement(
-            self, _tradingday: str,
-            _symbol_price_dict: typing.Dict[str, float]
-    ):
+    def dealSettlement(self,
+                       _tradingday: str,
+                       _symbol_price_dict: typing.Dict[str, float]):
         """
         do settlement, and store settlement information
 
@@ -356,11 +343,16 @@ class PortfolioMgr:
         profit_loss = self.getProfitAndLoss(_symbol_price_dict)
 
         self.settlement_record.append({
-            'tradingday': _tradingday,
-            'type': EventType.SETTLEMENT,
-            'fund': self.getDynamicFund(profit_loss),
-            'commission': self.getCommission(),
-            'margin': self.getMargin(),
+            'tradingday':
+            _tradingday,
+            'type':
+            EventType.SETTLEMENT,
+            'fund':
+            self.getDynamicFund(profit_loss),
+            'commission':
+            self.getCommission(),
+            'margin':
+            self.getMargin(),
         })
 
         self.fund_mgr.dealSettlement(profit_loss)
@@ -375,12 +367,8 @@ class PortfolioMgr:
         :return:
         """
         logging.info('Portfolio store records...')
-        _coll.insert_many(
-            self.signal_record +
-            self.order_record +
-            self.fill_record +
-            self.settlement_record
-        )
+        _coll.insert_many(self.signal_record + self.order_record +
+                          self.fill_record + self.settlement_record)
 
     def __repr__(self) -> str:
         ret = '@@@ POSITION @@@\n'
@@ -388,8 +376,7 @@ class PortfolioMgr:
         for k, v in self.position_mgr.items():
             table.append([k, v.long, v.long_price, v.short, v.short_price])
         ret += tabulate.tabulate(
-            table, ['SYMBOL', 'LONG', 'LONG PRICE', 'SHORT', 'SHORT PRICE']
-        )
+            table, ['SYMBOL', 'LONG', 'LONG PRICE', 'SHORT', 'SHORT PRICE'])
 
         ret += '\n@@@ UNFILLED ORDER @@@\n'
         table = []
@@ -397,30 +384,24 @@ class PortfolioMgr:
             table.append([
                 k, v.symbol,
                 ActionType.toStr(v.action),
-                DirectionType.toStr(v.direction),
-                v.quantity
+                DirectionType.toStr(v.direction), v.quantity
             ])
         ret += tabulate.tabulate(
-            table, ['INDEX', 'SYMBOL', 'ACTION', 'DIRECTION', 'QUANTITY']
-        )
+            table, ['INDEX', 'SYMBOL', 'ACTION', 'DIRECTION', 'QUANTITY'])
 
         ret += '\n@@@ RECORD @@@\n'
         ret += ' - Signal - NUM: {}, LAST: {}\n'.format(
-            len(self.signal_record),
-            self.signal_record[-1] if self.signal_record else None
-        )
+            len(self.signal_record), self.signal_record[-1]
+            if self.signal_record else None)
         ret += ' - Order - NUM: {}, LAST: {}\n'.format(
-            len(self.order_record),
-            self.order_record[-1] if self.order_record else None
-        )
+            len(self.order_record), self.order_record[-1]
+            if self.order_record else None)
         ret += ' - Fill - NUM: {}, LAST: {}\n'.format(
-            len(self.fill_record),
-            self.fill_record[-1] if self.fill_record else None
-        )
+            len(self.fill_record), self.fill_record[-1]
+            if self.fill_record else None)
         ret += ' - Settlement - NUM: {}, LAST: {}\n'.format(
-            len(self.settlement_record),
-            self.settlement_record[-1] if self.settlement_record else None
-        )
+            len(self.settlement_record), self.settlement_record[-1]
+            if self.settlement_record else None)
 
         ret += '@@@ FUND @@@\n'
         ret += ' - Static Fund: {}'.format(self.getStaticFund())
@@ -432,9 +413,8 @@ class PortfolioMgr:
 class PortfolioAbstract(Serializable):
     def __init__(
             self,
-            _init_fund: float = 0.0,
-            _margin_rate: float = 1.0,
-    ):
+            _init_fund: float=0.0,
+            _margin_rate: float=1.0, ):
         """
         :param _init_fund: init fund for portfolio mgr
         :param _margin_rate: margin rate for portfolio mgr
@@ -446,9 +426,7 @@ class PortfolioAbstract(Serializable):
         # init order index, and create a map from order to strategy
         self.order_index: int = 0  # cur unused order index
         # the global portfolio,
-        self.portfolio: PortfolioMgr = PortfolioMgr(
-            _init_fund, _margin_rate
-        )
+        self.portfolio: PortfolioMgr = PortfolioMgr(_init_fund, _margin_rate)
 
         self.addPickleSet('order_index', 'portfolio')
 
@@ -491,20 +469,15 @@ class PortfolioAbstract(Serializable):
         self.engine.addEvent(_order_event)
         logging.info('Portfolio send: {} {} {} {} at {} when {}'.format(
             ActionType.toStr(_order_event.action),
-            DirectionType.toStr(_order_event.direction),
-            _order_event.quantity,
-            _order_event.symbol,
-            _order_event.price,
-            _order_event.datetime
-        ))
+            DirectionType.toStr(_order_event.direction), _order_event.quantity,
+            _order_event.symbol, _order_event.price, _order_event.datetime))
 
     def storeRecords(
             self,
             _backtest_key: str,
-            _mongo_host: str = 'localhost',
-            _mongo_database: str = 'Backtest',
-            _clear: bool = True,
-    ):
+            _mongo_host: str='localhost',
+            _mongo_database: str='Backtest',
+            _clear: bool=True, ):
         """
         !!! This func will delete the old coll of _backtest_key !!!
         store all strategies' records into mongodb
@@ -561,15 +534,14 @@ class PortfolioAbstract(Serializable):
             assert a in vars(self).keys()
             self.pickles.add(a)
 
-    def save(self, _path: str, _filename: str = 'Portfolio'):
+    def save(self, _path: str, _filename: str='Portfolio'):
         super().save(_path, _filename)
         logging.debug('Portfolio save to {}'.format(_path))
 
-    def load(self, _path: str, _filename: str = 'Portfolio'):
+    def load(self, _path: str, _filename: str='Portfolio'):
         super().load(_path, _filename)
         logging.debug('Portfolio load from {}'.format(_path))
 
     def __repr__(self) -> str:
-        return '@@@ ORDER INDEX @@@\n{}\n{}'.format(
-            self.order_index, self.portfolio
-        )
+        return '@@@ ORDER INDEX @@@\n{}\n{}'.format(self.order_index,
+                                                    self.portfolio)

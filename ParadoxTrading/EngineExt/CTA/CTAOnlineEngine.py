@@ -15,17 +15,12 @@ class CTAOnlineEngine(EngineAbstract):
             _market_supply: CTAOnlineMarketSupply,
             _execution: CTAOnlineExecution,
             _portfolio: CTAPortfolio,
-            _strategy: typing.Union[
-                CTAStrategy, typing.Iterable[CTAStrategy]
-            ],
-            _dump_path: str = './save/'
-    ):
+            _strategy: typing.Union[CTAStrategy, typing.Iterable[CTAStrategy]],
+            _dump_path: str='./save/'):
         """
         Engine used for backtest
         """
-        super().__init__(
-            _market_supply, _execution, _portfolio, _strategy
-        )
+        super().__init__(_market_supply, _execution, _portfolio, _strategy)
         self.dump_path = _dump_path
 
     def load_history(self):
