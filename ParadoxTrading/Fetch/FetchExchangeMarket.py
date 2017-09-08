@@ -61,3 +61,15 @@ class FetchExchangeMarketIndex(FetchFutureDayIndex):
             'volume',
             'openinterest',
         ]
+
+
+class RegisterExchangeIndexDominant(RegisterFutureDayIndex):
+    pass
+
+
+class FetchExchangeIndexDominant(FetchExchangeMarketIndex):
+    def __init__(self):
+        super().__init__()
+
+        self.register_type = RegisterExchangeIndexDominant
+        self.psql_dbname = 'ExchangeIndex'
