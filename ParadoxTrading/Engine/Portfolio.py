@@ -86,13 +86,10 @@ class PositionMgr:
         :return: profit or loss
         """
         assert self.getPosition(_type) >= _quantity
-        profit_loss = 0.0
         if _type == SignalType.LONG:
-            tmp = self.long * self.long_price
             self.long -= _quantity
             profit_loss = (_price - self.long_price) * _quantity
         elif _type == SignalType.SHORT:
-            tmp = self.short * self.short_price
             self.short -= _quantity
             profit_loss = (self.short_price - _price) * _quantity
         else:
@@ -141,8 +138,8 @@ class FundMgr:
 class PortfolioMgr:
     def __init__(
             self,
-            _init_fund: float=0.0,
-            _margin_rate: float=1.0, ):
+            _init_fund: float = 0.0,
+            _margin_rate: float = 1.0, ):
         # records for signal, order and fill
         self.signal_record: typing.List[typing.Dict] = []
         self.order_record: typing.List[typing.Dict] = []
@@ -343,16 +340,11 @@ class PortfolioMgr:
         profit_loss = self.getProfitAndLoss(_symbol_price_dict)
 
         self.settlement_record.append({
-            'tradingday':
-            _tradingday,
-            'type':
-            EventType.SETTLEMENT,
-            'fund':
-            self.getDynamicFund(profit_loss),
-            'commission':
-            self.getCommission(),
-            'margin':
-            self.getMargin(),
+            'tradingday': _tradingday,
+            'type': EventType.SETTLEMENT,
+            'fund': self.getDynamicFund(profit_loss),
+            'commission': self.getCommission(),
+            'margin': self.getMargin(),
         })
 
         self.fund_mgr.dealSettlement(profit_loss)
@@ -413,8 +405,8 @@ class PortfolioMgr:
 class PortfolioAbstract(Serializable):
     def __init__(
             self,
-            _init_fund: float=0.0,
-            _margin_rate: float=1.0, ):
+            _init_fund: float = 0.0,
+            _margin_rate: float = 1.0, ):
         """
         :param _init_fund: init fund for portfolio mgr
         :param _margin_rate: margin rate for portfolio mgr
@@ -475,9 +467,9 @@ class PortfolioAbstract(Serializable):
     def storeRecords(
             self,
             _backtest_key: str,
-            _mongo_host: str='localhost',
-            _mongo_database: str='Backtest',
-            _clear: bool=True, ):
+            _mongo_host: str = 'localhost',
+            _mongo_database: str = 'Backtest',
+            _clear: bool = True, ):
         """
         !!! This func will delete the old coll of _backtest_key !!!
         store all strategies' records into mongodb
@@ -534,14 +526,15 @@ class PortfolioAbstract(Serializable):
             assert a in vars(self).keys()
             self.pickles.add(a)
 
-    def save(self, _path: str, _filename: str='Portfolio'):
+    def save(self, _path: str, _filename: str = 'Portfolio'):
         super().save(_path, _filename)
         logging.debug('Portfolio save to {}'.format(_path))
 
-    def load(self, _path: str, _filename: str='Portfolio'):
+    def load(self, _path: str, _filename: str = 'Portfolio'):
         super().load(_path, _filename)
         logging.debug('Portfolio load from {}'.format(_path))
 
     def __repr__(self) -> str:
-        return '@@@ ORDER INDEX @@@\n{}\n{}'.format(self.order_index,
-                                                    self.portfolio)
+        return '@@@ ORDER INDEX @@@\n{}\n{}'.format(
+            self.order_index, self.portfolio
+        )

@@ -1,5 +1,7 @@
 import typing
 
+import tabulate
+
 from ParadoxTrading.Engine import ActionType, DirectionType, FillEvent, \
     OrderEvent, OrderType, PortfolioAbstract, SignalEvent
 from ParadoxTrading.Fetch.FetchAbstract import FetchAbstract
@@ -502,6 +504,23 @@ class CTAPortfolio(PortfolioAbstract):
                 if p.strength != 0:
                     parts += 1
         return parts
+
+    def __repr__(self):
+        table = []
+        for s in self.strategy_table.values():
+            for p in s:
+                table.append([
+                    p.product, p.strength,
+                    p.cur_instrument, p.cur_quantity,
+                    p.next_instrument, p.next_instrument
+                ])
+        return "@@@ PRODUCT STATUS @@@\n{}\n{}".format(
+            tabulate.tabulate(table, [
+                'product', 'strength',
+                'cur instrument', 'cur quantity',
+                'next instrument', 'next quantity',
+            ]), super().__repr__()
+        )
 
 
 class CTAWeightedPortfolio(CTAPortfolio):
