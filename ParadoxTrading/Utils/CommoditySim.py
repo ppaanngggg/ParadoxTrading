@@ -34,11 +34,15 @@ class CommoditySim:
         self.noise = _noise
 
         # buf random values
-        self.laplace_buf = np.random.laplace(size=self.length) * self.sigma
+        self.laplace_buf = np.random.laplace(
+            size=self.length
+        ).astype(np.float32) * self.sigma
         self.beta_buf = np.random.beta(
             self.alpha, self.beta, size=self.length
-        ) - self.mode
-        self.normal_buf = np.random.normal(size=self.length) * self.noise
+        ).astype(np.float32) - self.mode
+        self.normal_buf = np.random.normal(
+            size=self.length
+        ).astype(np.float32) * self.noise
 
     @staticmethod
     def genParams() -> typing.Dict[str, float]:
@@ -55,10 +59,10 @@ class CommoditySim:
 
         # ou process, instead normal by laplace
         self.value += self.theta * (self.mu - self.value) + \
-                      self.laplace_buf[self.index]
+            self.laplace_buf[self.index]
         # masked by beta and add a normal white noise
         self.rate = self.value * self.beta_buf[self.index] + \
-                    self.normal_buf[self.index]
+            self.normal_buf[self.index]
         # update price
         self.price *= 1 + self.rate
 

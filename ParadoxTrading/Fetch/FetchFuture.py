@@ -6,11 +6,10 @@ import psycopg2.extensions
 import pymongo
 import pymongo.collection
 import pymongo.database
-from diskcache import Cache
-from pymongo import MongoClient
-
 from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
+from diskcache import Cache
+from pymongo import MongoClient
 
 
 class RegisterFutureTick(RegisterAbstract):
@@ -93,6 +92,10 @@ class FetchFutureTick(FetchAbstract):
         self.psql_password: str = ''
 
         self.cache: Cache = Cache('cache')
+        self.market_key = 'market_{}_{}'
+        self.tradingday_key = 'tradingday_{}'
+        self.prod_key = 'prod_{}_{}'
+        self.inst_key = 'inst_{}_{}'
 
         self._mongo_client: MongoClient = None
         self._mongo_prod: pymongo.database.Database = None
@@ -304,7 +307,7 @@ class FetchFutureTick(FetchAbstract):
     def fetchTradingDayInfo(
             self, _tradingday: str
     ) -> typing.Union[None, typing.Dict]:
-        key = 'tradingday_{}'.format(_tradingday)
+        key = self.tradingday_key.format(_tradingday)
         try:
             return self.cache[key]
         except KeyError:
@@ -318,7 +321,7 @@ class FetchFutureTick(FetchAbstract):
             self, _product: str, _tradingday: str
     ) -> typing.Union[None, typing.Dict]:
         product = _product.lower()
-        key = 'prod_{}_{}'.format(product, _tradingday)
+        key = self.prod_key.format(product, _tradingday)
         try:
             return self.cache[key]
         except KeyError:
@@ -332,7 +335,7 @@ class FetchFutureTick(FetchAbstract):
             self, _instrument: str, _tradingday: str
     ) -> typing.Union[None, typing.Dict]:
         instrument = _instrument.lower()
-        key = 'inst_{}_{}'.format(instrument, _tradingday)
+        key = self.inst_key.format(instrument, _tradingday)
         try:
             return self.cache[key]
         except KeyError:
@@ -392,7 +395,7 @@ class FetchFutureTick(FetchAbstract):
         assert isinstance(_symbol, str)
         symbol = _symbol.lower()
 
-        key = 'market_{}_{}'.format(symbol, _tradingday)
+        key = self.market_key.format(symbol, _tradingday)
         if _cache:
             try:
                 return self.cache[key]

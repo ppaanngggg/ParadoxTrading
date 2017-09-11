@@ -73,3 +73,5 @@ class FetchExchangeIndexDominant(FetchExchangeMarketIndex):
 
         self.register_type = RegisterExchangeIndexDominant
         self.psql_dbname = 'ExchangeIndex'
+
+        self.market_key = 'dominant_{}_{}'
