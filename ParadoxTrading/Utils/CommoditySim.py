@@ -36,13 +36,13 @@ class CommoditySim:
         # buf random values
         self.laplace_buf = np.random.laplace(
             size=self.length
-        ).astype(np.float32) * self.sigma
+        ) * self.sigma
         self.beta_buf = np.random.beta(
             self.alpha, self.beta, size=self.length
-        ).astype(np.float32) - self.mode
+        ) - self.mode
         self.normal_buf = np.random.normal(
             size=self.length
-        ).astype(np.float32) * self.noise
+        ) * self.noise
 
     @staticmethod
     def genParams() -> typing.Dict[str, float]:
