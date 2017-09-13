@@ -1,3 +1,4 @@
+import math
 import typing
 
 import tabulate
@@ -271,6 +272,21 @@ class CTAPortfolio(PortfolioAbstract):
         self.portfolio.dealSettlement(
             _tradingday, _symbol_price_dict
         )
+
+    def _iter_update_instrument(self, _tradingday):
+        flag = False
+        for s in self.strategy_table.values():
+            for p in s:
+                if p.strength == 0:
+                    pass
+                else:
+                    p.next_instrument = self.fetcher.fetchSymbol(
+                        _tradingday, _product=p.product
+                    )
+                    if p.next_instrument != p.cur_instrument:
+                        flag = True
+
+        return flag
 
     def _iter_update_next_position(self, _tradingday):
         """
@@ -702,37 +718,59 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
         self.addPickleSet('adjust_count', 'atr_table')
 
     def _iter_update_next_position(self, _tradingday):
+        # 1. flag is true if sign change
         flag = self._detect_sign_change()
-        # inc adjust count, adjust if count reach limit period
+        # 2. flag is true if instrument change
+        if self._iter_update_instrument(_tradingday):
+            flag = True
+        # 3. inc adjust count, adjust if count reach limit period
         self.adjust_count += 1
         if self.adjust_count >= self.adjust_period:
             flag = True
-        # reset count if adjust
-        if flag:
-            self.adjust_count = 0
-        parts = self._calc_parts()
 
-        for s in self.strategy_table.values():
-            for p in s:
-                if p.strength == 0:
-                    p.next_quantity = 0
-                else:
-                    p.next_instrument = self.fetcher.fetchSymbol(
-                        _tradingday, _product=p.product
-                    )
-                    if flag or p.next_instrument != p.cur_instrument:
+        if flag:
+            # reset count if adjust
+            self.adjust_count = 0
+
+            parts = self._calc_parts()
+            if parts == 0:
+                return
+            total_risk_alloc = self.total_fund * self.risk_rate
+            part_risk_alloc = total_risk_alloc / parts
+
+            tmp_dict = {}
+            for s in self.strategy_table.values():
+                for p in s:
+                    if p.strength == 0:
+                        p.next_quantity = 0
+                    else:
                         # if strength status changes or instrument changes
-                        atr = self.atr_table[p.product].getLastData()['atr'][0]
-                        tmp_quantity = int(
-                            self.total_fund * self.risk_rate /
-                            parts / atr / POINT_VALUE[p.product]
-                        ) * POINT_VALUE[p.product]
-                        if p.strength > 0:
-                            p.next_quantity = tmp_quantity
-                        elif p.strength < 0:
-                            p.next_quantity = -tmp_quantity
-                        else:
-                            raise Exception('unexpected strength')
+                        atr = self.atr_table[p.product].getAllData()['atr'][-1]
+                        real = part_risk_alloc / atr / POINT_VALUE[p.product]
+                        per_risk = POINT_VALUE[p.product] * atr
+                        tmp_dict[p] = {
+                            'atr': atr, 'real': real, 'per_risk': per_risk,
+                        }
+
+            free_risk_alloc = total_risk_alloc
+            for d in tmp_dict.values():
+                free_risk_alloc -= math.floor(d['real']) * d['per_risk']
+            tmp_tuples = sorted(tmp_dict.items(), key=lambda x: x[1]['per_risk'])
+            for p, tmp in tmp_tuples:
+                if free_risk_alloc > tmp['per_risk']:
+                    p.next_quantity = math.ceil(tmp['real']) * POINT_VALUE[p.product]
+                    if p.strength < 0:
+                        p.next_quantity = -p.next_quantity
+                    free_risk_alloc -= tmp['per_risk']
+                else:
+                    p.next_quantity = math.floor(tmp['real']) * POINT_VALUE[p.product]
+                    if p.strength < 0:
+                        p.next_quantity = -p.next_quantity
+        else:
+            for s in self.strategy_table.values():
+                for p in s:
+                    if p.strength == 0:
+                        p.next_quantity = 0
                     else:
                         p.next_quantity = p.cur_quantity
 
