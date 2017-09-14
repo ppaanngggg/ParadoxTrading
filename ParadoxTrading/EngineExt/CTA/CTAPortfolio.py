@@ -752,12 +752,15 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
                             'atr': atr, 'real': real, 'per_risk': per_risk,
                         }
 
+            # reduce minimum risk
             free_risk_alloc = total_risk_alloc
             for d in tmp_dict.values():
                 free_risk_alloc -= math.floor(d['real']) * d['per_risk']
+
+            # greedy to contain more product
             tmp_tuples = sorted(tmp_dict.items(), key=lambda x: x[1]['per_risk'])
             for p, tmp in tmp_tuples:
-                if free_risk_alloc > tmp['per_risk']:
+                if free_risk_alloc > tmp['per_risk']:  # if risk available
                     p.next_quantity = math.ceil(tmp['real']) * POINT_VALUE[p.product]
                     if p.strength < 0:
                         p.next_quantity = -p.next_quantity
