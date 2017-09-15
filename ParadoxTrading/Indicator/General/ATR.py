@@ -1,5 +1,3 @@
-from collections import deque
-
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -26,8 +24,8 @@ class ATR(IndicatorAbstract):
         )
 
         self.period = _period
-        self.buf = deque(maxlen=self.period)
 
+        self.last_atr = None
         self.last_close_price = None
 
     def _addOne(self, _data_struct: DataStruct):
@@ -35,9 +33,12 @@ class ATR(IndicatorAbstract):
             index_value = _data_struct.index()[0]
             tr_value = max(_data_struct[self.high_key][0], self.last_close_price) - \
                        min(_data_struct[self.low_key][0], self.last_close_price)
-            self.buf.append(tr_value)
+            if self.last_atr is None:
+                self.last_atr = tr_value
+            else:
+                self.last_atr = (tr_value - self.last_atr) / self.period + self.last_atr
             self.data.addDict({
                 self.idx_key: index_value,
-                self.ret_key: sum(self.buf) / len(self.buf),
+                self.ret_key: self.last_atr,
             })
         self.last_close_price = _data_struct[self.close_key][0]
