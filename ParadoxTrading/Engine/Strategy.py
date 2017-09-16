@@ -81,6 +81,7 @@ class StrategyAbstract(Serializable):
         :param _strength: defined by user
         :return:
         """
+        assert isinstance(_symbol, str)
         self.engine.addEvent(SignalEvent(
             _symbol=_symbol,
             _strategy=self.name,
