@@ -8,7 +8,7 @@ from ParadoxTrading.Fetch.FetchAbstract import FetchAbstract
 from ParadoxTrading.Utils import DataStruct
 
 POINT_VALUE = {
-    'if': 300, 'ic': 200, 'ih': 300, 't': 1000, 'tf': 1000,  # cffex
+    'if': 300, 'ic': 200, 'ih': 300, 't': 10000, 'tf': 10000,  # cffex
     'cu': 5, 'al': 5, 'zn': 5, 'pb': 5, 'ni': 1, 'sn': 1,  # shfe
     'au': 1000, 'ag': 15, 'rb': 10, 'wr': 10, 'hc': 10,  # shfe
     'fu': 50, 'bu': 10, 'ru': 10,  # shfe
