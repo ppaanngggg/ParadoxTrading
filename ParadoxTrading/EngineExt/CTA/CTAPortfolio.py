@@ -298,12 +298,7 @@ class CTAPortfolio(PortfolioAbstract):
         """
         for s in self.strategy_table.values():
             for p in s:
-                if p.strength > 0:
-                    p.next_quantity = POINT_VALUE[p.product]
-                elif p.strength < 0:
-                    p.next_quantity = -POINT_VALUE[p.product]
-                else:
-                    p.next_quantity = 0
+                p.next_quantity = int(p.strength) * POINT_VALUE[p.product]
                 if p.next_quantity != 0:
                     # next dominant instrument
                     p.next_instrument = self.fetcher.fetchSymbol(

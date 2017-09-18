@@ -7,10 +7,9 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 
 import ParadoxTrading.Engine
-from ParadoxTrading.Engine.Event import SignalType, OrderType, ActionType, \
-    DirectionType, FillEvent, OrderEvent, SignalEvent, EventType
-from ParadoxTrading.Utils import DataStruct
-from ParadoxTrading.Utils import Serializable
+from ParadoxTrading.Engine.Event import ActionType, DirectionType, EventType, \
+    FillEvent, OrderEvent, OrderType, SignalEvent, SignalType
+from ParadoxTrading.Utils import DataStruct, Serializable
 
 
 class PositionMgr:
@@ -184,8 +183,9 @@ class PortfolioMgr:
     def getCommission(self) -> float:
         return self.fund_mgr.getCommission()
 
-    def getProfitAndLoss(self,
-                         _symbol_price_dict: typing.Dict[str, float]) -> float:
+    def getProfitAndLoss(
+            self,  _symbol_price_dict: typing.Dict[str, float]
+    ) -> float:
         ret = 0
         for k, v in self.position_mgr.items():
             price = _symbol_price_dict[k]
@@ -211,19 +211,20 @@ class PortfolioMgr:
         assert _quantity > 0
         try:
             # try to add directly
-            self.position_mgr[_symbol].incPosition(_type, _quantity, _price,
-                                                   self.margin_rate)
+            self.position_mgr[_symbol].incPosition(
+                _type, _quantity, _price, self.margin_rate
+            )
         except KeyError:
             # create if failed
             self.position_mgr[_symbol] = PositionMgr(_symbol)
-            self.position_mgr[_symbol].incPosition(_type, _quantity, _price,
-                                                   self.margin_rate)
+            self.position_mgr[_symbol].incPosition(
+                _type, _quantity, _price, self.margin_rate
+            )
 
-    def decPosition(self,
-                    _symbol: str,
-                    _type: int,
-                    _quantity: int,
-                    _price: float) -> float:
+    def decPosition(
+            self, _symbol: str, _type: int,
+            _quantity: int, _price: float
+    ) -> float:
         """
         dec position of symbol
 
@@ -237,8 +238,9 @@ class PortfolioMgr:
         assert _quantity > 0
         assert _symbol in self.position_mgr.keys()
         tmp = self.position_mgr[_symbol]
-        profit_loss = tmp.decPosition(_type, _quantity, _price,
-                                      self.margin_rate)
+        profit_loss = tmp.decPosition(
+            _type, _quantity, _price, self.margin_rate
+        )
         # delete if empty, speed up and reduce memory
         if tmp.long == 0 and tmp.short == 0:
             del self.position_mgr[_symbol]
@@ -295,13 +297,15 @@ class PortfolioMgr:
                     _fill_event.symbol,
                     SignalType.LONG,
                     _fill_event.quantity,
-                    _fill_event.price, )
+                    _fill_event.price,
+                )
             elif _fill_event.direction == DirectionType.SELL:
                 self.incPosition(
                     _fill_event.symbol,
                     SignalType.SHORT,
                     _fill_event.quantity,
-                    _fill_event.price, )
+                    _fill_event.price,
+                )
             else:
                 raise Exception('unknown direction')
         elif _fill_event.action == ActionType.CLOSE:
@@ -310,17 +314,20 @@ class PortfolioMgr:
                     _fill_event.symbol,
                     SignalType.SHORT,
                     _fill_event.quantity,
-                    _fill_event.price, )
+                    _fill_event.price,
+                )
             elif _fill_event.direction == DirectionType.SELL:
                 profit_loss = self.decPosition(
                     _fill_event.symbol,
                     SignalType.LONG,
                     _fill_event.quantity,
-                    _fill_event.price, )
+                    _fill_event.price,
+                )
             else:
                 raise Exception('unknown direction')
-            self.fund_mgr.setStaticFund(self.fund_mgr.getStaticFund() +
-                                        profit_loss)
+            self.fund_mgr.setStaticFund(
+                self.fund_mgr.getStaticFund() + profit_loss
+            )
         else:
             raise Exception('unknown action')
 
