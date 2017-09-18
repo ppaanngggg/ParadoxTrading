@@ -1,7 +1,3 @@
-import math
-import statistics
-from collections import deque
-
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -21,17 +17,21 @@ class ReturnRate(IndicatorAbstract):
             self.idx_key
         )
         self.last_value = None
+        self.last_rate = None
         self.period = _period
-        self.buf = deque(maxlen=self.period)
 
     def _addOne(self, _data_struct: DataStruct):
         index = _data_struct.index()[0]
-        value = _data_struct.getColumn(self.use_key)[0]
+        value = _data_struct[self.use_key][0]
         if self.last_value is not None:
             chg_rate = value / self.last_value - 1
-            self.buf.append(chg_rate)
+            if self.last_rate is None:
+                self.last_rate = chg_rate
+            else:
+                self.last_rate = (chg_rate - self.last_rate) / \
+                                 self.period + self.last_rate
             self.data.addDict({
                 self.idx_key: index,
-                self.ret_key: statistics.mean(self.buf)
+                self.ret_key: self.last_rate
             })
         self.last_value = value

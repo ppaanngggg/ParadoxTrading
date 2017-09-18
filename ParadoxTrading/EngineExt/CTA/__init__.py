@@ -5,5 +5,5 @@ from .CTAOnlineEngine import CTAOnlineEngine
 from .CTAOnlineExecution import CTAOnlineExecution
 from .CTAOnlineMarketSupply import CTAOnlineMarketSupply
 from .CTAPortfolio import CTAPortfolio, CTAWeightedPortfolio, \
-    CTAWeightedStablePortfolio, CTAAllocPortfolio, CTAAllocStablePortfolio
+    CTAWeightedStablePortfolio
 from .CTAStrategy import CTAStrategy, CTAStatusType
