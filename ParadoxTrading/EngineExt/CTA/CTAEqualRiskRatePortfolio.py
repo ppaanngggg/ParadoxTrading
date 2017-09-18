@@ -3,20 +3,19 @@ import typing
 
 from ParadoxTrading.EngineExt.CTA.CTAPortfolio import CTAPortfolio, POINT_VALUE
 from ParadoxTrading.Fetch import FetchAbstract
-from ParadoxTrading.Indicator import Volatility
+from ParadoxTrading.Indicator import ReturnRate
 from ParadoxTrading.Utils import DataStruct
 
 
-class CTAEqualRiskVolatilityPortfolio(CTAPortfolio):
+class CTAEqualRiskRatePortfolio(CTAPortfolio):
     def __init__(
             self,
             _fetcher: FetchAbstract,
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
-            _risk_rate: float = 0.3,
+            _risk_rate: float = 0.01,
             _adjust_period: int = 5,
-            _volatility_period: int = 30,
-            _volatility_smooth: int = 12,
+            _rate_period: int = 50,
             _settlement_price_index: str = 'closeprice'
     ):
         super().__init__(
@@ -28,11 +27,10 @@ class CTAEqualRiskVolatilityPortfolio(CTAPortfolio):
 
         self.adjust_period = _adjust_period
         self.adjust_count = 0
-        self.volatility_period = _volatility_period
-        self.volatility_smooth = _volatility_smooth
-        self.volatility_table: typing.Dict[str, Volatility] = {}
+        self.rate_period = _rate_period
+        self.rate_table: typing.Dict[str, ReturnRate] = {}
 
-        self.addPickleSet('adjust_count', 'volatility_table')
+        self.addPickleSet('adjust_count', 'rate_table')
 
     def _iter_update_next_position(self, _tradingday):
         # 1. flag is true if sign change
@@ -52,6 +50,7 @@ class CTAEqualRiskVolatilityPortfolio(CTAPortfolio):
             parts = self._calc_parts()
             if parts == 0:
                 return
+
             part_fund_alloc = self.total_fund / parts
 
             tmp_dict = {}
@@ -61,11 +60,9 @@ class CTAEqualRiskVolatilityPortfolio(CTAPortfolio):
                         p.next_quantity = 0
                     else:
                         # if strength status changes or instrument changes
-                        tmp_v = self.volatility_table[p.product].getAllData()['volatility'][-1]
-                        var = tmp_v ** 2
-
-                        real_w = self.risk_rate / tmp_v
-                        real_v = real_w ** 2 * var
+                        rate_abs = self.rate_table[p.product].getAllData()['returnrate'][-1]
+                        real_w = self.risk_rate / rate_abs
+                        real_v = real_w * rate_abs
                         try:
                             price = self.symbol_price_dict[p.next_instrument]
                         except KeyError:
@@ -76,10 +73,10 @@ class CTAEqualRiskVolatilityPortfolio(CTAPortfolio):
                         real_q = part_fund_alloc * real_w / (price * POINT_VALUE[p.product])
                         floor_q = math.floor(real_q)
                         floor_w = floor_q * price * POINT_VALUE[p.product] / part_fund_alloc
-                        floor_v = floor_w ** 2 * var
+                        floor_v = floor_w * rate_abs
                         ceil_q = math.ceil(real_q)
                         ceil_w = ceil_q * price * POINT_VALUE[p.product] / part_fund_alloc
-                        ceil_v = ceil_w ** 2 * var
+                        ceil_v = ceil_w * rate_abs
                         tmp_dict[p] = {
                             'real_w': real_w, 'real_q': real_q, 'real_v': real_v,
                             'floor_w': floor_w, 'floor_q': floor_q, 'floor_v': floor_v,
@@ -87,7 +84,7 @@ class CTAEqualRiskVolatilityPortfolio(CTAPortfolio):
                             'per_risk': ceil_v - floor_v, 'diff_risk': ceil_v - real_v
                         }
 
-            free_risk_alloc = self.risk_rate ** 2 * parts
+            free_risk_alloc = self.risk_rate * parts
             for d in tmp_dict.values():
                 free_risk_alloc -= d['floor_v']
 
@@ -112,11 +109,9 @@ class CTAEqualRiskVolatilityPortfolio(CTAPortfolio):
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         try:
-            self.volatility_table[_symbol].addOne(_data)
+            self.rate_table[_symbol].addOne(_data)
         except KeyError:
-            self.volatility_table[_symbol] = Volatility(
-                _period=self.volatility_period,
-                _factor=252, _smooth=self.volatility_smooth,
-                _use_key=self.settlement_price_index,
+            self.rate_table[_symbol] = ReturnRate(
+                self.rate_period, True
             )
-            self.volatility_table[_symbol].addOne(_data)
+            self.rate_table[_symbol].addOne(_data)

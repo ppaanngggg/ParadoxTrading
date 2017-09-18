@@ -178,6 +178,9 @@ class CTAPortfolio(PortfolioAbstract):
 
         self.addPickleSet('strategy_table', 'order_table')
 
+        # tmp value inter functions
+        self.total_fund: float = 0.0
+
     def dealSignal(self, _event: SignalEvent):
         """
         deal the signal from a CTA strategy,
@@ -452,15 +455,17 @@ class CTAPortfolio(PortfolioAbstract):
             _tradingday, self.symbol_price_dict
         )
 
-        # 3. update each strategy's positions to current status
-        # according to fill results
+        # 3 compute current total fund
+        self.total_fund = self.portfolio.getStaticFund()
+
+        # 4. update each strategy's positions to current status
         self._iter_update_cur_position()
-        # 4. update each strategy's positions to next status
-        # according to new strength and other information
+
+        # 5. update next status
         self._iter_update_next_position(_tradingday)
-        # 5. send new orders
+        # 6. send new orders
         self._iter_send_order()
-        # 6. reset price table
+        # 7. reset price table
         self.symbol_price_dict = {}
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
