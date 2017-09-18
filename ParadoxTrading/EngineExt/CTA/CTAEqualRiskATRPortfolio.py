@@ -65,6 +65,7 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
                         per_risk = POINT_VALUE[p.product] * atr
                         tmp_dict[p] = {
                             'atr': atr, 'real': real, 'per_risk': per_risk,
+                            'diff_risk': per_risk * math.ceil(real) - real
                         }
 
             # reduce minimum risk
