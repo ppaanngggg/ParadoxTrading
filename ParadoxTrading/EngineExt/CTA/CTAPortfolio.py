@@ -587,29 +587,6 @@ class CTAWeightedPortfolio(CTAPortfolio):
                         price / POINT_VALUE[p.product]
                     ) * POINT_VALUE[p.product]
 
-    def dealSettlement(self, _tradingday):
-        # check it's the end of prev tradingday
-        assert _tradingday
-
-        # 1. get the table map symbols to their price
-        self._update_symbol_price_dict(_tradingday)
-        # 2. set portfolio settlement
-        self._portfolio_settlement(
-            _tradingday, self.symbol_price_dict
-        )
-
-        # 3 compute current total fund
-        self.total_fund = self.portfolio.getStaticFund()
-
-        # 4. update each strategy's positions to current status
-        self._iter_update_cur_position()
-        # 5. update next status
-        self._iter_update_next_position(_tradingday)
-        # 6. send new orders
-        self._iter_send_order()
-        # 7. reset price table
-        self.symbol_price_dict = {}
-
 
 class CTAWeightedStablePortfolio(CTAPortfolio):
     """
@@ -664,27 +641,3 @@ class CTAWeightedStablePortfolio(CTAPortfolio):
                         ) * POINT_VALUE[p.product]
                     else:
                         p.next_quantity = p.cur_quantity
-
-    def dealSettlement(self, _tradingday):
-        # check it's the end of prev tradingday
-        assert _tradingday
-
-        # 1. get the table map symbols to their price
-        self._update_symbol_price_dict(_tradingday)
-        # 2. set portfolio settlement
-        self._portfolio_settlement(
-            _tradingday, self.symbol_price_dict
-        )
-
-        # 3 compute current total fund
-        self.total_fund = self.portfolio.getStaticFund()
-
-        # 4. update each strategy's positions to current status
-        self._iter_update_cur_position()
-
-        # 5. update next status
-        self._iter_update_next_position(_tradingday)
-        # 6. send new orders
-        self._iter_send_order()
-        # 7. reset price table
-        self.symbol_price_dict = {}

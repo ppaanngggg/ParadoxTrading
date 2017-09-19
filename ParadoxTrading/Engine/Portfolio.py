@@ -184,13 +184,14 @@ class PortfolioMgr:
         return self.fund_mgr.getCommission()
 
     def getProfitAndLoss(
-            self,  _symbol_price_dict: typing.Dict[str, float]
+            self, _symbol_price_dict: typing.Dict[str, float]
     ) -> float:
         ret = 0
         for k, v in self.position_mgr.items():
             price = _symbol_price_dict[k]
-            ret += v.long * (price - v.long_price)
-            ret += v.short * (v.short_price - price)
+            long_part = v.long * (price - v.long_price)
+            short_part = v.short * (v.short_price - price)
+            ret += long_part + short_part
         return ret
 
     def incPosition(self,
@@ -334,9 +335,10 @@ class PortfolioMgr:
         # add commission
         self.fund_mgr.incCommission(_fill_event.commission)
 
-    def dealSettlement(self,
-                       _tradingday: str,
-                       _symbol_price_dict: typing.Dict[str, float]):
+    def dealSettlement(
+            self, _tradingday: str,
+            _symbol_price_dict: typing.Dict[str, float]
+    ):
         """
         do settlement, and store settlement information
 
@@ -369,15 +371,15 @@ class PortfolioMgr:
         _coll.insert_many(self.signal_record + self.order_record +
                           self.fill_record + self.settlement_record)
 
-    def __repr__(self) -> str:
-        ret = '@@@ POSITION @@@\n'
+    def getPositionTable(self):
         table = []
         for k, v in self.position_mgr.items():
             table.append([k, v.long, v.long_price, v.short, v.short_price])
-        ret += tabulate.tabulate(
-            table, ['SYMBOL', 'LONG', 'LONG PRICE', 'SHORT', 'SHORT PRICE'])
+        return tabulate.tabulate(
+            table, ['SYMBOL', 'LONG', 'LONG PRICE', 'SHORT', 'SHORT PRICE']
+        )
 
-        ret += '\n@@@ UNFILLED ORDER @@@\n'
+    def getUnfilledOrderTable(self):
         table = []
         for k, v in self.unfilled_order.items():
             table.append([
@@ -385,8 +387,16 @@ class PortfolioMgr:
                 ActionType.toStr(v.action),
                 DirectionType.toStr(v.direction), v.quantity
             ])
-        ret += tabulate.tabulate(
-            table, ['INDEX', 'SYMBOL', 'ACTION', 'DIRECTION', 'QUANTITY'])
+        return tabulate.tabulate(
+            table, ['INDEX', 'SYMBOL', 'ACTION', 'DIRECTION', 'QUANTITY']
+        )
+
+    def __repr__(self) -> str:
+        ret = '@@@ POSITION @@@\n{}'.format(self.getPositionTable())
+
+        ret += '\n@@@ UNFILLED ORDER @@@\n{}'.format(
+            self.getUnfilledOrderTable()
+        )
 
         ret += '\n@@@ RECORD @@@\n'
         ret += ' - Signal - NUM: {}, LAST: {}\n'.format(
