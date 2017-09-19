@@ -4,7 +4,7 @@ import typing
 
 import PyCTP
 
-from ParadoxTrading.Engine.Event import DirectionType, ActionType
+from ParadoxTrading.Engine.Event import DirectionType, ActionType, SignalType
 from ParadoxTrading.Utils.DataStruct import DataStruct
 
 
@@ -12,19 +12,24 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
     TIME_OUT = 5
 
     def __init__(
-            self, _con_path: typing.ByteString,
-            _front_addr: typing.ByteString,
-            _broker_id: typing.ByteString,
-            _user_id: typing.ByteString,
-            _passwd: typing.ByteString,
+            self, _con_path: bytes,
+            _front_addr: bytes,
+            _broker_id: bytes,
+            _user_id: bytes,
+            _passwd: bytes,
     ):
         super().__init__()
 
+        if not _con_path.endswith(b'/'):
+            _con_path += b'/'
         self.con_path = _con_path
         self.front_addr = _front_addr
         self.broker_id = _broker_id
         self.user_id = _user_id
         self.passwd = _passwd
+
+        self.front_id = None
+        self.session_id = None
 
         self.request_id = 1
         self.order_id = 1
@@ -67,8 +72,8 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         logging.info('connect front TRY!')
         self.api.RegisterFront(self.front_addr)
         self.api.Init()
-        self.api.SubscribePrivateTopic(PyCTP.THOST_TERT_RESUME)
-        self.api.SubscribePublicTopic(PyCTP.THOST_TERT_RESUME)
+        self.api.SubscribePrivateTopic(PyCTP.THOST_TERT_QUICK)
+        self.api.SubscribePublicTopic(PyCTP.THOST_TERT_QUICK)
 
         return self.eventWait(self.TIME_OUT)
 
@@ -96,6 +101,12 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             _request_id: int, _is_last: bool
     ):
         if _is_last:
+            self.front_id = _user_login.FrontID
+            self.session_id = _user_login.SessionID
+            self.order_id = int(_user_login.MaxOrderRef)
+            logging.info('FrontID: {}, SessionID: {}, OrderID: {}'.format(
+                self.front_id, self.session_id, self.order_id
+            ))
             logging.info('login {} DONE!'.format(
                 _rsp_info.ErrorMsg.decode('gb2312')
             ))
@@ -116,7 +127,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             logging.error('instrument FAILED!')
             return False
 
-        ret = self.eventWait(self.TIME_OUT * 10)
+        ret = self.eventWait(self.TIME_OUT * 5)
         if ret is False:
             return False
         return self.ret_data
@@ -127,11 +138,11 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
-        symbol: str = _instrument.InstrumentID.decode()
+        symbol: str = _instrument.InstrumentID.decode('gb2312')
         if len(symbol) <= 6 and not symbol.endswith('efp'):
             self.ret_data.addDict({
                 'InstrumentID': symbol,
-                'ProductID': _instrument.ProductID.decode(),
+                'ProductID': _instrument.ProductID.decode('gb2312'),
                 'VolumeMultiple': _instrument.VolumeMultiple,
                 'PriceTick': _instrument.PriceTick,
                 'DeliveryYear': _instrument.DeliveryYear,
@@ -191,7 +202,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
 
         self.eventClear()
         self.ret_data = DataStruct([
-            'InstrumentID'
+            'InstrumentID', 'Signal', 'Position', 'TradingDay'
         ], 'InstrumentID')
         logging.info('qry investor position TRY!')
         if self.api.ReqQryInvestorPosition(req, self.getRequestID()):
@@ -209,14 +220,23 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
-        print(
-            _investor_position.InstrumentID,
-            _investor_position.PosiDirection,
-            _investor_position.PositionDate,
-            _investor_position.Position,
-            _investor_position.YdPosition,
-            _investor_position.TodayPosition,
-        )
+        instrument = _investor_position.InstrumentID.decode('gb2312')
+        signal = SignalType.EMPTY
+        if _investor_position.PosiDirection == PyCTP.THOST_FTDC_PD_Long:
+            signal = SignalType.LONG
+        elif _investor_position.PosiDirection == PyCTP.THOST_FTDC_PD_Short:
+            signal = SignalType.SHORT
+        else:
+            logging.error('Instrument:{}, PosiDirection: {}'.format(
+                instrument, _investor_position.PosiDirection,
+            ))
+
+        self.ret_data.addDict({
+            'InstrumentID': instrument,
+            'Signal': signal,
+            'Position': _investor_position.Position,
+            'TradingDay': _investor_position.TradingDay.decode('gb2312'),
+        })
 
         if _is_last:
             logging.info('qry investor position DONE! (total: {})'.format(
@@ -229,12 +249,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         req.InstrumentID = _instrument_id
 
         self.eventClear()
-        self.ret_data = DataStruct([
-            'InstrumentID', 'TradingDay', 'UpdateTime', 'UpdateMillisec',
-            'LastPrice', 'HighestPrice', 'LowestPrice',
-            'Volume', 'Turnover', 'OpenInterest',
-            'AskPrice', 'AskVolume', 'BidPrice', 'BidVolume'
-        ], 'InstrumentID')
+        self.ret_data = None
         logging.info('qry {} market TRY!'.format(_instrument_id))
         if self.api.ReqQryDepthMarketData(req, self.getRequestID()):
             logging.error('qry {} market FAILED!'.format(_instrument_id))
@@ -251,9 +266,10 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
-        self.ret_data.addDict({
+        self.ret_data = {
             'InstrumentID': _depth_market_data.InstrumentID.decode('gb2312'),
             'TradingDay': _depth_market_data.TradingDay.decode('gb2312'),
+            'ActionDay': _depth_market_data.ActionDay.decode('gb2312'),
             'UpdateTime': _depth_market_data.UpdateTime.decode('gb2312'),
             'UpdateMillisec': _depth_market_data.UpdateMillisec,
             'LastPrice': _depth_market_data.LastPrice,
@@ -266,7 +282,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             'AskVolume': _depth_market_data.AskVolume1,
             'BidPrice': _depth_market_data.BidPrice1,
             'BidVolume': _depth_market_data.BidVolume1,
-        })
+        }
 
         if _is_last:
             logging.info('qry {} market DONE!'.format(
@@ -276,14 +292,18 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
 
     def ReqOrderInsert(
             self, _instrument: bytes, _direction: int,
-            _action: int, _volume: int, _price: float
+            _action: int, _volume: int, _price: float,
+            _today: bool = False
     ):
 
         req = PyCTP.CThostFtdcInputOrderField()
+        # trader info
         req.BrokerID = self.broker_id
         req.InvestorID = self.user_id
+        # instrument and order ref
         req.InstrumentID = _instrument
-        req.OrderRef = '{}'.format(self.order_id).encode()
+        req.OrderRef = '{}'.format(self.getOrderID()).encode()
+        # set direction
         if _direction == DirectionType.BUY:
             req.Direction = PyCTP.THOST_FTDC_D_Buy
         elif _direction == DirectionType.SELL:
@@ -291,30 +311,43 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         else:
             logging.error('unknown direction!')
             return False
+        # set action
         if _action == ActionType.OPEN:
             req.CombOffsetFlag = PyCTP.THOST_FTDC_OF_Open
         elif _action == ActionType.CLOSE:
-            req.CombOffsetFlag = PyCTP.THOST_FTDC_OF_Close
+            if _today:
+                req.CombOffsetFlag = PyCTP.THOST_FTDC_OF_CloseToday
+            else:
+                req.CombOffsetFlag = PyCTP.THOST_FTDC_OF_CloseYesterday
         else:
             logging.error('unknown action!')
             return False
+
+        # common config
         req.CombHedgeFlag = PyCTP.THOST_FTDC_HF_Speculation
-        req.VolumeTotalOriginal = _volume
         req.ContingentCondition = PyCTP.THOST_FTDC_CC_Immediately
         req.ForceCloseReason = PyCTP.THOST_FTDC_FCC_NotForceClose
         req.IsAutoSuspend = 0
         req.UserForceClose = 0
 
+        # limit, fill or kill
+        req.VolumeTotalOriginal = _volume
         req.OrderPriceType = PyCTP.THOST_FTDC_OPT_LimitPrice
         req.LimitPrice = _price
         req.TimeCondition = PyCTP.THOST_FTDC_TC_IOC
         req.VolumeCondition = PyCTP.THOST_FTDC_VC_CV
 
-        self.api.ReqOrderInsert(req, self.getRequestID())
-
-        # self.eventClear()
+        self.eventClear()
+        self.ret_data = False
         logging.info('order insert TRY!')
-        # return self.eventWait(self.TIME_OUT)
+        if self.api.ReqOrderInsert(req, self.getRequestID()):
+            logging.info('order insert FAILED!')
+            return False
+
+        ret = self.eventWait(self.TIME_OUT)
+        if ret is False:
+            return False
+        return self.ret_data
 
     def OnRspOrderInsert(
             self,
@@ -322,28 +355,129 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
-        logging.info(_rsp_info.ErrorID)
-        logging.info(_rsp_info.ErrorMsg.decode('gb2312'))
+        logging.info('ErrorID: {}, Msg: {}'.format(
+            _rsp_info.ErrorID, _rsp_info.ErrorMsg.decode('gb2312')
+        ))
+        if _is_last:
+            self.eventSet()
 
     def OnErrRtnOrderInsert(
             self,
             _input_order: PyCTP.CThostFtdcInputOrderField,
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
     ):
-        logging.info(_rsp_info.ErrorID)
-        logging.info(_rsp_info.ErrorMsg.decode())
+        logging.info('ErrorID: {}, Msg: {}'.format(
+            _rsp_info.ErrorID, _rsp_info.ErrorMsg.decode('gb2312')
+        ))
+        self.eventSet()
 
     def OnRtnOrder(self, _order: PyCTP.CThostFtdcOrderField):
-        print(
-            'order ref: {}\n'
-            'order status: {}\n'
-            'order submit status: {}\n'
-            'volume total: {}\n'
-            'msg: {}'.format(
-                _order.OrderRef, _order.OrderStatus, _order.OrderSubmitStatus,
-                _order.VolumeTotal, _order.StatusMsg.decode('gb2312')
-            )
-        )
+        status = _order.OrderStatus
+        logging.info('OrderRef: {}, OrderStatus: {}, Msg: {}'.format(
+            _order.OrderRef, status, _order.StatusMsg.decode('gb2312')
+        ))
+        if status == PyCTP.THOST_FTDC_OST_AllTraded:
+            self.ret_data = True
+            self.eventSet()
+        elif status == PyCTP.THOST_FTDC_OST_Canceled:
+            self.ret_data = False
+            self.eventSet()
+        else:
+            # keep waiting
+            pass
 
     def OnRtnTrade(self, _trade: PyCTP.CThostFtdcTradeField):
-        print(_trade.OrderRef)
+        pass
+
+    def ReqQryOrder(self) -> typing.Union[bool, DataStruct]:
+        req = PyCTP.CThostFtdcQryOrderField()
+        req.BrokerID = self.broker_id
+        req.InvestorID = self.user_id
+
+        self.eventClear()
+        self.ret_data = DataStruct([
+            'OrderRef', 'OrderSysID', 'OrderStatus', 'InstrumentID',
+            'Direction', 'Action', 'Price', 'Volume',
+            'FrontID', 'SessionID',
+            'TradingDay', 'InsertDate', 'InsertTime'
+        ], 'OrderRef')
+        logging.info('qry order TRY!')
+        if self.api.ReqQryOrder(req, self.getRequestID()):
+            logging.error('qry order FAILED!')
+            return False
+
+        ret = self.eventWait(self.TIME_OUT)
+        if ret is False:
+            return False
+        return self.ret_data
+
+    def OnRspQryOrder(
+            self, _order: PyCTP.CThostFtdcOrderField,
+            _rsp_info: PyCTP.CThostFtdcRspInfoField,
+            _request_id: int, _is_last: bool
+    ):
+        self.ret_data.addDict({
+            'OrderRef': int(_order.OrderRef),
+            'OrderSysID': _order.OrderSysID,
+            'OrderStatus': _order.OrderStatus,
+            'InstrumentID': _order.InstrumentID.decode('gb2312'),
+            'Direction': _order.Direction,
+            'Action': _order.CombOffsetFlag,
+            'Price': _order.LimitPrice,
+            'Volume': _order.VolumeTotalOriginal,
+            'FrontID': _order.FrontID,
+            'SessionID': _order.SessionID,
+            'TradingDay': _order.TradingDay.decode('gb2312'),
+            'InsertDate': _order.InsertDate.decode('gb2312'),
+            'InsertTime': _order.InsertTime.decode('gb2312'),
+        })
+
+        if _is_last:
+            logging.info('qry order DONE! (total: {})'.format(
+                len(self.ret_data)
+            ))
+            self.eventSet()
+
+    def ReqQryTrade(self) -> typing.Union[bool, DataStruct]:
+        req = PyCTP.CThostFtdcQryTradeField()
+        req.BrokerID = self.broker_id
+        req.InvestorID = self.user_id
+
+        self.eventClear()
+        self.ret_data = DataStruct([
+            'TradingDay', 'TradeDate', 'TradeTime',
+            'OrderRef', 'InstrumentID',
+            'Direction', 'Action', 'Price', 'Volume'
+        ], 'OrderRef')
+        logging.info('qry trade TRY!')
+        if self.api.ReqQryTrade(req, self.getRequestID()):
+            logging.error('qry trade FAILED!')
+            return False
+
+        ret = self.eventWait(self.TIME_OUT)
+        if ret is False:
+            return False
+        return self.ret_data
+
+    def OnRspQryTrade(
+            self, _trade: PyCTP.CThostFtdcTradeField,
+            _rsp_info: PyCTP.CThostFtdcRspInfoField,
+            _request_id: int, _is_last: bool
+    ):
+        self.ret_data.addDict({
+            'TradingDay': _trade.TradingDay.decode('gb2312'),
+            'TradeDate': _trade.TradeDate.decode('gb2312'),
+            'TradeTime': _trade.TradeTime.decode('gb2312'),
+            'OrderRef': int(_trade.OrderRef),
+            'InstrumentID': _trade.InstrumentID.decode('gb2312'),
+            'Direction': _trade.Direction,
+            'Action': _trade.OffsetFlag,
+            'Price': _trade.Price,
+            'Volume': _trade.Volume,
+        })
+
+        if _is_last:
+            logging.info('qry trade DONE! (total: {})'.format(
+                len(self.ret_data)
+            ))
+            self.eventSet()

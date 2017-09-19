@@ -10,6 +10,7 @@ setup(
         'ParadoxTrading/Chart',
         'ParadoxTrading/Engine',
         'ParadoxTrading/EngineExt',
+        'ParadoxTrading/EngineExt/CTP',
         'ParadoxTrading/Utils',
         'ParadoxTrading/Indicator',
         'ParadoxTrading/Indicator/Bar',
