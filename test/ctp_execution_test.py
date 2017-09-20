@@ -4,7 +4,7 @@ import logging
 from pprint import pprint
 
 from ParadoxTrading.Engine import ActionType, DirectionType
-from ParadoxTrading.Utils.CTPTraderSpi import CTPTraderSpi
+from ParadoxTrading.Utils.CTP import CTPTraderSpi
 
 logging.basicConfig(level=logging.INFO)
 
