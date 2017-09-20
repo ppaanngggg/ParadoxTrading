@@ -29,6 +29,7 @@ setup(
         'arrow',
         'pandas',
         'diskcache',
+        'schedule',
         # 'PyCTP'
     ],
     dependency_links=[
