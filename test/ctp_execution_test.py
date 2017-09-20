@@ -109,6 +109,11 @@ class CTPCMD(cmd.Cmd):
     def do_commission_rate(self, arg):
         pprint(self.trader.ReqQryInstrumentCommissionRate(arg.encode()))
 
+    def do_settlement_info(self, arg):
+        tmp = self.trader.ReqQrySettlementInfo()
+        if tmp is not False:
+            print(tmp.decode('gb2312'))
+
     def do_settlement_confirm(self, arg):
         self.trader.ReqSettlementInfoConfirm()
 

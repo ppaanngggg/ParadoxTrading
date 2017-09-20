@@ -88,12 +88,12 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         self.eventSet()
 
     def ReqUserLogin(self) -> bool:
-        self.eventClear()
-
         req = PyCTP.CThostFtdcReqUserLoginField()
         req.BrokerID = self.broker_id
         req.UserID = self.user_id
         req.Password = self.passwd
+
+        self.eventClear()
         logging.info('login TRY!')
         if self.api.ReqUserLogin(req, self.incRequestID()):
             logging.error('login FAILED!')
@@ -118,10 +118,32 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             ))
             self.eventSet()
 
-    def ReqQryInstrument(self, _instrument_id=None) -> typing.Union[bool, DataStruct]:
+    def ReqUserLogout(self) -> bool:
+        req = PyCTP.CThostFtdcUserLogoutField()
+        req.BrokerID = self.broker_id
+        req.UserID = self.user_id
+
+        self.eventClear()
+        logging.info('logout TRY!')
+        if self.api.ReqUserLogout(req, self.incRequestID()):
+            logging.error('logout FAILED!')
+            return False
+
+        return self.eventWait(self.TIME_OUT)
+
+    def OnRspUserLogout(
+            self, _user_logout: PyCTP.CThostFtdcUserLogoutField,
+            _rsp_info: PyCTP.CThostFtdcRspInfoField,
+            _request_id: int, _is_last: bool
+    ):
+        if _is_last:
+            logging.info('logout DONE!')
+            self.eventSet()
+
+    def ReqQryInstrument(self) -> typing.Union[bool, DataStruct]:
         qry = PyCTP.CThostFtdcQryInstrumentField()
         qry.ExchangeID = b''
-        qry.InstrumentID = _instrument_id if _instrument_id is not None else b''
+        qry.InstrumentID = b''
 
         self.eventClear()
         self.ret_data = DataStruct([
@@ -160,34 +182,43 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             ))
             self.eventSet()
 
-    def ReqQrySettlementInfo(self) -> bool:
-        self.eventClear()
-
-        logging.info('qry settlement info TRY!')
+    def ReqQrySettlementInfo(self) -> typing.Union[bool, bytes]:
         req = PyCTP.CThostFtdcQrySettlementInfoField()
         req.BrokerID = self.broker_id
         req.InvestorID = self.user_id
-        self.api.ReqQrySettlementInfo(req, self.incRequestID())
 
-        return self.eventWait(self.TIME_OUT)
+        self.eventClear()
+        self.ret_data = b''
+        logging.info('qry settlement info TRY!')
+        if self.api.ReqQrySettlementInfo(req, self.incRequestID()):
+            logging.info('qry settlement info FAILED!')
+            return False
+
+        ret = self.eventWait(self.TIME_OUT)
+        if ret is False:
+            return False
+        return self.ret_data
 
     def OnRspQrySettlementInfo(
             self, _settlement_info: PyCTP.CThostFtdcSettlementInfoField,
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
+        self.ret_data += _settlement_info.Content
         if _is_last:
             logging.info('qry settlement info DONE!')
             self.eventSet()
 
     def ReqSettlementInfoConfirm(self) -> bool:
-
         req = PyCTP.CThostFtdcSettlementInfoConfirmField()
         req.BrokerID = self.broker_id
         req.InvestorID = self.user_id
+
         self.eventClear()
         logging.info('qry settlement info confirm TRY!')
-        self.api.ReqSettlementInfoConfirm(req, self.incRequestID())
+        if self.api.ReqSettlementInfoConfirm(req, self.incRequestID()):
+            logging.info('qry settlement info confirm FAILED!')
+            return False
 
         return self.eventWait(self.TIME_OUT)
 
@@ -228,26 +259,27 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
-        instrument = _investor_position.InstrumentID.decode('gb2312')
-        signal = SignalType.EMPTY
-        if _investor_position.PosiDirection == PyCTP.THOST_FTDC_PD_Long:
-            signal = SignalType.LONG
-        elif _investor_position.PosiDirection == PyCTP.THOST_FTDC_PD_Short:
-            signal = SignalType.SHORT
-        else:
-            logging.error('Instrument:{}, PosiDirection: {}'.format(
-                instrument, _investor_position.PosiDirection,
-            ))
+        if _investor_position is not None:
+            instrument = _investor_position.InstrumentID.decode('gb2312')
+            signal = SignalType.EMPTY
+            if _investor_position.PosiDirection == PyCTP.THOST_FTDC_PD_Long:
+                signal = SignalType.LONG
+            elif _investor_position.PosiDirection == PyCTP.THOST_FTDC_PD_Short:
+                signal = SignalType.SHORT
+            else:
+                logging.error('Instrument:{}, PosiDirection: {}'.format(
+                    instrument, _investor_position.PosiDirection,
+                ))
 
-        self.ret_data.addDict({
-            'InstrumentID': instrument,
-            'Signal': signal,
-            'Position': _investor_position.Position,
-            'PositionProfit': _investor_position.PositionProfit,
-            'CloseProfit': _investor_position.CloseProfit,
-            'Commission': _investor_position.Commission,
-            'TradingDay': _investor_position.TradingDay.decode('gb2312'),
-        })
+            self.ret_data.addDict({
+                'InstrumentID': instrument,
+                'Signal': signal,
+                'Position': _investor_position.Position,
+                'PositionProfit': _investor_position.PositionProfit,
+                'CloseProfit': _investor_position.CloseProfit,
+                'Commission': _investor_position.Commission,
+                'TradingDay': _investor_position.TradingDay.decode('gb2312'),
+            })
 
         if _is_last:
             logging.info('qry investor position DONE! (total: {})'.format(
@@ -439,21 +471,22 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
-        self.ret_data.addDict({
-            'OrderRef': int(_order.OrderRef),
-            'OrderSysID': _order.OrderSysID,
-            'OrderStatus': _order.OrderStatus,
-            'InstrumentID': _order.InstrumentID.decode('gb2312'),
-            'Direction': _order.Direction,
-            'Action': _order.CombOffsetFlag,
-            'Price': _order.LimitPrice,
-            'Volume': _order.VolumeTotalOriginal,
-            'FrontID': _order.FrontID,
-            'SessionID': _order.SessionID,
-            'TradingDay': _order.TradingDay.decode('gb2312'),
-            'InsertDate': _order.InsertDate.decode('gb2312'),
-            'InsertTime': _order.InsertTime.decode('gb2312'),
-        })
+        if _order is not None:
+            self.ret_data.addDict({
+                'OrderRef': int(_order.OrderRef),
+                'OrderSysID': _order.OrderSysID,
+                'OrderStatus': _order.OrderStatus,
+                'InstrumentID': _order.InstrumentID.decode('gb2312'),
+                'Direction': _order.Direction,
+                'Action': _order.CombOffsetFlag,
+                'Price': _order.LimitPrice,
+                'Volume': _order.VolumeTotalOriginal,
+                'FrontID': _order.FrontID,
+                'SessionID': _order.SessionID,
+                'TradingDay': _order.TradingDay.decode('gb2312'),
+                'InsertDate': _order.InsertDate.decode('gb2312'),
+                'InsertTime': _order.InsertTime.decode('gb2312'),
+            })
 
         if _is_last:
             logging.info('qry order DONE! (total: {})'.format(
@@ -487,17 +520,18 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
-        self.ret_data.addDict({
-            'TradingDay': _trade.TradingDay.decode('gb2312'),
-            'TradeDate': _trade.TradeDate.decode('gb2312'),
-            'TradeTime': _trade.TradeTime.decode('gb2312'),
-            'OrderRef': int(_trade.OrderRef),
-            'InstrumentID': _trade.InstrumentID.decode('gb2312'),
-            'Direction': _trade.Direction,
-            'Action': _trade.OffsetFlag,
-            'Price': _trade.Price,
-            'Volume': _trade.Volume,
-        })
+        if _trade is not None:
+            self.ret_data.addDict({
+                'TradingDay': _trade.TradingDay.decode('gb2312'),
+                'TradeDate': _trade.TradeDate.decode('gb2312'),
+                'TradeTime': _trade.TradeTime.decode('gb2312'),
+                'OrderRef': int(_trade.OrderRef),
+                'InstrumentID': _trade.InstrumentID.decode('gb2312'),
+                'Direction': _trade.Direction,
+                'Action': _trade.OffsetFlag,
+                'Price': _trade.Price,
+                'Volume': _trade.Volume,
+            })
 
         if _is_last:
             logging.info('qry trade DONE! (total: {})'.format(
