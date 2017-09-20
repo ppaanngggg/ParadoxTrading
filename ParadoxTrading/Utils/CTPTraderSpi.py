@@ -43,15 +43,21 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             )
         self.api.RegisterSpi(self)
 
-    def getRequestID(self):
+    def incRequestID(self):
         tmp = self.request_id
         self.request_id += 1
         return tmp
 
-    def getOrderID(self):
+    def getRequestID(self):
+        return self.request_id
+
+    def incOrderID(self):
         tmp = self.order_id
         self.order_id += 1
         return tmp
+
+    def getOrderID(self):
+        return self.order_id
 
     def eventClear(self):
         self.event.clear()
@@ -89,7 +95,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         req.UserID = self.user_id
         req.Password = self.passwd
         logging.info('login TRY!')
-        if self.api.ReqUserLogin(req, self.getRequestID()):
+        if self.api.ReqUserLogin(req, self.incRequestID()):
             logging.error('login FAILED!')
             return False
 
@@ -123,7 +129,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             'DeliveryYear', 'DeliveryMonth'
         ], 'InstrumentID')
         logging.info('instrument TRY!')
-        if self.api.ReqQryInstrument(qry, self.getRequestID()):
+        if self.api.ReqQryInstrument(qry, self.incRequestID()):
             logging.error('instrument FAILED!')
             return False
 
@@ -161,7 +167,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         req = PyCTP.CThostFtdcQrySettlementInfoField()
         req.BrokerID = self.broker_id
         req.InvestorID = self.user_id
-        self.api.ReqQrySettlementInfo(req, self.getRequestID())
+        self.api.ReqQrySettlementInfo(req, self.incRequestID())
 
         return self.eventWait(self.TIME_OUT)
 
@@ -181,7 +187,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         req.InvestorID = self.user_id
         self.eventClear()
         logging.info('qry settlement info confirm TRY!')
-        self.api.ReqSettlementInfoConfirm(req, self.getRequestID())
+        self.api.ReqSettlementInfoConfirm(req, self.incRequestID())
 
         return self.eventWait(self.TIME_OUT)
 
@@ -202,10 +208,12 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
 
         self.eventClear()
         self.ret_data = DataStruct([
-            'InstrumentID', 'Signal', 'Position', 'TradingDay'
+            'InstrumentID', 'Signal', 'Position',
+            'PositionProfit', 'CloseProfit', 'Commission',
+            'TradingDay'
         ], 'InstrumentID')
         logging.info('qry investor position TRY!')
-        if self.api.ReqQryInvestorPosition(req, self.getRequestID()):
+        if self.api.ReqQryInvestorPosition(req, self.incRequestID()):
             logging.error('qry investor position FAILED!')
             return False
 
@@ -235,6 +243,9 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             'InstrumentID': instrument,
             'Signal': signal,
             'Position': _investor_position.Position,
+            'PositionProfit': _investor_position.PositionProfit,
+            'CloseProfit': _investor_position.CloseProfit,
+            'Commission': _investor_position.Commission,
             'TradingDay': _investor_position.TradingDay.decode('gb2312'),
         })
 
@@ -251,7 +262,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         self.eventClear()
         self.ret_data = None
         logging.info('qry {} market TRY!'.format(_instrument_id))
-        if self.api.ReqQryDepthMarketData(req, self.getRequestID()):
+        if self.api.ReqQryDepthMarketData(req, self.incRequestID()):
             logging.error('qry {} market FAILED!'.format(_instrument_id))
             return False
 
@@ -294,7 +305,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             self, _instrument: bytes, _direction: int,
             _action: int, _volume: int, _price: float,
             _today: bool = False
-    ):
+    ) -> typing.Union[bool, dict]:
 
         req = PyCTP.CThostFtdcInputOrderField()
         # trader info
@@ -302,7 +313,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         req.InvestorID = self.user_id
         # instrument and order ref
         req.InstrumentID = _instrument
-        req.OrderRef = '{}'.format(self.getOrderID()).encode()
+        req.OrderRef = '{}'.format(self.incOrderID()).encode()
         # set direction
         if _direction == DirectionType.BUY:
             req.Direction = PyCTP.THOST_FTDC_D_Buy
@@ -340,7 +351,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         self.eventClear()
         self.ret_data = False
         logging.info('order insert TRY!')
-        if self.api.ReqOrderInsert(req, self.getRequestID()):
+        if self.api.ReqOrderInsert(req, self.incRequestID()):
             logging.info('order insert FAILED!')
             return False
 
@@ -372,14 +383,14 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         self.eventSet()
 
     def OnRtnOrder(self, _order: PyCTP.CThostFtdcOrderField):
+        if _order.SessionID != self.session_id:
+            # skip order from session
+            return
         status = _order.OrderStatus
         logging.info('OrderRef: {}, OrderStatus: {}, Msg: {}'.format(
             _order.OrderRef, status, _order.StatusMsg.decode('gb2312')
         ))
-        if status == PyCTP.THOST_FTDC_OST_AllTraded:
-            self.ret_data = True
-            self.eventSet()
-        elif status == PyCTP.THOST_FTDC_OST_Canceled:
+        if status == PyCTP.THOST_FTDC_OST_Canceled:
             self.ret_data = False
             self.eventSet()
         else:
@@ -387,7 +398,19 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             pass
 
     def OnRtnTrade(self, _trade: PyCTP.CThostFtdcTradeField):
-        pass
+        self.ret_data = {
+            'TradingDay': _trade.TradingDay.decode('gb2312'),
+            'TradeDate': _trade.TradeDate.decode('gb2312'),
+            'TradeTime': _trade.TradeTime.decode('gb2312'),
+            'OrderRef': int(_trade.OrderRef),
+            'InstrumentID': _trade.InstrumentID.decode('gb2312'),
+            'Direction': _trade.Direction,
+            'Action': _trade.OffsetFlag,
+            'Price': _trade.Price,
+            'Volume': _trade.Volume,
+        }
+        logging.info('order insert DONE!')
+        self.eventSet()
 
     def ReqQryOrder(self) -> typing.Union[bool, DataStruct]:
         req = PyCTP.CThostFtdcQryOrderField()
@@ -402,7 +425,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             'TradingDay', 'InsertDate', 'InsertTime'
         ], 'OrderRef')
         logging.info('qry order TRY!')
-        if self.api.ReqQryOrder(req, self.getRequestID()):
+        if self.api.ReqQryOrder(req, self.incRequestID()):
             logging.error('qry order FAILED!')
             return False
 
@@ -450,7 +473,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             'Direction', 'Action', 'Price', 'Volume'
         ], 'OrderRef')
         logging.info('qry trade TRY!')
-        if self.api.ReqQryTrade(req, self.getRequestID()):
+        if self.api.ReqQryTrade(req, self.incRequestID()):
             logging.error('qry trade FAILED!')
             return False
 
@@ -480,4 +503,80 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             logging.info('qry trade DONE! (total: {})'.format(
                 len(self.ret_data)
             ))
+            self.eventSet()
+
+    def ReqQryTradingAccount(self) -> typing.Union[bool, dict]:
+        req = PyCTP.CThostFtdcQryTradingAccountField()
+        req.BrokerID = self.broker_id
+        req.InvestorID = self.user_id
+
+        self.eventClear()
+        logging.info('qry trading account TRY!')
+        if self.api.ReqQryTradingAccount(req, self.incRequestID()):
+            logging.error('qry trade FAILED!')
+            return False
+
+        ret = self.eventWait(self.TIME_OUT)
+        if ret is False:
+            return False
+        return self.ret_data
+
+    def OnRspQryTradingAccount(
+            self,
+            _trading_account: PyCTP.CThostFtdcTradingAccountField,
+            _rsp_info: PyCTP.CThostFtdcRspInfoField,
+            _request_id: int, _is_last: bool
+    ):
+        self.ret_data = {
+            'TradingDay': _trading_account.TradingDay.decode('gb2312'),
+            'PreBalance': _trading_account.PreBalance,
+            'PreMargin': _trading_account.PreMargin,
+            'CloseProfit': _trading_account.CloseProfit,
+            'PositionProfit': _trading_account.PositionProfit,
+            'Commission': _trading_account.Commission,
+            'CurrMargin': _trading_account.CurrMargin,
+            'Available': _trading_account.Available,
+
+        }
+        if _is_last:
+            logging.info('qry trading account DONE!')
+            self.eventSet()
+
+    def ReqQryInstrumentCommissionRate(
+            self, _instrument_id: bytes
+    ) -> typing.Union[bool, dict]:
+        req = PyCTP.CThostFtdcQryInstrumentCommissionRateField()
+        req.BrokerID = self.broker_id
+        req.InvestorID = self.user_id
+        req.InstrumentID = _instrument_id
+
+        self.eventClear()
+        logging.info('qry commission rate({}) TRY!'.format(_instrument_id))
+        if self.api.ReqQryInstrumentCommissionRate(req, self.incRequestID()):
+            logging.error('qry commission rate FAILED!')
+            return False
+
+        ret = self.eventWait(self.TIME_OUT)
+        if ret is False:
+            return False
+        return self.ret_data
+
+    def OnRspQryInstrumentCommissionRate(
+            self,
+            _rate: PyCTP.CThostFtdcInstrumentCommissionRateField,
+            _rsp_info: PyCTP.CThostFtdcRspInfoField,
+            _request_id: int, _is_last: bool
+    ):
+        instrument = _rate.InstrumentID.decode('gb2312')
+        self.ret_data = {
+            'InstrumentID': instrument,
+            'OpenRatioByMoney': _rate.OpenRatioByMoney,
+            'OpenRatioByVolume': _rate.OpenRatioByVolume,
+            'CloseRatioByMoney': _rate.CloseRatioByMoney,
+            'CloseRatioByVolume': _rate.CloseRatioByVolume,
+            'CloseTodayRatioByMoney': _rate.CloseTodayRatioByMoney,
+            'CloseTodayRatioByVolume': _rate.CloseTodayRatioByVolume,
+        }
+        if _is_last:
+            logging.info('qry commission rate({}) DONE'.format(instrument))
             self.eventSet()
