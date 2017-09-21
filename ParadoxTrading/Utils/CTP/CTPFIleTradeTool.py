@@ -66,18 +66,8 @@ class CTPFileTradeTool:
 
         for order in order_reader:
             index, instrument, action, direction, quantity = order
-            if direction == 'BUY':
-                direction = DirectionType.BUY
-            elif direction == 'SELL':
-                direction = DirectionType.SELL
-            else:
-                raise Exception('unknown direction')
-            if action == 'OPEN':
-                action = ActionType.OPEN
-            elif action == 'CLOSE':
-                action = ActionType.CLOSE
-            else:
-                raise Exception('unknown action')
+            direction = DirectionType.fromStr(direction)
+            action = ActionType.fromStr(action)
             ret[int(index)] = {
                 'Symbol': instrument, 'Quantity': int(float(quantity)),
                 'Action': action, 'Direction': direction
@@ -124,7 +114,7 @@ class CTPFileTradeTool:
                 instrument_table[d.index()[0].lower()] = d.toDict()
             sleep(1)
 
-            indices = order_table.keys()
+            indices = tuple(order_table.keys())
             for index in indices:
                 # order info
                 order_info = order_table[index]
@@ -176,8 +166,8 @@ class CTPFileTradeTool:
                 fill_table[index] = {
                     'Symbol': order_info['Symbol'],
                     'Quantity': trade_info['Volume'],
-                    'Action': order_info['Action'],
-                    'Direction': order_info['Direction'],
+                    'Action': ActionType.toStr(order_info['Action']),
+                    'Direction': DirectionType.toStr(order_info['Direction']),
                     'Price': trade_info['Price'],
                     'Commission': comm_value,
                 }
