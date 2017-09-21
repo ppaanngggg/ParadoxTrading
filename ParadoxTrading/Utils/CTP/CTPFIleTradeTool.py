@@ -87,6 +87,9 @@ class CTPFileTradeTool:
             index = int(fill[0])
             del ret[index]
 
+        order_file.close()
+        fill_file.close()
+
         return ret
 
     def tradeFunc(self):
@@ -147,16 +150,47 @@ class CTPFileTradeTool:
                 sleep(1)
                 if trade_info is False:
                     continue
+
                 # !!! trade succeed !!!
-                input(trade_info)
+                comm_value = 0
+                if order_info['Action'] == ActionType.OPEN:
+                    comm_value += comm_info['OpenRatioByMoney'] * trade_info['Price'] * \
+                                  trade_info['Volume'] * inst_info['VolumeMultiple']
+                    comm_value += comm_info['OpenRatioByVolume'] * trade_info['Volume']
+                elif order_info['Action'] == ActionType.CLOSE:
+                    comm_value += comm_info['CloseRatioByMoney'] * trade_info['Price'] * \
+                                  trade_info['Volume'] * inst_info['VolumeMultiple']
+                    comm_value += comm_info['CloseRatioByVolume'] * trade_info['Volume']
+                else:
+                    raise Exception('unknown action')
+                fill_table[index] = {
+                    'Symbol': order_info['Symbol'],
+                    'Quantity': trade_info['Volume'],
+                    'Action': order_info['Action'],
+                    'Direction': order_info['Direction'],
+                    'Price': trade_info['Price'],
+                    'Commission': comm_value,
+                }
+                del order_table[index]
 
             self.trader.ReqUserLogout()  # logout
             sleep(1)
             self.delTraderSpi()  # free ctp obj
 
+        # write into fill csv
+        fill_file = open(self.fill_csv_path, 'a')
+        fill_writer = csv.writer(fill_file)
+        for k, v in fill_table.items():
+            fill_writer.writerow((
+                k, v['Symbol'], v['Quantity'],
+                v['Action'], v['Direction'],
+                v['Price'], v['Commission'],
+            ))
+
     def run(self):
         schedule.every().day.at("21:00").do(self.tradeFunc)
         schedule.every().day.at("09:00").do(self.tradeFunc)
 
-        schedule.run_pending()
-        sleep(max(schedule.idle_seconds(), 0))
+        while True:
+            schedule.run_pending()
+            sleep(max(schedule.idle_seconds(), 1))
