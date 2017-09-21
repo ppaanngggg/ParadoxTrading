@@ -107,6 +107,9 @@ class CTPFileTradeTool:
                 continue
             sleep(1)
 
+            if not self.trader.ReqSettlementInfoConfirm():  # settlement
+                continue
+
             tmp = self.trader.ReqQryInstrument()  # all instrument
             if tmp is False:
                 continue
