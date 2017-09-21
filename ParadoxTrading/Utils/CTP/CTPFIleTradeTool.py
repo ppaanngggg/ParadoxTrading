@@ -98,6 +98,10 @@ class CTPFileTradeTool:
         fill_table = {}
 
         for i in range(self.retry_time):
+            if len(order_table) == 0:
+                # no order left
+                return
+
             self.newTraderSpi()  # create ctp obj
 
             logging.info('!!! TRY {}th TIME !!!'.format(i))
