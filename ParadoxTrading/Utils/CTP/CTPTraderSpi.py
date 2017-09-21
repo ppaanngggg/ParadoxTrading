@@ -109,7 +109,10 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         if _is_last:
             self.front_id = _user_login.FrontID
             self.session_id = _user_login.SessionID
-            self.order_id = int(_user_login.MaxOrderRef)
+            try:
+                self.order_id = int(_user_login.MaxOrderRef)
+            except ValueError as e:
+                logging.warning(e)
             logging.info('FrontID: {}, SessionID: {}, OrderID: {}'.format(
                 self.front_id, self.session_id, self.order_id
             ))
