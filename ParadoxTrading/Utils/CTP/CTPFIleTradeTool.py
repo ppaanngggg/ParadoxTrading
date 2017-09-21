@@ -13,7 +13,7 @@ class CTPFileTradeTool:
     def __init__(
             self, _config_path: str,
             _order_csv_path: str, _fill_csv_path: str,
-            _retry_time: int = 10, _price_rate: int = 1
+            _retry_time: int = 3, _price_rate: int = 1
     ):
         self.config = configparser.ConfigParser()
         self.config.read(_config_path)
@@ -98,13 +98,16 @@ class CTPFileTradeTool:
         fill_table = {}
 
         for i in range(self.retry_time):
+            logging.info('!!! TRY ({})th TIME !!!'.format(i))
+            logging.info('!!! REMAIN ORDERS !!!')
+            for k, v in order_table.items():
+                logging.info('!!! ORDER {}: {} !!!'.format(k, v))
             if len(order_table) == 0:
                 # no order left
                 return
 
             self.newTraderSpi()  # create ctp obj
 
-            logging.info('!!! TRY {}th TIME !!!'.format(i))
             if not self.trader.Connect():  # connect front
                 continue
             if not self.trader.ReqUserLogin():  # login
@@ -178,6 +181,9 @@ class CTPFileTradeTool:
                     'Price': trade_info['Price'],
                     'Commission': comm_value,
                 }
+                logging.info('!!! FILL {}: {} !!!'.format(
+                    index, fill_table[index]
+                ))
                 del order_table[index]
 
             self.trader.ReqUserLogout()  # logout
