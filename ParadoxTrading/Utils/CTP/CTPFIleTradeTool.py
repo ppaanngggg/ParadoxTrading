@@ -206,4 +206,5 @@ class CTPFileTradeTool:
 
         while True:
             schedule.run_pending()
+            logging.info('WAIT {} sec'.format(schedule.idle_seconds()))
             sleep(max(schedule.idle_seconds(), 1))
