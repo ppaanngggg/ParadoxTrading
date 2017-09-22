@@ -189,6 +189,7 @@ class CTPFileTradeTool:
                 v['Action'], v['Direction'],
                 v['Price'], v['Commission'],
             ))
+        fill_file.close()
 
     def run(self):
         schedule.every().day.at("21:00").do(self.tradeFunc)
