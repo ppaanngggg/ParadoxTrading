@@ -3,7 +3,7 @@ from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, OrderType, \
 from ParadoxTrading.Utils import DataStruct
 
 
-class CTABacktestExecution(ExecutionAbstract):
+class InterDayBacktestExecution(ExecutionAbstract):
     """
     This is a simple and !!dangerous!! execution.
     It only accept limit order with price.

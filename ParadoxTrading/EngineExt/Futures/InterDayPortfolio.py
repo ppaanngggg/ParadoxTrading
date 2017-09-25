@@ -439,6 +439,7 @@ class InterDayPortfolio(PortfolioAbstract):
                     self.strategy_mgr.dealOrder(
                         o, p_mgr.strategy, i_mgr.product
                     )
+                    self.portfolio_mgr.dealOrder(p_mgr.strategy, o)
 
     def _iter_reset_status(self):
         for p_mgr in self.strategy_mgr:
@@ -473,6 +474,23 @@ class InterDayPortfolio(PortfolioAbstract):
         pass
 
     # utility
+    def _detect_update_instrument(
+            self, _tradingday
+    ) -> bool:
+        flag = False
+        for p_mgr in self.strategy_mgr:
+            for i_mgr in p_mgr:
+                if i_mgr.strength == 0:
+                    pass
+                else:
+                    i_mgr.next_instrument = self.fetcher.fetchSymbol(
+                        _tradingday, _product=i_mgr.product
+                    )
+                    if i_mgr.next_instrument != i_mgr.cur_instrument:
+                        flag = True
+
+        return flag
+
     def _detect_change(self) -> bool:
         """
         detect any strength changes

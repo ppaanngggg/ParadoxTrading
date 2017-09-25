@@ -1,13 +1,14 @@
 import math
 import typing
 
-from ParadoxTrading.EngineExt.CTA.CTAPortfolio import CTAPortfolio, POINT_VALUE
+from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import \
+    InterDayPortfolio, POINT_VALUE
 from ParadoxTrading.Fetch import FetchAbstract
 from ParadoxTrading.Indicator import ATR
 from ParadoxTrading.Utils import DataStruct
 
 
-class CTAEqualRiskATRPortfolio(CTAPortfolio):
+class CTAEqualRiskATRPortfolio(InterDayPortfolio):
     def __init__(
             self,
             _fetcher: FetchAbstract,
@@ -23,20 +24,19 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
         )
 
         self.risk_rate: float = _risk_rate
-        self.total_fund: float = 0.0
 
         self.adjust_period = _adjust_period
         self.adjust_count = 0
         self.atr_period = _atr_period
         self.atr_table: typing.Dict[str, ATR] = {}
 
-        self.addPickleSet('adjust_count', 'atr_table')
+        self.addPickleKey('adjust_count', 'atr_table')
 
-    def _iter_update_next_position(self, _tradingday):
+    def _iter_update_next_status(self, _tradingday):
         # 1. flag is true if sign change
         flag = self._detect_sign_change()
         # 2. flag is true if instrument change
-        if self._iter_update_instrument(_tradingday):
+        if self._detect_update_instrument(_tradingday):
             flag = True
         # 3. inc adjust count, adjust if count reach limit period
         self.adjust_count += 1
@@ -54,16 +54,16 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
             part_risk_alloc = total_risk_alloc / parts
 
             tmp_dict = {}
-            for s in self.strategy_table.values():
-                for p in s:
-                    if p.strength == 0:
-                        p.next_quantity = 0
+            for p_mgr in self.strategy_mgr:
+                for i_mgr in p_mgr:
+                    if i_mgr.strength == 0:
+                        i_mgr.next_quantity = 0
                     else:
                         # if strength status changes or instrument changes
-                        atr = self.atr_table[p.product].getAllData()['atr'][-1]
-                        real = part_risk_alloc / atr / POINT_VALUE[p.product]
-                        per_risk = POINT_VALUE[p.product] * atr
-                        tmp_dict[p] = {
+                        atr = self.atr_table[i_mgr.product].getAllData()['atr'][-1]
+                        real = part_risk_alloc / atr / POINT_VALUE[i_mgr.product]
+                        per_risk = POINT_VALUE[i_mgr.product] * atr
+                        tmp_dict[i_mgr] = {
                             'atr': atr, 'real': real, 'per_risk': per_risk,
                             'diff_risk': per_risk * math.ceil(real) - real
                         }
@@ -75,23 +75,23 @@ class CTAEqualRiskATRPortfolio(CTAPortfolio):
 
             # greedy to contain more product
             tmp_tuples = sorted(tmp_dict.items(), key=lambda x: x[1]['per_risk'])
-            for p, tmp in tmp_tuples:
+            for i_mgr, tmp in tmp_tuples:
                 if free_risk_alloc > tmp['per_risk']:  # if risk available
-                    p.next_quantity = math.ceil(tmp['real']) * POINT_VALUE[p.product]
-                    if p.strength < 0:
-                        p.next_quantity = -p.next_quantity
+                    i_mgr.next_quantity = math.ceil(tmp['real']) * POINT_VALUE[i_mgr.product]
+                    if i_mgr.strength < 0:
+                        i_mgr.next_quantity = -i_mgr.next_quantity
                     free_risk_alloc -= tmp['per_risk']
                 else:
-                    p.next_quantity = math.floor(tmp['real']) * POINT_VALUE[p.product]
-                    if p.strength < 0:
-                        p.next_quantity = -p.next_quantity
+                    i_mgr.next_quantity = math.floor(tmp['real']) * POINT_VALUE[i_mgr.product]
+                    if i_mgr.strength < 0:
+                        i_mgr.next_quantity = -i_mgr.next_quantity
         else:
-            for s in self.strategy_table.values():
-                for p in s:
-                    if p.strength == 0:
-                        p.next_quantity = 0
+            for p_mgr in self.strategy_mgr:
+                for i_mgr in p_mgr:
+                    if i_mgr.strength == 0:
+                        i_mgr.next_quantity = 0
                     else:
-                        p.next_quantity = p.cur_quantity
+                        i_mgr.next_quantity = i_mgr.cur_quantity
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         try:
