@@ -19,7 +19,7 @@ class ExecutionAbstract(Serializable):
         self.order_dict: typing.Dict[
             int, ParadoxTrading.Engine.Event.OrderEvent] = {}
 
-        self.addPickleSet('order_dict')
+        self.addPickleKey('order_dict')
 
     def setEngine(self, _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         self.engine = _engine
@@ -40,14 +40,6 @@ class ExecutionAbstract(Serializable):
             _fill_event.price,
             _fill_event.datetime
         ))
-
-    def save(self, _path: str, _filename: str = 'Execution'):
-        super().save(_path, _filename)
-        logging.debug('Execution save to {}'.format(_path))
-
-    def load(self, _path: str, _filename: str = 'Execution'):
-        super().load(_path, _filename)
-        logging.debug('Execution load from {}'.format(_path))
 
     def __repr__(self) -> str:
         ret = '<<< ORDER DICT >>>\n'

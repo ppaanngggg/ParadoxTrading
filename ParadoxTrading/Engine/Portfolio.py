@@ -47,11 +47,13 @@ class PositionMgr:
 
         self.margin_count = cur_margin_count
 
-    def incPosition(self,
-                    _type: int,
-                    _quantity: int,
-                    _price: float,
-                    _margin_rate: float):
+    def incPosition(
+            self,
+            _type: int,
+            _quantity: int,
+            _price: float,
+            _margin_rate: float
+    ):
         """
         :param _type: long or short
         :param _quantity: how many
@@ -72,11 +74,13 @@ class PositionMgr:
 
         self.updateMargin(_price, _margin_rate)
 
-    def decPosition(self,
-                    _type: int,
-                    _quantity: int,
-                    _price: float,
-                    _margin_rate: float) -> float:
+    def decPosition(
+            self,
+            _type: int,
+            _quantity: int,
+            _price: float,
+            _margin_rate: float
+    ) -> float:
         """
         :param _type: long or short
         :param _quantity: how many
@@ -107,8 +111,8 @@ class PositionMgr:
 
 class FundMgr:
     def __init__(
-            self,
-            _init_fund: float, ):
+            self, _init_fund: float,
+    ):
         # update each tradingday
         self.static_fund: float = _init_fund
         # reset each tradingday
@@ -134,11 +138,14 @@ class FundMgr:
         self.commission = 0.0
 
 
-class PortfolioMgr:
+class PortfolioMgr(Serializable):
     def __init__(
             self,
             _init_fund: float = 0.0,
-            _margin_rate: float = 1.0, ):
+            _margin_rate: float = 1.0,
+    ):
+        super().__init__()
+
         # records for signal, order and fill
         self.signal_record: typing.List[typing.Dict] = []
         self.order_record: typing.List[typing.Dict] = []
@@ -155,6 +162,12 @@ class PortfolioMgr:
         self.position_mgr: typing.Dict[str, PositionMgr] = {}
         self.fund_mgr: FundMgr = FundMgr(_init_fund)
 
+        self.addPickleKey(
+            'signal_record', 'order_record', 'fill_record',
+            'settlement_record', 'unfilled_order',
+            'position_mgr', 'fund_mgr'
+        )
+
     def getSymbolList(self) -> typing.List[str]:
         """
         get symbols which have long or short positions
@@ -162,7 +175,8 @@ class PortfolioMgr:
         :return: return list of symbols
         """
         return [
-            p.symbol for p in self.position_mgr.values() if p.long or p.short
+            p.symbol for p in self.position_mgr.values()
+            if p.long or p.short
         ]
 
     def getMargin(self) -> float:
@@ -172,6 +186,12 @@ class PortfolioMgr:
         return sum([p.margin for p in self.position_mgr.values()])
 
     def setStaticFund(self, _fund: float):
+        """
+        set static fund to pointed value
+
+        :param _fund:
+        :return:
+        """
         self.fund_mgr.setStaticFund(_fund)
 
     def getStaticFund(self) -> float:
@@ -194,11 +214,10 @@ class PortfolioMgr:
             ret += long_part + short_part
         return ret
 
-    def incPosition(self,
-                    _symbol: str,
-                    _type: int,
-                    _quantity: int,
-                    _price: float):
+    def incPosition(
+            self, _symbol: str, _type: int,
+            _quantity: int, _price: float
+    ):
         """
         inc position of symbol
 
@@ -248,7 +267,7 @@ class PortfolioMgr:
 
         return profit_loss
 
-    def dealSignalEvent(self, _signal_event: SignalEvent):
+    def dealSignal(self, _signal_event: SignalEvent):
         """
         deal signal event to set inner state
 
@@ -257,7 +276,7 @@ class PortfolioMgr:
         """
         self.signal_record.append(_signal_event.toDict())
 
-    def dealOrderEvent(self, _strategy: str, _order_event: OrderEvent):
+    def dealOrder(self, _strategy: str, _order_event: OrderEvent):
         """
         deal order event to set inner state
 
@@ -273,7 +292,7 @@ class PortfolioMgr:
         # add to unfilled table
         self.unfilled_order[_order_event.index] = _order_event
 
-    def dealFillEvent(self, _strategy: str, _fill_event: FillEvent):
+    def dealFill(self, _strategy: str, _fill_event: FillEvent):
         """
         deal fill event to set inner state
 
@@ -326,6 +345,7 @@ class PortfolioMgr:
                 )
             else:
                 raise Exception('unknown direction')
+            # update static fund according to close profit
             self.fund_mgr.setStaticFund(
                 self.fund_mgr.getStaticFund() + profit_loss
             )
@@ -368,13 +388,17 @@ class PortfolioMgr:
         :return:
         """
         logging.info('Portfolio store records...')
-        _coll.insert_many(self.signal_record + self.order_record +
-                          self.fill_record + self.settlement_record)
+        _coll.insert_many(
+            self.signal_record + self.order_record +
+            self.fill_record + self.settlement_record
+        )
 
     def getPositionTable(self):
         table = []
         for k, v in self.position_mgr.items():
-            table.append([k, v.long, v.long_price, v.short, v.short_price])
+            table.append([
+                k, v.long, v.long_price, v.short, v.short_price
+            ])
         return tabulate.tabulate(
             table, ['SYMBOL', 'LONG', 'LONG PRICE', 'SHORT', 'SHORT PRICE']
         )
@@ -392,38 +416,37 @@ class PortfolioMgr:
         )
 
     def __repr__(self) -> str:
-        ret = '@@@ POSITION @@@\n{}'.format(self.getPositionTable())
+        ret = '@@@ POSITION @@@\n{}' \
+              '\n@@@ UNFILLED ORDER @@@\n{}' \
+              '\n@@@ RECORD @@@\n' \
+              ' - Signal - NUM: {}, LAST: {}\n' \
+              ' - Order - NUM: {}, LAST: {}\n' \
+              ' - Fill - NUM: {}, LAST: {}\n' \
+              ' - Settlement - NUM: {}, LAST: {}\n' \
+              '@@@ FUND @@@\n' \
+              ' - Static Fund: {}' \
+              ' - Commission: {}'
 
-        ret += '\n@@@ UNFILLED ORDER @@@\n{}'.format(
-            self.getUnfilledOrderTable()
+        return ret.format(
+            self.getPositionTable(), self.getUnfilledOrderTable(),
+            len(self.signal_record),
+            self.signal_record[-1] if self.signal_record else None,
+            len(self.order_record),
+            self.order_record[-1] if self.order_record else None,
+            len(self.fill_record),
+            self.fill_record[-1] if self.fill_record else None,
+            len(self.settlement_record),
+            self.settlement_record[-1] if self.settlement_record else None,
+            self.getStaticFund(), self.getCommission()
         )
-
-        ret += '\n@@@ RECORD @@@\n'
-        ret += ' - Signal - NUM: {}, LAST: {}\n'.format(
-            len(self.signal_record), self.signal_record[-1]
-            if self.signal_record else None)
-        ret += ' - Order - NUM: {}, LAST: {}\n'.format(
-            len(self.order_record), self.order_record[-1]
-            if self.order_record else None)
-        ret += ' - Fill - NUM: {}, LAST: {}\n'.format(
-            len(self.fill_record), self.fill_record[-1]
-            if self.fill_record else None)
-        ret += ' - Settlement - NUM: {}, LAST: {}\n'.format(
-            len(self.settlement_record), self.settlement_record[-1]
-            if self.settlement_record else None)
-
-        ret += '@@@ FUND @@@\n'
-        ret += ' - Static Fund: {}'.format(self.getStaticFund())
-        ret += ' - Commission: {}'.format(self.getCommission())
-
-        return ret
 
 
 class PortfolioAbstract(Serializable):
     def __init__(
             self,
             _init_fund: float = 0.0,
-            _margin_rate: float = 1.0, ):
+            _margin_rate: float = 1.0,
+    ):
         """
         :param _init_fund: init fund for portfolio mgr
         :param _margin_rate: margin rate for portfolio mgr
@@ -435,9 +458,9 @@ class PortfolioAbstract(Serializable):
         # init order index, and create a map from order to strategy
         self.order_index: int = 0  # cur unused order index
         # the global portfolio,
-        self.portfolio: PortfolioMgr = PortfolioMgr(_init_fund, _margin_rate)
+        self.portfolio_mgr: PortfolioMgr = PortfolioMgr(_init_fund, _margin_rate)
 
-        self.addPickleSet('order_index', 'portfolio')
+        self.addPickleKey('order_index', 'portfolio_mgr')
 
     def setEngine(self, _engine: 'ParadoxTrading.Engine.EngineAbstract'):
         """
@@ -479,7 +502,8 @@ class PortfolioAbstract(Serializable):
         logging.info('Portfolio send: {} {} {} {} at {} when {}'.format(
             ActionType.toStr(_order_event.action),
             DirectionType.toStr(_order_event.direction), _order_event.quantity,
-            _order_event.symbol, _order_event.price, _order_event.datetime))
+            _order_event.symbol, _order_event.price, _order_event.datetime
+        ))
 
     def storeRecords(
             self,
@@ -510,7 +534,7 @@ class PortfolioAbstract(Serializable):
             ('tradingday', pymongo.ASCENDING),
             ('datetime', pymongo.ASCENDING),
         ])
-        self.portfolio.storeRecords(coll)
+        self.portfolio_mgr.storeRecords(coll)
 
         client.close()
 
@@ -538,20 +562,7 @@ class PortfolioAbstract(Serializable):
     def dealMarket(self, _symbol: str, _data: DataStruct):
         raise NotImplementedError('dealMarket not implemented')
 
-    def addPickleSet(self, *args):
-        for a in args:
-            assert a in vars(self).keys()
-            self.pickles.add(a)
-
-    def save(self, _path: str, _filename: str = 'Portfolio'):
-        super().save(_path, _filename)
-        logging.debug('Portfolio save to {}'.format(_path))
-
-    def load(self, _path: str, _filename: str = 'Portfolio'):
-        super().load(_path, _filename)
-        logging.debug('Portfolio load from {}'.format(_path))
-
     def __repr__(self) -> str:
         return '@@@ ORDER INDEX @@@\n{}\n{}'.format(
-            self.order_index, self.portfolio
+            self.order_index, self.portfolio_mgr
         )

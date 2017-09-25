@@ -69,10 +69,11 @@ class StrategyAbstract(Serializable):
 
         return key
 
-    def addEvent(self,
-                 _symbol: str,
-                 _signal_type: int,
-                 _strength: typing.Any = None):
+    def addEvent(
+            self, _symbol: str,
+            _signal_type: int,
+            _strength: typing.Any = None
+    ):
         """
         add signal event to event queue.
 
@@ -96,24 +97,6 @@ class StrategyAbstract(Serializable):
             _strength,
             self.engine.getDatetime()
         ))
-
-    def save(self, _path: str, _filename: str = None):
-        filename = self.name
-        if _filename is not None:
-            filename = _filename
-        super().save(_path, filename)
-        logging.debug(
-            'Strategy({}) save to {}'.format(self.name, _path)
-        )
-
-    def load(self, _path: str, _filename: str = None):
-        filename = self.name
-        if _filename is not None:
-            filename = _filename
-        super().load(_path, filename)
-        logging.debug(
-            'Strategy({}) load from {}'.format(self.name, _path)
-        )
 
     def __repr__(self) -> str:
         ret = 'Strategy:\n\t{}\nMarket Register:\n\t{}'

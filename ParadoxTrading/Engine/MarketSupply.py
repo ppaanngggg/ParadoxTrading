@@ -114,11 +114,3 @@ class MarketSupplyAbstract(Serializable):
             ret += '\n' + k + ': ' + str(v)
 
         return ret
-
-    def save(self, _path: str, _filename: str = 'MarketSupply'):
-        super().save(_path, _filename)
-        logging.debug('MarketSupply save to {}'.format(_path))
-
-    def load(self, _path: str, _filename: str = 'MarketSupply'):
-        super().load(_path, _filename)
-        logging.debug('MarketSupply load from {}'.format(_path))

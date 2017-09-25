@@ -1,4 +1,3 @@
-import logging
 import typing
 from collections import deque
 from datetime import datetime
@@ -37,7 +36,7 @@ class EngineAbstract(Serializable):
             for s in _strategy:
                 self._add_strategy(s)
 
-        self.addPickleSet('event_queue')
+        self.addPickleKey('event_queue')
 
     def addEvent(self, _event: EventAbstract):
         """
@@ -119,14 +118,6 @@ class EngineAbstract(Serializable):
 
     def run(self):
         raise NotImplementedError('run not implemented')
-
-    def save(self, _path: str, _filename: str = 'Engine'):
-        super().save(_path, _filename)
-        logging.debug('Engine save to {}'.format(_path))
-
-    def load(self, _path: str, _filename: str = 'Engine'):
-        super().load(_path, _filename)
-        logging.debug('Engine load from {}'.format(_path))
 
     def __repr__(self) -> str:
         ret = '[[[ EVENT QUEUE ]]]\n'
