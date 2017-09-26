@@ -27,12 +27,12 @@ class MarketEventMgr:
                 return self.product_index, self.product_dict
 
 
-class CFStrategy(StrategyAbstract):
+class ArbitrageStrategy(StrategyAbstract):
     def __init__(self, _name: str, *args):
         super().__init__(_name)
 
         self.market_event_mgr = MarketEventMgr(*args)
-        self.addPickleSet('market_event_mgr')
+        self.addPickleKey('market_event_mgr')
 
     def addEvent(
             self, _symbol: str,

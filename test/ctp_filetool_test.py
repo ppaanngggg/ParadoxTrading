@@ -1,6 +1,6 @@
 import logging
 
-from ParadoxTrading.Utils.CTP.CTPFileTradeTool import CTPFileTradeTool
+from ParadoxTrading.Utils.CTP import CTPFileTradeTool
 
 logging.basicConfig(level=logging.INFO)
 
