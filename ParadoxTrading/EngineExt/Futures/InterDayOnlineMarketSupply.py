@@ -7,7 +7,7 @@ from ParadoxTrading.Fetch import FetchAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class CTAOnlineMarketSupply(MarketSupplyAbstract):
+class InterDayOnlineMarketSupply(MarketSupplyAbstract):
     def __init__(
             self,
             _fetcher: FetchAbstract,

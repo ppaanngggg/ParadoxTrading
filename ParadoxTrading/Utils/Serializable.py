@@ -48,6 +48,8 @@ class Serializable:
         )
 
     def load(self, _filename: str):
+        if not _filename.endswith('.pkl'):
+            _filename += '.pkl'
         state_dict = pickle.load(
             open(_filename, 'rb')
         )

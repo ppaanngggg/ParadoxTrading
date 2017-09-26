@@ -5,7 +5,7 @@ import tabulate
 from ParadoxTrading.Engine import PortfolioAbstract, SignalEvent, \
     FillEvent, DirectionType, OrderEvent, OrderType, ActionType
 from ParadoxTrading.Fetch import FetchAbstract
-from ParadoxTrading.Utils import Serializable, DataStruct
+from ParadoxTrading.Utils import DataStruct
 
 POINT_VALUE = {
     'if': 300, 'ic': 200, 'ih': 300, 't': 10000, 'tf': 10000,  # cffex
@@ -214,21 +214,18 @@ class InstrumentMgr:
             )
 
 
-class ProductMgr(Serializable):
+class ProductMgr:
     """
     Manage the strategy's products
     """
 
     def __init__(self, _strategy):
-        super().__init__()
         # pointed to self key
         self.strategy = _strategy
         # map product to instrument status
         self.product_table: typing.Dict[str, InstrumentMgr] = {}
         # map order to product
         self.order_table: typing.Dict[int, str] = {}
-
-        self.addPickleKey('product_table', 'order_table')
 
     def dealSignal(self, _event: SignalEvent):
         """
@@ -272,27 +269,36 @@ class ProductMgr(Serializable):
         for p in self.product_table.values():
             yield p
 
+    def getInstrumentTable(self):
+        table = []
+        for i_mgr in self:
+            table.append([
+                i_mgr.product, i_mgr.strength,
+                i_mgr.cur_instrument, i_mgr.cur_quantity,
+                i_mgr.next_instrument, i_mgr.next_quantity
+            ])
+        return tabulate.tabulate(table, [
+            'product', 'strength',
+            'cur instrument', 'cur quantity',
+            'next instrument', 'next quantity',
+        ])
+
     def __repr__(self) -> str:
-        ret = 'STRATEGY: {}\n'.format(self.strategy)
-        for k, v in self.product_table.items():
-            ret += '--- {} ---:\n{}\n'.format(k, v)
-
-        return ret
+        return '@@@ PRODUCT STATUS @@@\n{}'.format(
+            self.getInstrumentTable()
+        )
 
 
-class StrategyMgr(Serializable):
+class StrategyMgr:
     """
     Manage the portfolio's strategies
     """
 
     def __init__(self):
-        super().__init__()
         # map strategy to product mgr
         self.strategy_table: typing.Dict[str, ProductMgr] = {}
         # map order to strategy
         self.order_table: typing.Dict[int, str] = {}
-
-        self.addPickleKey('strategy_table', 'order_table')
 
     def dealSignal(self, _event: SignalEvent) -> str:
         """
@@ -343,9 +349,9 @@ class StrategyMgr(Serializable):
         for p_mgr in self:
             for i_mgr in p_mgr:
                 table.append([
-                    p_mgr, i_mgr.product, i_mgr.strength,
+                    p_mgr.strategy, i_mgr.product, i_mgr.strength,
                     i_mgr.cur_instrument, i_mgr.cur_quantity,
-                    i_mgr.next_instrument, i_mgr.next_instrument
+                    i_mgr.next_instrument, i_mgr.next_quantity
                 ])
         return tabulate.tabulate(table, [
             'strategy', 'product', 'strength',

@@ -1,18 +1,15 @@
-from ParadoxTrading.Engine import StrategyAbstract, SettlementEvent, MarketEvent, SignalType
-from ParadoxTrading.Utils import Serializable
+from ParadoxTrading.Engine import StrategyAbstract, \
+    SettlementEvent, MarketEvent, SignalType
+
 
 class CTAStatusType(SignalType):
     pass
 
 
-class CTAStatusMgr(Serializable):
+class CTAStatusMgr:
     def __init__(self):
-        super().__init__()
-
         self.last_status = CTAStatusType.EMPTY
         self.status = CTAStatusType.EMPTY
-
-        self.addPickleKey('last_status', 'status')
 
     def storeStatus(self):
         self.last_status = self.status

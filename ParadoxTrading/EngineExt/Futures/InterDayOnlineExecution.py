@@ -5,11 +5,11 @@ import re
 import typing
 
 from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, DirectionType, ActionType, FillEvent
-from ParadoxTrading.EngineExt.CTA.CTAPortfolio import POINT_VALUE
+from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE
 from ParadoxTrading.Utils import DataStruct
 
 
-class CTAOnlineExecution(ExecutionAbstract):
+class InterDayOnlineExecution(ExecutionAbstract):
     def __init__(self, _tradingday: str, _path: str = './csv/'):
         super().__init__()
 

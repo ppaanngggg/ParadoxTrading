@@ -3,20 +3,22 @@ import os
 import typing
 
 from ParadoxTrading.Engine import EngineAbstract, EventType, ReturnMarket, ReturnSettlement
-from ParadoxTrading.EngineExt.CTA.CTAOnlineExecution import CTAOnlineExecution
-from ParadoxTrading.EngineExt.CTA.CTAOnlineMarketSupply import CTAOnlineMarketSupply
-from ParadoxTrading.EngineExt.CTA.CTAPortfolio import CTAPortfolio
-from ParadoxTrading.EngineExt.CTA.CTAStrategy import CTAStrategy
+from ParadoxTrading.Engine.Strategy import StrategyAbstract
+from ParadoxTrading.EngineExt.Futures.InterDayOnlineExecution import InterDayOnlineExecution
+from ParadoxTrading.EngineExt.Futures.InterDayOnlineMarketSupply import InterDayOnlineMarketSupply
+from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import InterDayPortfolio
 
 
-class CTAOnlineEngine(EngineAbstract):
+class InterDayOnlineEngine(EngineAbstract):
     def __init__(
             self,
-            _market_supply: CTAOnlineMarketSupply,
-            _execution: CTAOnlineExecution,
-            _portfolio: CTAPortfolio,
-            _strategy: typing.Union[CTAStrategy, typing.Iterable[CTAStrategy]],
-            _dump_path: str='./save/'):
+            _market_supply: InterDayOnlineMarketSupply,
+            _execution: InterDayOnlineExecution,
+            _portfolio: InterDayPortfolio,
+            _strategy: typing.Union[
+                StrategyAbstract, typing.Iterable[StrategyAbstract]
+            ],
+            _dump_path: str = './save/'):
         """
         Engine used for backtest
         """
@@ -25,24 +27,36 @@ class CTAOnlineEngine(EngineAbstract):
 
     def load_history(self):
         if os.path.isdir(self.dump_path):
-            self.load(self.dump_path)
-            self.market_supply.load(self.dump_path)
-            self.execution.load(self.dump_path)
-            self.portfolio.load(self.dump_path)
+            self.load('{}/Engine'.format(self.dump_path))
+            self.market_supply.load(
+                '{}/MarketSupply'.format(self.dump_path)
+            )
+            self.execution.load(
+                '{}/Execution'.format(self.dump_path)
+            )
+            self.portfolio.load(
+                '{}/Portfolio'.format(self.dump_path)
+            )
             for s in self.strategy_dict.values():
-                s.load(self.dump_path)
+                s.load('{}/{}'.format(self.dump_path, s.name))
         else:
             logging.warning('{} not exists'.format(self.dump_path))
 
     def save_history(self):
         if not os.path.isdir(self.dump_path):
             os.mkdir(self.dump_path)
-        self.save(self.dump_path)
-        self.market_supply.save(self.dump_path)
-        self.execution.save(self.dump_path)
-        self.portfolio.save(self.dump_path)
+        self.save('{}/Engine'.format(self.dump_path))
+        self.market_supply.save(
+            '{}/MarketSupply'.format(self.dump_path)
+        )
+        self.execution.save(
+            '{}/Execution'.format(self.dump_path)
+        )
+        self.portfolio.save(
+            '{}/Portfolio'.format(self.dump_path)
+        )
         for s in self.strategy_dict.values():
-            s.save(self.dump_path)
+            s.save('{}/{}'.format(self.dump_path, s.name))
 
     def update_position(self):
         self.execution.loadCSV()
