@@ -192,6 +192,7 @@ class PortfolioMgr(Serializable):
         :param _fund:
         :return:
         """
+        assert isinstance(_fund, float)
         self.fund_mgr.setStaticFund(_fund)
 
     def getStaticFund(self) -> float:

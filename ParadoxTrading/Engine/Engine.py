@@ -51,9 +51,9 @@ class EngineAbstract(Serializable):
     def _add_market_supply(self, _market_supply: MarketSupplyAbstract):
         """
         set marketsupply
-        
-        :param _market_supply: 
-        :return: 
+
+        :param _market_supply:
+        :return:
         """
         assert self.market_supply is None
 

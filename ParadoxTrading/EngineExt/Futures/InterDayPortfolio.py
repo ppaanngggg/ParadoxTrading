@@ -1,5 +1,6 @@
 import typing
-
+import logging
+import sys
 import tabulate
 
 from ParadoxTrading.Engine import PortfolioAbstract, SignalEvent, \
@@ -402,9 +403,15 @@ class InterDayPortfolio(PortfolioAbstract):
         keys = self.symbol_price_dict.keys()
         for symbol in self.portfolio_mgr.getSymbolList():
             if symbol not in keys:
-                self.symbol_price_dict[symbol] = self.fetcher.fetchData(
-                    _tradingday, symbol
-                )[self.settlement_price_index][0]
+                try:
+                    self.symbol_price_dict[symbol] = self.fetcher.fetchData(
+                        _tradingday, symbol
+                    )[self.settlement_price_index][0]
+                except TypeError as e:
+                    logging.error('Tradingday: {}, Symbol: {}, e: {}'.format(
+                        _tradingday, symbol, e
+                    ))
+                    sys.exit(1)
 
     def _iter_update_cur_status(self):
         # iter each strategy's each product
@@ -420,7 +427,7 @@ class InterDayPortfolio(PortfolioAbstract):
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
                 i_mgr.next_quantity = int(i_mgr.strength) \
-                                      * POINT_VALUE[i_mgr.product]
+                    * POINT_VALUE[i_mgr.product]
                 if i_mgr.next_quantity != 0:
                     # next dominant instrument
                     i_mgr.next_instrument = self.fetcher.fetchSymbol(
