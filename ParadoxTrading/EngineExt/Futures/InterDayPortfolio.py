@@ -1,6 +1,7 @@
-import typing
 import logging
 import sys
+import typing
+
 import tabulate
 
 from ParadoxTrading.Engine import PortfolioAbstract, SignalEvent, \
@@ -427,7 +428,7 @@ class InterDayPortfolio(PortfolioAbstract):
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
                 i_mgr.next_quantity = int(i_mgr.strength) \
-                    * POINT_VALUE[i_mgr.product]
+                                      * POINT_VALUE[i_mgr.product]
                 if i_mgr.next_quantity != 0:
                     # next dominant instrument
                     i_mgr.next_instrument = self.fetcher.fetchSymbol(
@@ -543,7 +544,16 @@ class InterDayPortfolio(PortfolioAbstract):
                 total_strength += abs(i_mgr.strength)
         return total_strength
 
-    def _calc_parts(self) -> int:
+    def _calc_available_strategy(self) -> int:
+        parts = 0
+        for p_mgr in self.strategy_mgr:
+            for i_mgr in p_mgr:
+                if i_mgr.strength != 0:
+                    parts += 1
+                    break
+        return parts
+
+    def _calc_available_product(self) -> int:
         """
         count how many strategies open positions
 
@@ -555,6 +565,17 @@ class InterDayPortfolio(PortfolioAbstract):
                 if i_mgr.strength != 0:
                     parts += 1
         return parts
+
+    def _fetch_buf_price(self, _tradingday, _symbol) -> float:
+        try:
+            price = self.symbol_price_dict[_symbol]
+        except KeyError:
+            price = self.fetcher.fetchData(
+                _tradingday, _symbol
+            )[self.settlement_price_index][0]
+            self.symbol_price_dict[_symbol] = price
+
+        return price
 
     def __repr__(self):
         return "{}\n{}".format(

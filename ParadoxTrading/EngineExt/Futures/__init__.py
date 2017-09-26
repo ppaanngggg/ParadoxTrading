@@ -1,3 +1,4 @@
+from .Arbitrage import ArbitrageStrategy, ArbitrageSimplePortfolio
 from .BacktestEngine import BacktestEngine
 from .BacktestMarketSupply import BacktestMarketSupply
 from .InterDayBacktestExecution import InterDayBacktestExecution

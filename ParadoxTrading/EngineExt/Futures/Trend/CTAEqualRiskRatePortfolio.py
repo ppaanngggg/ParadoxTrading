@@ -47,7 +47,7 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
             # reset count if adjust
             self.adjust_count = 0
 
-            parts = self._calc_parts()
+            parts = self._calc_available_product()
             if parts == 0:
                 return
 
@@ -63,13 +63,7 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
                         rate_abs = self.rate_table[i_mgr.product].getAllData()['returnrate'][-1]
                         real_w = self.risk_rate / rate_abs
                         real_v = real_w * rate_abs
-                        try:
-                            price = self.symbol_price_dict[i_mgr.next_instrument]
-                        except KeyError:
-                            price = self.fetcher.fetchData(
-                                _tradingday, i_mgr.next_instrument
-                            )[self.settlement_price_index][0]
-                            self.symbol_price_dict[i_mgr.next_instrument] = price
+                        price = self._fetch_buf_price(_tradingday, i_mgr.next_instrument)
                         real_q = part_fund_alloc * real_w / (price * POINT_VALUE[i_mgr.product])
                         floor_q = math.floor(real_q)
                         floor_w = floor_q * price * POINT_VALUE[i_mgr.product] / part_fund_alloc

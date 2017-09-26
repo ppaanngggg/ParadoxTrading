@@ -47,7 +47,7 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
             # reset count if adjust
             self.adjust_count = 0
 
-            parts = self._calc_parts()
+            parts = self._calc_available_product()
             if parts == 0:
                 return
             total_risk_alloc = self.total_fund * self.risk_rate
