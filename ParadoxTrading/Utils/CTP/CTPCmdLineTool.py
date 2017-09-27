@@ -4,20 +4,21 @@ import logging
 from pprint import pprint
 
 from ParadoxTrading.Engine import ActionType, DirectionType
-from ParadoxTrading.Utils.CTP import CTPTraderSpi
+from ParadoxTrading.Utils.CTP.CTPTraderSpi import CTPTraderSpi
 
 logging.basicConfig(level=logging.INFO)
 
 
-class CTPCMD(cmd.Cmd):
+class CTPCmdLineTool(cmd.Cmd):
     prompt = '>>> '
 
-    def __init__(self, _config):
+    def __init__(self, _config_path: str):
         super().__init__()
 
+        config = configparser.ConfigParser()
+        config.read(_config_path)
         self.trader = CTPTraderSpi(
             config['TRADE']['ConPath'].encode(),
-            # b'tcp://180.168.146.187:10030',
             config['TRADE']['Front'].encode(),
             config['TRADE']['BrokerID'].encode(),
             config['TRADE']['UserID'].encode(),
@@ -31,9 +32,15 @@ class CTPCMD(cmd.Cmd):
         'Connect to front'
         self.trader.Connect()
 
+    def do_release(self, arg):
+        self.trader.Release()
+
     def do_login(self, arg):
         'Log in'
         self.trader.ReqUserLogin()
+
+    def do_logout(self, arg):
+        self.trader.ReqUserLogout()
 
     def do_instrument(self, arg):
         'Fetch all instrument info'
@@ -62,42 +69,42 @@ class CTPCMD(cmd.Cmd):
         return instrument, volume, price
 
     def do_open_buy(self, arg):
-        instrument, volume, price = CTPCMD._split_arg(arg)
+        instrument, volume, price = CTPCmdLineTool._split_arg(arg)
         pprint(self.trader.ReqOrderInsert(
             instrument, DirectionType.BUY, ActionType.OPEN,
             volume, price
         ))
 
     def do_open_sell(self, arg):
-        instrument, volume, price = CTPCMD._split_arg(arg)
+        instrument, volume, price = CTPCmdLineTool._split_arg(arg)
         pprint(self.trader.ReqOrderInsert(
             instrument, DirectionType.SELL, ActionType.OPEN,
             volume, price
         ))
 
     def do_close_buy(self, arg):
-        instrument, volume, price = CTPCMD._split_arg(arg)
+        instrument, volume, price = CTPCmdLineTool._split_arg(arg)
         pprint(self.trader.ReqOrderInsert(
             instrument, DirectionType.BUY, ActionType.CLOSE,
             volume, price
         ))
 
     def do_close_sell(self, arg):
-        instrument, volume, price = CTPCMD._split_arg(arg)
+        instrument, volume, price = CTPCmdLineTool._split_arg(arg)
         pprint(self.trader.ReqOrderInsert(
             instrument, DirectionType.SELL, ActionType.CLOSE,
             volume, price
         ))
 
     def do_close_buy_today(self, arg):
-        instrument, volume, price = CTPCMD._split_arg(arg)
+        instrument, volume, price = CTPCmdLineTool._split_arg(arg)
         pprint(self.trader.ReqOrderInsert(
             instrument, DirectionType.BUY, ActionType.CLOSE,
             volume, price, _today=True
         ))
 
     def do_close_sell_today(self, arg):
-        instrument, volume, price = CTPCMD._split_arg(arg)
+        instrument, volume, price = CTPCmdLineTool._split_arg(arg)
         pprint(self.trader.ReqOrderInsert(
             instrument, DirectionType.SELL, ActionType.CLOSE,
             volume, price, _today=True
@@ -119,9 +126,3 @@ class CTPCMD(cmd.Cmd):
 
     def do_quit(self, arg):
         return True
-
-
-if __name__ == '__main__':
-    config = configparser.ConfigParser()
-    config.read('./config.ini')
-    CTPCMD(config).cmdloop()

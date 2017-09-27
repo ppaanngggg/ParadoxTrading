@@ -35,6 +35,7 @@ class CTPFileTradeTool:
         )
 
     def delTraderSpi(self):
+        self.trader.Release()
         del self.trader
         self.trader: CTPTraderSpi = None
 
@@ -82,6 +83,91 @@ class CTPFileTradeTool:
 
         return ret
 
+    def _trader_login(self):
+        self.newTraderSpi()  # create ctp obj
+
+        if not self.trader.Connect():  # connect front
+            return False
+        sleep(1)
+        if not self.trader.ReqUserLogin():  # login
+            return False
+        sleep(1)
+        if not self.trader.ReqSettlementInfoConfirm():  # settlement
+            return False
+        sleep(1)
+        return True
+
+    def _trader_all_instrument(self, _instrument_table: dict):
+        tmp = self.trader.ReqQryInstrument()  # all instrument
+        if tmp is False:
+            return False
+        for d in tmp:
+            _instrument_table[d.index()[0].lower()] = d.toDict()
+        sleep(1)
+        return True
+
+    def _trader_send_order(
+            self, _index, _instrument_table, _order_table, _fill_table
+    ):
+        # order info
+        order_info = _order_table[_index]
+        # instrument info
+        inst_info = _instrument_table[order_info['Symbol']]
+        # encode the bytes instrument for ctp
+        instrument = inst_info['InstrumentID'].encode()
+        # commission rate
+        comm_info = self.trader.ReqQryInstrumentCommissionRate(instrument)
+        sleep(1)
+        if comm_info is False:
+            return False
+        # depth market data
+        market_info = self.trader.ReqQryDepthMarketData(instrument)
+        sleep(1)
+        if market_info is False:
+            return False
+        # limit price
+        price_diff = self.price_rate * inst_info['PriceTick']
+        if order_info['Direction'] == DirectionType.BUY:
+            price = market_info['AskPrice'] + price_diff
+        elif order_info['Direction'] == DirectionType.SELL:
+            price = market_info['BidPrice'] - price_diff
+        else:
+            raise Exception('unknown direction')
+        # send order
+        trade_info = self.trader.ReqOrderInsert(
+            instrument,
+            order_info['Direction'],
+            order_info['Action'],
+            order_info['Quantity'], price
+        )
+        sleep(1)
+        if trade_info is False:
+            return False
+        # !!! trade succeed !!!
+        comm_value = 0
+        if order_info['Action'] == ActionType.OPEN:
+            comm_value += comm_info['OpenRatioByMoney'] * trade_info['Price'] * \
+                          trade_info['Volume'] * inst_info['VolumeMultiple']
+            comm_value += comm_info['OpenRatioByVolume'] * trade_info['Volume']
+        elif order_info['Action'] == ActionType.CLOSE:
+            comm_value += comm_info['CloseRatioByMoney'] * trade_info['Price'] * \
+                          trade_info['Volume'] * inst_info['VolumeMultiple']
+            comm_value += comm_info['CloseRatioByVolume'] * trade_info['Volume']
+        else:
+            raise Exception('unknown action')
+        _fill_table[_index] = {
+            'Symbol': order_info['Symbol'],
+            'Quantity': trade_info['Volume'],
+            'Action': ActionType.toStr(order_info['Action']),
+            'Direction': DirectionType.toStr(order_info['Direction']),
+            'Price': trade_info['Price'],
+            'Commission': comm_value,
+        }
+        logging.info('!!! FILL {}: {} !!!'.format(
+            _index, _fill_table[_index]
+        ))
+        return True
+
     def tradeFunc(self):
         instrument_table = {}
         order_table = self.getRemainOrderTable()
@@ -94,91 +180,24 @@ class CTPFileTradeTool:
                 logging.info('!!! ORDER {}: {} !!!'.format(k, v))
             if len(order_table) == 0:
                 # no order left
-                return
+                break
 
-            self.newTraderSpi()  # create ctp obj
-
-            if not self.trader.Connect():  # connect front
+            if not self._trader_login():
                 continue
-            if not self.trader.ReqUserLogin():  # login
+            if not self._trader_all_instrument(instrument_table):
                 continue
-            sleep(1)
-
-            if not self.trader.ReqSettlementInfoConfirm():  # settlement
-                continue
-
-            tmp = self.trader.ReqQryInstrument()  # all instrument
-            if tmp is False:
-                continue
-            for d in tmp:
-                instrument_table[d.index()[0].lower()] = d.toDict()
-            sleep(1)
 
             indices = tuple(order_table.keys())
             for index in indices:
-                # order info
-                order_info = order_table[index]
-                # instrument info
-                inst_info = instrument_table[order_info['Symbol']]
-                # encode the bytes instrument for ctp
-                instrument = inst_info['InstrumentID'].encode()
-                # commission rate
-                comm_info = self.trader.ReqQryInstrumentCommissionRate(instrument)
-                sleep(1)
-                if comm_info is False:
-                    continue
-                # depth market data
-                market_info = self.trader.ReqQryDepthMarketData(instrument)
-                sleep(1)
-                if market_info is False:
-                    continue
-                # limit price
-                price_diff = self.price_rate * inst_info['PriceTick']
-                if order_info['Direction'] == DirectionType.BUY:
-                    price = market_info['AskPrice'] + price_diff
-                elif order_info['Direction'] == DirectionType.SELL:
-                    price = market_info['BidPrice'] - price_diff
-                else:
-                    raise Exception('unknown direction')
-                # send order
-                trade_info = self.trader.ReqOrderInsert(
-                    instrument,
-                    order_info['Direction'],
-                    order_info['Action'],
-                    order_info['Quantity'], price
-                )
-                sleep(1)
-                if trade_info is False:
+                if not self._trader_send_order(
+                        index, instrument_table, order_table, fill_table
+                ):
                     continue
 
-                # !!! trade succeed !!!
-                comm_value = 0
-                if order_info['Action'] == ActionType.OPEN:
-                    comm_value += comm_info['OpenRatioByMoney'] * trade_info['Price'] * \
-                                  trade_info['Volume'] * inst_info['VolumeMultiple']
-                    comm_value += comm_info['OpenRatioByVolume'] * trade_info['Volume']
-                elif order_info['Action'] == ActionType.CLOSE:
-                    comm_value += comm_info['CloseRatioByMoney'] * trade_info['Price'] * \
-                                  trade_info['Volume'] * inst_info['VolumeMultiple']
-                    comm_value += comm_info['CloseRatioByVolume'] * trade_info['Volume']
-                else:
-                    raise Exception('unknown action')
-                fill_table[index] = {
-                    'Symbol': order_info['Symbol'],
-                    'Quantity': trade_info['Volume'],
-                    'Action': ActionType.toStr(order_info['Action']),
-                    'Direction': DirectionType.toStr(order_info['Direction']),
-                    'Price': trade_info['Price'],
-                    'Commission': comm_value,
-                }
-                logging.info('!!! FILL {}: {} !!!'.format(
-                    index, fill_table[index]
-                ))
                 del order_table[index]
 
-            self.trader.ReqUserLogout()  # logout
-            sleep(1)
             self.delTraderSpi()  # free ctp obj
+            sleep(1)
 
         # write into fill csv
         fill_file = open(self.fill_csv_path, 'a')

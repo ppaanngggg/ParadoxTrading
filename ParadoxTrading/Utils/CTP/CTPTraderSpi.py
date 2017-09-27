@@ -83,9 +83,15 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
 
         return self.eventWait(self.TIME_OUT)
 
+    def Release(self):
+        self.api.Release()
+
     def OnFrontConnected(self):
         logging.info('connect front DONE!')
         self.eventSet()
+
+    def OnFrontDisconnected(self, _reason: int):
+        logging.warning('disconnect front ({})'.format(_reason))
 
     def ReqUserLogin(self) -> bool:
         req = PyCTP.CThostFtdcReqUserLoginField()
