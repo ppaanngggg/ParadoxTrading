@@ -94,7 +94,7 @@ class CandleSeries(SeriesAbstract):
             self.show_close_edit.setText('')
         else:
             value = value['y'][0]
-            self.show_open_edit.setText('{:f}'.format(value[0]))
-            self.show_high_edit.setText('{:f}'.format(value[1]))
-            self.show_low_edit.setText('{:f}'.format(value[2]))
-            self.show_close_edit.setText('{:f}'.format(value[3]))
+            self.show_open_edit.setText('{:.5f}'.format(value[0]))
+            self.show_high_edit.setText('{:.5f}'.format(value[1]))
+            self.show_low_edit.setText('{:.5f}'.format(value[2]))
+            self.show_close_edit.setText('{:.5f}'.format(value[3]))
