@@ -138,7 +138,7 @@ class FundMgr:
         self.commission = 0.0
 
 
-class PortfolioMgr(Serializable):
+class PortfolioMgr:
     def __init__(
             self,
             _init_fund: float = 0.0,
@@ -161,12 +161,6 @@ class PortfolioMgr(Serializable):
         self.margin_rate = _margin_rate
         self.position_mgr: typing.Dict[str, PositionMgr] = {}
         self.fund_mgr: FundMgr = FundMgr(_init_fund)
-
-        self.addPickleKey(
-            'signal_record', 'order_record', 'fill_record',
-            'settlement_record', 'unfilled_order',
-            'position_mgr', 'fund_mgr'
-        )
 
     def getSymbolList(self) -> typing.List[str]:
         """
@@ -410,10 +404,13 @@ class PortfolioMgr(Serializable):
             table.append([
                 k, v.symbol,
                 ActionType.toStr(v.action),
-                DirectionType.toStr(v.direction), v.quantity
+                DirectionType.toStr(v.direction), v.quantity,
+                v.tradingday, v.datetime
             ])
         return tabulate.tabulate(
-            table, ['INDEX', 'SYMBOL', 'ACTION', 'DIRECTION', 'QUANTITY']
+            table,
+            ['INDEX', 'SYMBOL', 'ACTION', 'DIRECTION', 'QUANTITY',
+             'TRADINGDAY', 'DATETIME']
         )
 
     def __repr__(self) -> str:
