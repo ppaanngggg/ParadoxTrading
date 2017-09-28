@@ -1,12 +1,9 @@
 import cmd
 import configparser
-import logging
 from pprint import pprint
 
 from ParadoxTrading.Engine import ActionType, DirectionType
 from ParadoxTrading.Utils.CTP.CTPTraderSpi import CTPTraderSpi
-
-logging.basicConfig(level=logging.INFO)
 
 
 class CTPCmdLineTool(cmd.Cmd):
