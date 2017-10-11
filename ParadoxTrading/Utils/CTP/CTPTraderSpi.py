@@ -43,6 +43,9 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             )
         self.api.RegisterSpi(self)
 
+    def Release(self):
+        self.api.Release()
+
     def incRequestID(self):
         tmp = self.request_id
         self.request_id += 1
@@ -82,9 +85,6 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         self.api.SubscribePublicTopic(PyCTP.THOST_TERT_QUICK)
 
         return self.eventWait(self.TIME_OUT)
-
-    def Release(self):
-        self.api.Release()
 
     def OnFrontConnected(self):
         logging.info('connect front DONE!')
