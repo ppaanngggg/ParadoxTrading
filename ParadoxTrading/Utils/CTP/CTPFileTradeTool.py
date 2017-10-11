@@ -226,7 +226,7 @@ class CTPFileTradeTool:
                 _price=trade_info['Price'],
                 _commission=comm_value,
             )
-            logging.info('!!! FILL: {} !!!'.format(_fill_obj))
+            logging.info('FILL: {}'.format(_fill_obj))
 
     def writeFillTable(self, _fill_table: typing.Dict[int, FillObj]):
         fill_file = open(self.fill_csv_path, 'w')
