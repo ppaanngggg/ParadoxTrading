@@ -3,8 +3,8 @@ import logging
 import pickle
 import time
 
-import PyCTP
 import arrow
+import PyCTP
 import schedule
 
 from ParadoxTrading.Utils.CTP.CTPMarketSpi import CTPMarketSpi
@@ -136,6 +136,9 @@ class CTPDailyMarketTool:
                 return
 
         time.sleep(self.WAIT_MIN * 60)
+        logging.warning('not reveice instrument: {}'.format(
+            set(inst_list) - self.data_table.keys()
+        ))
 
         pickle.dump(
             self.data_table,
@@ -147,7 +150,7 @@ class CTPDailyMarketTool:
         self.reset()
 
     def run(self):
-        schedule.every().day.at("15:00").do(self.marketFunc)
+        schedule.every().day.at("14:55").do(self.marketFunc)
 
         while True:
             schedule.run_pending()
