@@ -37,6 +37,9 @@ class CTPDailyMarketTool:
         data = {
             'InstrumentID': _market_data.InstrumentID.decode('gb2312'),
             'TradingDay': _market_data.TradingDay.decode('gb2312'),
+            'ActionDay': _market_data.ActionDay.decode('gb2312'),
+            'UpdateTime': _market_data.UpdateTime.decode('gb2312'),
+            'UpdateMillisec': _market_data.UpdateMillisec,
             'LastPrice': _market_data.LastPrice,
             'PreClosePrice': _market_data.PreClosePrice,
             'OpenPrice': _market_data.OpenPrice,
@@ -50,8 +53,7 @@ class CTPDailyMarketTool:
             'PreOpenInterest': _market_data.PreOpenInterest,
             'OpenInterest': _market_data.OpenInterest,
         }
-        if data['TradingDay'] == self.tradingday:
-            self.data_table[data['InstrumentID']] = data
+        self.data_table[data['InstrumentID']] = data
 
     def reset(self):
         if self.trader is not None:
@@ -73,14 +75,6 @@ class CTPDailyMarketTool:
             self.config['CTP']['UserID'].encode(),
             self.config['CTP']['Password'].encode(),
         )
-        self.market = CTPMarketSpi(
-            self.config['CTP']['ConPath'].encode(),
-            self.config['CTP']['MarketFront'].encode(),
-            self.config['CTP']['BrokerID'].encode(),
-            self.config['CTP']['UserID'].encode(),
-            self.config['CTP']['Password'].encode(),
-            self.dealMarket
-        )
 
         for _ in range(self.RETRY_TIME):
             if not self.trader.Connect():
@@ -97,12 +91,24 @@ class CTPDailyMarketTool:
 
         self.today = arrow.now().format('YYYYMMDD')
         self.tradingday = self.trader.GetTradingDay().decode('gb2312')
+        logging.info('today: {}, tradingday: {}'.format(
+            self.today, self.tradingday
+        ))
         if self.today != self.tradingday:
             logging.info('today({}) is not tradingday({})!'.format(
                 self.today, self.tradingday
             ))
             self.reset()
             return
+
+        self.market = CTPMarketSpi(
+            self.config['CTP']['ConPath'].encode(),
+            self.config['CTP']['MarketFront'].encode(),
+            self.config['CTP']['BrokerID'].encode(),
+            self.config['CTP']['UserID'].encode(),
+            self.config['CTP']['Password'].encode(),
+            self.dealMarket
+        )
 
         for _ in range(self.RETRY_TIME):
             if not self.market.Connect():

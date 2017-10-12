@@ -2,3 +2,4 @@ __pycache__
 *.hdf5
 ParadoxTrading.egg-info
 .idea
+/.vscode
