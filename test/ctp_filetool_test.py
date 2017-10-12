@@ -2,7 +2,11 @@ import logging
 
 from ParadoxTrading.Utils.CTP import CTPFileTradeTool
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s[%(asctime)s] - %(message)s',
+    filename='trade.log',
+)
 
 tool = CTPFileTradeTool(
     'config.ini', 'order.csv', 'fill.csv',

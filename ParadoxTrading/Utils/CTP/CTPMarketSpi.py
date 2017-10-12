@@ -6,7 +6,7 @@ import PyCTP
 
 class CTPMarketSpi(PyCTP.CThostFtdcMdSpi):
     TIME_OUT = 5
-    SUB_LIMIT = 50
+    SUB_LIMIT = 500
 
     def __init__(
             self, _con_path: bytes,
@@ -30,6 +30,7 @@ class CTPMarketSpi(PyCTP.CThostFtdcMdSpi):
         self.request_id = 1
 
         self.event = threading.Event()
+        self.ret_data = None
 
         self.api: PyCTP.CThostFtdcMdApi = \
             PyCTP.CThostFtdcMdApi.CreateFtdcMdApi(
@@ -105,6 +106,7 @@ class CTPMarketSpi(PyCTP.CThostFtdcMdSpi):
     def SubscribeMarketData(self, _instrument_list):
         assert len(_instrument_list) <= self.SUB_LIMIT
         self.eventClear()
+        self.ret_data = set()
         logging.info('subscribe({}) TRY!'.format(
             len(_instrument_list))
         )
@@ -112,7 +114,10 @@ class CTPMarketSpi(PyCTP.CThostFtdcMdSpi):
             logging.error('subscribe FAILED!')
             return False
 
-        return self.eventWait(self.TIME_OUT)
+        ret = self.eventWait(self.TIME_OUT)
+        if ret is False:
+            return ret
+        return self.ret_data
 
     def OnRspSubMarketData(
             self,
@@ -120,11 +125,14 @@ class CTPMarketSpi(PyCTP.CThostFtdcMdSpi):
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
-        logging.info('subscribe {}'.format(
+        logging.debug('subscribe {}'.format(
             _spec_instrument.InstrumentID
         ))
+        self.ret_data.add(
+            _spec_instrument.InstrumentID.decode('gb2312')
+        )
         if _is_last:
-            logging.info('subscribe DONE!')
+            logging.info('subscribe({}) DONE!'.format(len(self.ret_data)))
             self.eventSet()
 
     def OnRtnDepthMarketData(

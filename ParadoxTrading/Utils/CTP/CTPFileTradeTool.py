@@ -76,11 +76,11 @@ class CTPFileTradeTool:
         create a new trader obj
         """
         self.trader = CTPTraderSpi(
-            self.config['TRADE']['ConPath'].encode(),
-            self.config['TRADE']['Front'].encode(),
-            self.config['TRADE']['BrokerID'].encode(),
-            self.config['TRADE']['UserID'].encode(),
-            self.config['TRADE']['Password'].encode(),
+            self.config['CTP']['ConPath'].encode(),
+            self.config['CTP']['TraderFront'].encode(),
+            self.config['CTP']['BrokerID'].encode(),
+            self.config['CTP']['UserID'].encode(),
+            self.config['CTP']['Password'].encode(),
         )
 
     def delTraderSpi(self):

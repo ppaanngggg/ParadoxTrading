@@ -15,11 +15,11 @@ class CTPCmdLineTool(cmd.Cmd):
         config = configparser.ConfigParser()
         config.read(_config_path)
         self.trader = CTPTraderSpi(
-            config['TRADE']['ConPath'].encode(),
-            config['TRADE']['Front'].encode(),
-            config['TRADE']['BrokerID'].encode(),
-            config['TRADE']['UserID'].encode(),
-            config['TRADE']['Password'].encode(),
+            config['CTP']['ConPath'].encode(),
+            config['CTP']['TraderFront'].encode(),
+            config['CTP']['BrokerID'].encode(),
+            config['CTP']['UserID'].encode(),
+            config['CTP']['Password'].encode(),
         )
 
     def emptyline(self):

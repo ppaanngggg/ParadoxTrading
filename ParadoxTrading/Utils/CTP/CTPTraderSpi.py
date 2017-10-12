@@ -127,6 +127,9 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             ))
             self.eventSet()
 
+    def GetTradingDay(self):
+        return self.api.GetTradingDay()
+
     def ReqUserLogout(self) -> bool:
         req = PyCTP.CThostFtdcUserLogoutField()
         req.BrokerID = self.broker_id

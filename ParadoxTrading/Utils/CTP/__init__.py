@@ -1,4 +1,5 @@
 from .CTPCmdLineTool import CTPCmdLineTool
+from .CTPDailyMarketTool import CTPDailyMarketTool
 from .CTPFileTradeTool import CTPFileTradeTool
-from .CTPTraderSpi import CTPTraderSpi
 from .CTPMarketSpi import CTPMarketSpi
+from .CTPTraderSpi import CTPTraderSpi
