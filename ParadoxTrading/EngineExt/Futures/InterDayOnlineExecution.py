@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import typing
+import sys
 
 from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, DirectionType, ActionType, FillEvent
 from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE
@@ -49,10 +50,16 @@ class InterDayOnlineExecution(ExecutionAbstract):
                 action = ActionType.fromStr(row[3])
                 direction = DirectionType.fromStr(row[4])
 
-                assert index in self.order_dict.keys()
-                order = self.order_dict.pop(index)
-                assert action == order.action
-                assert direction == order.direction
+                try:
+                    assert index in self.order_dict.keys()
+                    order = self.order_dict.pop(index)
+                    assert action == order.action
+                    assert direction == order.direction
+                except AssertionError as e:
+                    logging.error(e)
+                    ret = input('Continue?(y/n)')
+                    if ret != 'y':
+                        sys.exit(1)
 
                 self.addEvent(FillEvent(
                     _index=index, _symbol=instrument,
