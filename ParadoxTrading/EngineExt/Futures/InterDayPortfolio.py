@@ -4,8 +4,8 @@ import typing
 
 import tabulate
 
-from ParadoxTrading.Engine import PortfolioAbstract, SignalEvent, \
-    FillEvent, DirectionType, OrderEvent, OrderType, ActionType
+from ParadoxTrading.Engine import ActionType, DirectionType, FillEvent, \
+    OrderEvent, OrderType, PortfolioAbstract, SignalEvent
 from ParadoxTrading.Fetch import FetchAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -253,7 +253,14 @@ class ProductMgr:
         :param _event: the fill event
         :return: the correct product
         """
-        product = self.order_table.pop(_event.index)
+        try:
+            product = self.order_table.pop(_event.index)
+        except KeyError as e:
+            logging.error(e)
+            ret = input('Continue?y/n')
+            if ret != 'y':
+                sys.exit(1)
+            product = input('Please input product name:')
         self.product_table[product].dealFill(_event)
 
         return product
@@ -327,7 +334,14 @@ class StrategyMgr:
         :param _event: the fill event
         :return: the correct strategy
         """
-        strategy = self.order_table.pop(_event.index)
+        try:
+            strategy = self.order_table.pop(_event.index)
+        except KeyError as e:
+            logging.error(e)
+            ret = input('Continue?y/n')
+            if ret != 'y':
+                sys.exit(1)
+            strategy = input('Please input strategy name:')
         self.strategy_table[strategy].dealFill(_event)
 
         return strategy
@@ -428,7 +442,7 @@ class InterDayPortfolio(PortfolioAbstract):
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
                 i_mgr.next_quantity = int(i_mgr.strength) \
-                                      * POINT_VALUE[i_mgr.product]
+                    * POINT_VALUE[i_mgr.product]
                 if i_mgr.next_quantity != 0:
                     # next dominant instrument
                     i_mgr.next_instrument = self.fetcher.fetchSymbol(

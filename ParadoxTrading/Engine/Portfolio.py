@@ -1,4 +1,5 @@
 import logging
+import sys
 import typing
 
 import pymongo
@@ -295,15 +296,21 @@ class PortfolioMgr:
         :param _fill_event:
         :return:
         """
-        assert _fill_event.index in self.unfilled_order.keys()
-
         # store record
         fill_dict = _fill_event.toDict()
         fill_dict['strategy'] = _strategy
         self.fill_record.append(fill_dict)
 
-        # delete unfilled order record
-        del self.unfilled_order[_fill_event.index]
+        try:
+            assert _fill_event.index in self.unfilled_order.keys()
+            del self.unfilled_order[_fill_event.index]
+        except AssertionError as e:
+            logging.error('fill event index({}) not found'.format(
+                _fill_event.index
+            ))
+            ret = input('Continue?(y/n)')
+            if ret != 'y':
+                sys.exit(1)
 
         # update position
         if _fill_event.action == ActionType.OPEN:
@@ -456,7 +463,8 @@ class PortfolioAbstract(Serializable):
         # init order index, and create a map from order to strategy
         self.order_index: int = 0  # cur unused order index
         # the global portfolio,
-        self.portfolio_mgr: PortfolioMgr = PortfolioMgr(_init_fund, _margin_rate)
+        self.portfolio_mgr: PortfolioMgr = PortfolioMgr(
+            _init_fund, _margin_rate)
 
         self.addPickleKey('order_index', 'portfolio_mgr')
 
