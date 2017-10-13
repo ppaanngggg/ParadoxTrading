@@ -256,8 +256,8 @@ class ProductMgr:
         try:
             product = self.order_table.pop(_event.index)
         except KeyError as e:
-            logging.error(e)
-            ret = input('Continue?y/n')
+            logging.error('order index({}) not found in order_table'.format(e))
+            ret = input('Continue?(y/n)')
             if ret != 'y':
                 sys.exit(1)
             product = input('Please input product name:')
@@ -337,8 +337,8 @@ class StrategyMgr:
         try:
             strategy = self.order_table.pop(_event.index)
         except KeyError as e:
-            logging.error(e)
-            ret = input('Continue?y/n')
+            logging.error('order index({}) not found in order_table'.format(e))
+            ret = input('Continue?(y/n)')
             if ret != 'y':
                 sys.exit(1)
             strategy = input('Please input strategy name:')
