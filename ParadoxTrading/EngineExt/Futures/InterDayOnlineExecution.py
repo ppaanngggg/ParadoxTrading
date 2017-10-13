@@ -2,10 +2,11 @@ import csv
 import logging
 import os
 import re
-import typing
 import sys
+import typing
 
-from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, DirectionType, ActionType, FillEvent
+from ParadoxTrading.Engine import ActionType, DirectionType, \
+    ExecutionAbstract, FillEvent, OrderEvent
 from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE
 from ParadoxTrading.Utils import DataStruct
 
@@ -56,7 +57,7 @@ class InterDayOnlineExecution(ExecutionAbstract):
                     assert action == order.action
                     assert direction == order.direction
                 except AssertionError as e:
-                    logging.error(e)
+                    logging.error('Order and Fill not match, {}'.format(index))
                     ret = input('Continue?(y/n)')
                     if ret != 'y':
                         sys.exit(1)
