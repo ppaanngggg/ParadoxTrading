@@ -135,6 +135,7 @@ class CTPDailyMarketTool:
                 self.reset()
                 return
 
+        logging.info('wait {} mins!'.format(self.WAIT_MIN))
         time.sleep(self.WAIT_MIN * 60)
         logging.warning('not reveice instrument: {}'.format(
             set(inst_list) - self.data_table.keys()
