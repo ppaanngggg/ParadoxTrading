@@ -14,7 +14,7 @@ from ParadoxTrading.Utils.CTP.CTPTraderSpi import CTPTraderSpi
 class CTPDailyMarketTool:
     RETRY_TIME = 5
     SUB_SIZE = 100
-    WAIT_MIN = 30
+    WAIT_MIN = 60
 
     def __init__(self, _config_path, _save_path):
         self.trader: CTPTraderSpi = None
