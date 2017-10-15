@@ -58,9 +58,11 @@ class CTPDailyMarketTool:
     def reset(self):
         if self.trader is not None:
             self.trader.Release()
+            del self.trader
             self.trader = None
         if self.market is not None:
             self.market.Release()
+            del self.market
             self.market = None
         self.today = None
         self.tradingday = None
