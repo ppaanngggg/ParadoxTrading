@@ -12,5 +12,12 @@ This module is a chart tool to show time series data based on PyQt5
 ## quick start
 
 ```python
+from ParadoxTrading.Chart import Wizard
 
+wizard = Wizard()
+view = wizard.addView('demo')
+view.addLine('demo line', [1, 2], [1, 2])
+wizard.show()
 ```
+
+> use `arrow` key to adjust view
