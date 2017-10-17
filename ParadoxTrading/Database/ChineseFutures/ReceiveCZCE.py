@@ -8,6 +8,8 @@ import requests.adapters
 from bs4 import BeautifulSoup
 from urllib3.util.retry import Retry
 
+from ParadoxTrading.Receive.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
+
 CZCE_MARKET_URL = 'http://www.czce.com.cn/cms/cmsface/czce/exchangefront/calendarnewquery.jsp'
 
 KEYS = [
@@ -20,7 +22,7 @@ def inst2prod(_inst):
     return re.findall(r"[a-zA-Z]+", _inst)[0]
 
 
-class ReceiveCZCE:
+class ReceiveCZCE(ReceiveDailyAbstract):
     def __init__(self):
         self.session = requests.Session()
         a = requests.adapters.HTTPAdapter(
@@ -89,27 +91,6 @@ class ReceiveCZCE:
             else:
                 raise Exception('unknown url type')
 
-    def iterFetchRaw(
-            self, _begin_date: str = '20060101', _end_date: str = None
-    ):
-        if _end_date is None:
-            _end_date = arrow.now().format('YYYYMMDD')
-
-        ret = []
-        tradingday = _begin_date
-        while tradingday < _end_date:
-            logging.info('TradingDay: {}'.format(tradingday))
-            ret.append({
-                'TradingDay': tradingday,
-                'Raw': self.fetchRaw(tradingday)
-            })
-
-            tradingday = arrow.get(
-                tradingday, 'YYYYMMDD'
-            ).shift(days=1).format('YYYYMMDD')
-
-        return ret
-
     @staticmethod
     def rawToDicts(_tradingday, _raw_data):
         data_dict = {}  # map instrument to data
@@ -166,23 +147,6 @@ class ReceiveCZCE:
             data_dict[instrument] = tmp_dict
 
         return data_dict, instrument_dict, product_dict
-
-    @staticmethod
-    def iterRawToDicts(_raw_list):
-        ret_list = []
-        for _raw in _raw_list:
-            ret = ReceiveCZCE.rawToDicts(
-                _raw['TradingDay'], _raw['Raw']
-            )
-            ret_list.append({
-                'TradingDay': _raw['TradingDay'],
-                'DataDict': ret[0],
-                'InstrumentDict': ret[1],
-                'ProductDict': ret[2],
-            })
-
-        return ret_list
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

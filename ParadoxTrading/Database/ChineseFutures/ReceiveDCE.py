@@ -4,6 +4,8 @@ import arrow
 import requests
 import requests.adapters
 
+from ParadoxTrading.Receive.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
+
 DCE_MARKET_URL = "http://www.dce.com.cn/publicweb/" \
                  "quotesdata/exportDayQuotesChData.html?" \
                  "year={:4d}&month={:02d}&day={:02d}"
@@ -32,7 +34,7 @@ KEYS = [
 ]
 
 
-class ReceiveDCE:
+class ReceiveDCE(ReceiveDailyAbstract):
     def __init__(self):
         self.session = requests.Session()
         a = requests.adapters.HTTPAdapter(max_retries=10)
@@ -47,27 +49,6 @@ class ReceiveDCE:
             [w.strip() for w in d.strip().split()]
             for d in txt.split('\n') if d
         ]
-
-    def iterFetchRaw(
-            self, _begin_date: str = '20030101', _end_date: str = None
-    ):
-        if _end_date is None:
-            _end_date = arrow.now().format('YYYYMMDD')
-
-        ret = []
-        tradingday = _begin_date
-        while tradingday < _end_date:
-            logging.info('TradingDay: {}'.format(tradingday))
-            ret.append({
-                'TradingDay': tradingday,
-                'Raw': self.fetchRaw(tradingday)
-            })
-
-            tradingday = arrow.get(
-                tradingday, 'YYYYMMDD'
-            ).shift(days=1).format('YYYYMMDD')
-
-        return ret
 
     @staticmethod
     def rawToDicts(_tradingday, _raw_data):
@@ -117,22 +98,6 @@ class ReceiveDCE:
             data_dict[instrument] = tmp_dict
 
         return data_dict, instrument_dict, product_dict
-
-    @staticmethod
-    def iterRawToDicts(_raw_list):
-        ret_list = []
-        for _raw in _raw_list:
-            ret = ReceiveDCE.rawToDicts(
-                _raw['TradingDay'], _raw['Raw']
-            )
-            ret_list.append({
-                'TradingDay': _raw['TradingDay'],
-                'DataDict': ret[0],
-                'InstrumentDict': ret[1],
-                'ProductDict': ret[2],
-            })
-
-        return ret_list
 
 
 if __name__ == '__main__':
