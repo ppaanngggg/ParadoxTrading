@@ -35,7 +35,7 @@ KEYS = [
 
 
 class ReceiveDCE(ReceiveDailyAbstract):
-    COLLECTION_NAME = 'dce'
+    COLLECTION_NAME = 'DCE'
 
     def __init__(self):
         super().__init__()
@@ -45,6 +45,7 @@ class ReceiveDCE(ReceiveDailyAbstract):
         self.session.mount('http://', a)
 
     def fetchRaw(self, _tradingday):
+        logging.info('DCE fetchRaw: {}'.format(_tradingday))
         date = arrow.get(_tradingday, 'YYYYMMDD').date()
         txt = self.session.get(DCE_MARKET_URL.format(
             date.year, date.month - 1, date.day

@@ -23,7 +23,7 @@ def inst2prod(_inst):
 
 
 class ReceiveCZCE(ReceiveDailyAbstract):
-    COLLECTION_NAME = 'czce'
+    COLLECTION_NAME = 'CZCE'
 
     def __init__(self):
         super().__init__()
@@ -34,6 +34,7 @@ class ReceiveCZCE(ReceiveDailyAbstract):
         self.session.mount('http://', a)
 
     def fetchRaw(self, _tradingday):
+        logging.info('CZCE fetchRaw: {}'.format(_tradingday))
         payload = {
             'dataType': 'DAILY',
             'pubDate': arrow.get(_tradingday, 'YYYYMMDD').format('YYYY-MM-DD'),

@@ -9,7 +9,7 @@ SHFE_MARKET_URL = 'http://www.shfe.com.cn/data/dailydata/kx/kx{}.dat'
 
 
 class ReceiveSHFE(ReceiveDailyAbstract):
-    COLLECTION_NAME = 'shfe'
+    COLLECTION_NAME = 'SHFE'
 
     def __init__(self):
         super().__init__()

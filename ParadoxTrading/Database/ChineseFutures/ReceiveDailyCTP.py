@@ -11,7 +11,7 @@ def inst2prod(_inst):
 
 
 class ReceiveDailyCTP(ReceiveDailyAbstract):
-    COLLECTION_NAME = 'daily_ctp'
+    COLLECTION_NAME = 'DailyCTP'
 
     def __init__(self, _path):
         super().__init__()

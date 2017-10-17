@@ -1,13 +1,16 @@
+import logging
 import typing
 
 import arrow
 import pymongo
+import pymongo.errors
 from pymongo import MongoClient
 
 
 class ReceiveDailyAbstract:
     DATABASE_NAME = 'ChineseFuturesRaw'
     COLLECTION_NAME = None
+    REPLACE_ALL = False
 
     def __init__(self):
         db = MongoClient()[self.DATABASE_NAME]
@@ -21,10 +24,30 @@ class ReceiveDailyAbstract:
         raise NotImplementedError
 
     def storeRaw(self, _tradingday: str, _raw_data: typing.Any):
-        self.mongo_coll.insert_one({
-            'TradingDay': _tradingday,
-            'Raw': _raw_data,
-        })
+        logging.info('{} storeRaw: {}'.format(
+            self.COLLECTION_NAME, _tradingday
+        ))
+        try:
+            self.mongo_coll.insert_one({
+                'TradingDay': _tradingday,
+                'Raw': _raw_data,
+            })
+        except pymongo.errors.DuplicateKeyError as e:
+            logging.warning(e)
+            if self.REPLACE_ALL:
+                self.mongo_coll.replace_one(
+                    {'TradingDay': _tradingday},
+                    {'TradingDay': _tradingday, 'Raw': _raw_data}
+                )
+            else:
+                tmp = input('Replace existing data?(y/n/a): ')
+                if tmp == 'y' or tmp == 'a':
+                    self.mongo_coll.replace_one(
+                        {'TradingDay': _tradingday},
+                        {'TradingDay': _tradingday, 'Raw': _raw_data}
+                    )
+                    if tmp == 'a':
+                        self.REPLACE_ALL = True
 
     @staticmethod
     def rawToDicts(_tradingday: str, _raw_data: typing.Any):

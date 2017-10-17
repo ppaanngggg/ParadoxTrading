@@ -1,3 +1,5 @@
+import logging
+
 import arrow
 import requests
 import requests.adapters
@@ -16,7 +18,7 @@ def element2str(_elem):
 
 
 class ReceiveCFFEX(ReceiveDailyAbstract):
-    COLLECTION_NAME = 'cffex'
+    COLLECTION_NAME = 'CFFEX'
 
     def __init__(self):
         super().__init__()
@@ -25,6 +27,8 @@ class ReceiveCFFEX(ReceiveDailyAbstract):
         self.session.mount('http://', a)
 
     def fetchRaw(self, _tradingday):
+        logging.info('CFFEX fetchRaw: {}'.format(_tradingday))
+
         date = arrow.get(_tradingday, 'YYYYMMDD')
 
         r = self.session.get(
