@@ -3,7 +3,7 @@ import pickle
 import re
 import sys
 
-from ParadoxTrading.Receive.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
+from ParadoxTrading.Database.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
 
 
 def inst2prod(_inst):
@@ -11,7 +11,10 @@ def inst2prod(_inst):
 
 
 class ReceiveDailyCTP(ReceiveDailyAbstract):
+    COLLECTION_NAME = 'daily_ctp'
+
     def __init__(self, _path):
+        super().__init__()
         self.path = _path
 
     def fetchRaw(self, _tradingday):
@@ -82,11 +85,3 @@ class ReceiveDailyCTP(ReceiveDailyAbstract):
             data_dict[instrument] = data
 
         return data_dict, instrument_dict, product_dict
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-
-    recv = ReceiveDailyCTP('/home/pang/Workspace/ReceiverDailyCTP/save')
-    tmp = recv.iterFetchRaw('20171013')
-    recv.iterRawToDicts(tmp)

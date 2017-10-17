@@ -8,7 +8,7 @@ import requests.adapters
 from bs4 import BeautifulSoup
 from urllib3.util.retry import Retry
 
-from ParadoxTrading.Receive.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
+from ParadoxTrading.Database.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
 
 CZCE_MARKET_URL = 'http://www.czce.com.cn/cms/cmsface/czce/exchangefront/calendarnewquery.jsp'
 
@@ -23,7 +23,10 @@ def inst2prod(_inst):
 
 
 class ReceiveCZCE(ReceiveDailyAbstract):
+    COLLECTION_NAME = 'czce'
+
     def __init__(self):
+        super().__init__()
         self.session = requests.Session()
         a = requests.adapters.HTTPAdapter(
             max_retries=Retry(method_whitelist=frozenset(['GET', 'POST']))
@@ -147,11 +150,3 @@ class ReceiveCZCE(ReceiveDailyAbstract):
             data_dict[instrument] = tmp_dict
 
         return data_dict, instrument_dict, product_dict
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-
-    recv = ReceiveCZCE()
-    tmp = recv.iterFetchRaw('20171012')
-    tmp = recv.iterRawToDicts(tmp)
-    print(tmp)

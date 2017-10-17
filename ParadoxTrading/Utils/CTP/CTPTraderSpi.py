@@ -391,7 +391,8 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         req.OrderPriceType = PyCTP.THOST_FTDC_OPT_LimitPrice
         req.LimitPrice = _price
         req.TimeCondition = PyCTP.THOST_FTDC_TC_IOC
-        req.VolumeCondition = PyCTP.THOST_FTDC_VC_CV
+        req.VolumeCondition = PyCTP.THOST_FTDC_VC_MV
+        req.MinVolume = _volume
 
         self.eventClear()
         self.ret_data = False

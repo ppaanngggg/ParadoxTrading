@@ -1,18 +1,25 @@
+import logging
+
 import requests
 import requests.adapters
 
-from ParadoxTrading.Receive.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
+from ParadoxTrading.Database.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
 
 SHFE_MARKET_URL = 'http://www.shfe.com.cn/data/dailydata/kx/kx{}.dat'
 
 
 class ReceiveSHFE(ReceiveDailyAbstract):
+    COLLECTION_NAME = 'shfe'
+
     def __init__(self):
+        super().__init__()
+
         self.session = requests.Session()
         a = requests.adapters.HTTPAdapter(max_retries=10)
         self.session.mount('http://', a)
 
     def fetchRaw(self, _tradingday):
+        logging.info('SHFE fetchRaw: {}'.format(_tradingday))
         r = self.session.get(
             SHFE_MARKET_URL.format(_tradingday)
         )
@@ -24,6 +31,7 @@ class ReceiveSHFE(ReceiveDailyAbstract):
 
     @staticmethod
     def rawToDicts(_tradingday, _raw_data):
+        logging.info('SHFE rawToDicts: {}'.format(_tradingday))
         data_dict = {}  # map instrument to data
         instrument_dict = {}  # map instrument to instrument info
         product_dict = {}  # map product to product info
@@ -85,10 +93,3 @@ class ReceiveSHFE(ReceiveDailyAbstract):
             data_dict[instrument] = data
 
         return data_dict, instrument_dict, product_dict
-
-
-if __name__ == '__main__':
-    recv = ReceiveSHFE()
-    tmp = recv.iterFetchRaw('20171012')
-    tmp = recv.iterRawToDicts(tmp)
-    print(tmp)

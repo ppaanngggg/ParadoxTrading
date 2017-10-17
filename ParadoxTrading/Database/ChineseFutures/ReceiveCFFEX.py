@@ -3,7 +3,7 @@ import requests
 import requests.adapters
 from bs4 import BeautifulSoup
 
-from ParadoxTrading.Receive.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
+from ParadoxTrading.Database.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
 
 SHFE_MARKET_URL = 'http://www.cffex.com.cn/sj/hqsj/rtj/{}/{}/index.xml'
 
@@ -16,7 +16,10 @@ def element2str(_elem):
 
 
 class ReceiveCFFEX(ReceiveDailyAbstract):
+    COLLECTION_NAME = 'cffex'
+
     def __init__(self):
+        super().__init__()
         self.session = requests.Session()
         a = requests.adapters.HTTPAdapter(max_retries=10)
         self.session.mount('http://', a)
@@ -90,10 +93,3 @@ class ReceiveCFFEX(ReceiveDailyAbstract):
             data_dict[instrument] = d
 
         return data_dict, instrument_dict, product_dict
-
-
-if __name__ == '__main__':
-    recv = ReceiveCFFEX()
-    tmp = recv.iterFetchRaw('20171012')
-    tmp = recv.iterRawToDicts(tmp)
-    print(tmp)

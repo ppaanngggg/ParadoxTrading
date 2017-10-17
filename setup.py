@@ -7,6 +7,8 @@ setup(
     packages=[
         'ParadoxTrading',
         'ParadoxTrading/Chart',
+        'ParadoxTrading/Database',
+        'ParadoxTrading/Database/ChineseFutures'
         'ParadoxTrading/Engine',
         'ParadoxTrading/EngineExt',
         'ParadoxTrading/EngineExt/Futures',

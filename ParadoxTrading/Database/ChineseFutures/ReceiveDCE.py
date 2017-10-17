@@ -4,7 +4,7 @@ import arrow
 import requests
 import requests.adapters
 
-from ParadoxTrading.Receive.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
+from ParadoxTrading.Database.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
 
 DCE_MARKET_URL = "http://www.dce.com.cn/publicweb/" \
                  "quotesdata/exportDayQuotesChData.html?" \
@@ -35,7 +35,11 @@ KEYS = [
 
 
 class ReceiveDCE(ReceiveDailyAbstract):
+    COLLECTION_NAME = 'dce'
+
     def __init__(self):
+        super().__init__()
+
         self.session = requests.Session()
         a = requests.adapters.HTTPAdapter(max_retries=10)
         self.session.mount('http://', a)
@@ -98,10 +102,3 @@ class ReceiveDCE(ReceiveDailyAbstract):
             data_dict[instrument] = tmp_dict
 
         return data_dict, instrument_dict, product_dict
-
-
-if __name__ == '__main__':
-    recv = ReceiveDCE()
-    tmp = recv.iterFetchRaw('20171012')
-    tmp = recv.iterRawToDicts(tmp)
-    print(tmp)
