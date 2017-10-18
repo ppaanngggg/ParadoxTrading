@@ -1,7 +1,5 @@
-from ParadoxTrading.Fetch.FetchFuture import (FetchFutureDay,
-                                              FetchFutureDayIndex,
-                                              RegisterFutureDay,
-                                              RegisterFutureDayIndex)
+from ParadoxTrading.Fetch.FetchFuture import FetchFutureDay, \
+    FetchFutureDayIndex, RegisterFutureDay, RegisterFutureDayIndex
 
 
 class RegisterExchangeMarket(RegisterFutureDay):
