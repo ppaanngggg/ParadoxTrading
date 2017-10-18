@@ -57,6 +57,8 @@ class ReceiveCFFEX(ReceiveDailyAbstract):
 
     @staticmethod
     def rawToDicts(_tradingday, _raw_data):
+        logging.info('CFFEX rawToDicts: {}'.format(_tradingday))
+
         data_dict = {}  # map instrument to data
         instrument_dict = {}  # map instrument to instrument info
         product_dict = {}  # map product to product info

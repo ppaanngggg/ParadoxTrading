@@ -370,16 +370,21 @@ class StoreDailyData:
             )
 
     def storeTradingDayInfo(self, _tradingday, _product_dict):
+        coll = self.tradingday_db['TradingDay']
         if 'TradingDay' in self.tradingday_db.collection_names():
-            self.tradingday_db['TradingDay'].create_index([(
+            coll.create_index([(
                 'TradingDay', pymongo.ASCENDING
             )], unique=True)
         product_list = list(_product_dict.keys())
         if product_list:
-            tmp = {
-                'TradingDay': _tradingday,
-                'ProductList': product_list
-            }
+            coll.replace_one(
+                {'TradingDay': _tradingday},
+                {
+                    'TradingDay': _tradingday,
+                    'ProductList': product_list
+                },
+                True
+            )
 
     def store(
             self, _tradingday, _data_dict,
