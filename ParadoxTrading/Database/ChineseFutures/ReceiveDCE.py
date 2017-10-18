@@ -61,10 +61,13 @@ class ReceiveDCE(ReceiveDailyAbstract):
         instrument_dict = {}  # map instrument to instrument info
         product_dict = {}  # map product to product info
 
+        if _raw_data is None:
+            return data_dict, instrument_dict, product_dict
+
         for d in _raw_data:
             # skip summary data
             instrument = d[0]
-            if instrument in ['商品名称', '总计', '小计']:
+            if instrument in ['商品名称', '总计'] or '小计' in instrument:
                 continue
 
             try:

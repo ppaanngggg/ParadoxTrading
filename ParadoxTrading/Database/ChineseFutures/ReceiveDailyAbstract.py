@@ -49,6 +49,14 @@ class ReceiveDailyAbstract:
                     if tmp == 'a':
                         self.REPLACE_ALL = True
 
+    def loadRaw(self, _tradingday: str):
+        ret = self.mongo_coll.find_one({
+            'TradingDay': _tradingday
+        })
+        if ret is None:
+            return None
+        return ret['Raw']
+
     @staticmethod
     def rawToDicts(_tradingday: str, _raw_data: typing.Any):
         raise NotImplementedError
