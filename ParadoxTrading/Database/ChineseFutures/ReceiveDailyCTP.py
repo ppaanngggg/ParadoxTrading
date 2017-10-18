@@ -69,21 +69,35 @@ class ReceiveDailyCTP(ReceiveDailyAbstract):
                 'LowPrice': v['LowestPrice'],
                 'ClosePrice': v['ClosePrice'],
                 'SettlementPrice': v['SettlementPrice'],
-                'PriceDiff_1': v['ClosePrice'] - v['PreSettlementPrice'],
-                'PriceDiff_2': v['SettlementPrice'] - v['PreSettlementPrice'],
                 'Volume': v['Volume'],
                 'OpenInterest': v['OpenInterest'],
                 'OpenInterestDiff': v['OpenInterest'] - v['PreOpenInterest'],
                 'PreSettlementPrice': v['PreSettlementPrice'],
             }
-            if data['OpenPrice'] == sys.float_info.max or data['OpenPrice'] == 0:
-                data['OpenPrice'] = data['SettlementPrice']
-            if data['HighPrice'] == sys.float_info.max or data['HighPrice'] == 0:
-                data['HighPrice'] = data['SettlementPrice']
-            if data['LowPrice'] == sys.float_info.max or data['LowPrice'] == 0:
-                data['LowPrice'] = data['SettlementPrice']
-            if data['ClosePrice'] == sys.float_info.max or data['ClosePrice'] == 0:
-                data['ClosePrice'] = data['SettlementPrice']
+
+            if data['SettlementPrice'] != sys.float_info.max \
+                    and data['SettlementPrice'] != 0:
+                base_price = data['SettlementPrice']
+            else:
+                base_price = data['PreSettlementPrice']
+                data['SettlementPrice'] = base_price
+
+            if data['OpenPrice'] == sys.float_info.max \
+                    or data['OpenPrice'] == 0:
+                data['OpenPrice'] = base_price
+            if data['HighPrice'] == sys.float_info.max \
+                    or data['HighPrice'] == 0:
+                data['HighPrice'] = base_price
+            if data['LowPrice'] == sys.float_info.max \
+                    or data['LowPrice'] == 0:
+                data['LowPrice'] = base_price
+            if data['ClosePrice'] == sys.float_info.max \
+                    or data['ClosePrice'] == 0:
+                data['ClosePrice'] = base_price
+            data['PriceDiff_1'] = data['ClosePrice'] - \
+                data['PreSettlementPrice']
+            data['PriceDiff_2'] = data['SettlementPrice'] - \
+                data['PreSettlementPrice']
             data_dict[instrument] = data
 
         return data_dict, instrument_dict, product_dict

@@ -131,7 +131,14 @@ class StoreDailyData:
         self.instrument_day_data_cur.execute(
             "INSERT INTO {} VALUES "
             "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
-            "ON CONFLICT DO NOTHING".format(_instrument),
+            "ON CONFLICT (TradingDay) DO UPDATE SET "
+            "OpenPrice = EXCLUDED.OpenPrice,"
+            "HighPrice = EXCLUDED.HighPrice,"
+            "LowPrice = EXCLUDED.LowPrice,"
+            "ClosePrice = EXCLUDED.ClosePrice,"
+            "SettlementPrice = EXCLUDED.SettlementPrice,"
+            "PriceDiff_1 = EXCLUDED.PriceDiff_1,"
+            "PriceDiff_2 = EXCLUDED.PriceDiff_2".format(_instrument),
             [_data[k] for k in INSTRUMENT_STORE_KEYS]
         )
         self.instrument_day_data_con.commit()
@@ -182,7 +189,11 @@ class StoreDailyData:
         self.product_index_cur.execute(
             "INSERT INTO {} VALUES "
             "(%s, %s, %s, %s, %s, %s, %s) "
-            "ON CONFLICT DO NOTHING".format(_product),
+            "ON CONFLICT (TradingDay) DO UPDATE SET "
+            "OpenPrice = EXCLUDED.OpenPrice,"
+            "HighPrice = EXCLUDED.HighPrice,"
+            "LowPrice = EXCLUDED.LowPrice,"
+            "ClosePrice = EXCLUDED.ClosePrice".format(_product),
             [_data[k] for k in INDEX_KEYS]
         )
         self.product_index_con.commit()
@@ -336,7 +347,11 @@ class StoreDailyData:
             self.dominant_index_cur.execute(
                 "INSERT INTO {} VALUES "
                 "(%s, %s, %s, %s, %s, %s, %s) "
-                "ON CONFLICT DO NOTHING".format(product),
+                "ON CONFLICT (TradingDay) DO UPDATE SET "
+                "OpenPrice = EXCLUDED.OpenPrice,"
+                "HighPrice = EXCLUDED.HighPrice,"
+                "LowPrice = EXCLUDED.LowPrice,"
+                "ClosePrice = EXCLUDED.ClosePrice".format(product),
                 [
                     v['TradingDay'],
                     new_openprice, new_highprice,

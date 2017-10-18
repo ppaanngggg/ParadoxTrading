@@ -6,7 +6,6 @@ import pymongo
 import pymongo.errors
 from pymongo import MongoClient
 
-
 class ReceiveDailyAbstract:
     DATABASE_NAME = 'ChineseFuturesRaw'
     COLLECTION_NAME = None
