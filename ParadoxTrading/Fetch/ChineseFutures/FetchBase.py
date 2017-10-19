@@ -187,6 +187,12 @@ class FetchBase(FetchAbstract):
         return self._psql_con, self._psql_cur
 
     def isTradingDay(self, _tradingday: str) -> bool:
+        """
+        check whether _tradingday is a tradingday
+
+        :param _tradingday:
+        :return:
+        """
         return self.fetchTradingDayInfo(
             _tradingday
         ) is not None
@@ -238,6 +244,44 @@ class FetchBase(FetchAbstract):
 
         return d['TradingDay'] if d is not None else None
 
+    def fetchDominant(
+            self, _product: str, _tradingday: str
+    ) -> typing.Union[None, str]:
+        """
+        fetch dominant instrument of one product on tradingday
+        """
+        data = self.fetchProductInfo(_product, _tradingday)
+        ret = None
+        if data is not None:
+            ret = data['Dominant']
+
+        return ret
+
+    def fetchSubDominant(
+            self, _product: str, _tradingday: str
+    ) -> typing.Union[None, str]:
+        """
+        fetch sub dominant instrument of one product on tradingday
+        """
+        data = self.fetchProductInfo(_product, _tradingday)
+        ret = None
+        if data is not None:
+            ret = data['SubDominant']
+
+        return ret
+
+    def fetchAvailableInstrument(
+            self, _product: str, _tradingday: str
+    ) -> typing.List[str]:
+        """
+        fetch all traded insts of one product on tradingday
+        """
+        data = self.fetchProductInfo(_product, _tradingday)
+        ret = []
+        if data is not None:
+            ret = data['InstrumentList']
+        return ret
+
     def instrumentIsAvailable(
             self, _instrument: str, _tradingday: str
     ) -> bool:
@@ -277,44 +321,6 @@ class FetchBase(FetchAbstract):
         )
 
         return d['TradingDay'] if d is not None else None
-
-    def fetchAvailableInstrument(
-            self, _product: str, _tradingday: str
-    ) -> typing.List[str]:
-        """
-        fetch all traded insts of one product on tradingday
-        """
-        data = self.fetchProductInfo(_product, _tradingday)
-        ret = []
-        if data is not None:
-            ret = data['InstrumentList']
-        return ret
-
-    def fetchDominant(
-            self, _product: str, _tradingday: str
-    ) -> typing.Union[None, str]:
-        """
-        fetch dominant instrument of one product on tradingday
-        """
-        data = self.fetchProductInfo(_product, _tradingday)
-        ret = None
-        if data is not None:
-            ret = data['Dominant']
-
-        return ret
-
-    def fetchSubDominant(
-            self, _product: str, _tradingday: str
-    ) -> typing.Union[None, str]:
-        """
-        fetch sub dominant instrument of one product on tradingday
-        """
-        data = self.fetchProductInfo(_product, _tradingday)
-        ret = None
-        if data is not None:
-            ret = data['SubDominant']
-
-        return ret
 
     def fetchTradingDayInfo(
             self, _tradingday: str
@@ -373,9 +379,9 @@ class FetchBase(FetchAbstract):
         """
         assert _product is not None or _instrument is not None
 
-        if isinstance(_product, str):
+        if _product is not None:
             _product = _product.lower()
-        if isinstance(_instrument, str):
+        if _instrument is not None:
             _instrument = _instrument.lower()
 
         # set inst to real instrument name
@@ -388,7 +394,8 @@ class FetchBase(FetchAbstract):
 
         # check instrument valid
         if inst is None or not self.instrumentIsAvailable(
-                inst, _tradingday):
+                inst, _tradingday
+        ):
             return None
         return inst
 
@@ -419,7 +426,8 @@ class FetchBase(FetchAbstract):
 
         # get all ticks
         cur.execute(
-            "SELECT * FROM {} WHERE TradingDay='{}' ORDER BY {}".format(
+            "SELECT * FROM {} WHERE TradingDay='{}' "
+            "ORDER BY {}".format(
                 symbol, _tradingday, _index.lower())
         )
         data = list(cur.fetchall())
@@ -433,6 +441,22 @@ class FetchBase(FetchAbstract):
         return data
 
     def fetchDayData(
-            self, _begin_day: str, _end_day: str, _symbol: str, **kwargs
+            self, _begin_day: str, _end_day: str,
+            _symbol: str, _index: str = 'HappenTime'
     ) -> DataStruct:
-        pass
+        begin_day = _begin_day
+        end_day = _end_day
+        if _end_day is None:
+            end_day = begin_day
+
+        con, cur = self._get_psql_con_cur()
+
+        query = "SELECT * FROM {} " \
+                "WHERE tradingday >= '{}' AND tradingday < '{}' " \
+                "ORDER BY {}".format(
+            _symbol.lower(), begin_day, end_day, _index.lower()
+        )
+        cur.execute(query)
+        datas = list(cur.fetchall())
+
+        return DataStruct(self.columns, _index.lower(), datas)

@@ -14,6 +14,7 @@ class FetchInstrumentDayData(FetchBase):
         )
 
         self.psql_dbname: str = 'ChineseFuturesInstrumentDayData'
+        self.market_key: str = 'ChineseFuturesInstrumentDayData_{}_{}'
         self.columns = [
             'tradingday',
             'openprice', 'highprice', 'lowprice', 'closeprice',
@@ -35,19 +36,6 @@ class FetchInstrumentDayData(FetchBase):
             self, _begin_day: str, _end_day: str = None,
             _symbol: str = None, _index: str = 'TradingDay'
     ) -> DataStruct:
-        begin_day = _begin_day
-        end_day = _end_day
-        if _end_day is None:
-            end_day = begin_day
-
-        con, cur = self._get_psql_con_cur()
-
-        query = "SELECT * FROM {} WHERE {} >= '{}' AND {} < '{}'".format(
-            _symbol.lower(),
-            _index.lower(), begin_day,
-            _index.lower(), end_day,
+        return super().fetchDayData(
+            _begin_day, _end_day, _symbol, _index
         )
-        cur.execute(query)
-        datas = list(cur.fetchall())
-
-        return DataStruct(self.columns, _index.lower(), datas)

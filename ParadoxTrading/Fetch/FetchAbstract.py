@@ -44,10 +44,9 @@ class RegisterAbstract:
         raise NotImplementedError('fromJson')
 
     def __repr__(self):
-        return 'Key:' + '\n' + \
-               '\t' + self.toJson() + '\n' + \
-               'Strategy:' + '\n' + \
-               '\t' + str(self.strategy_set)
+        return 'Key:\n\t{}\nStrategy:\n\t{}'.format(
+            self.toJson(), self.strategy_set
+        )
 
 
 class FetchAbstract:

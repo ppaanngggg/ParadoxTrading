@@ -89,7 +89,7 @@ class StoreDailyData:
         else:
             for d in _sorted_list:
                 if d[1] > _dominant_delivery \
-                        and d[1] > _last_delivery:
+                        and d[1] >= _last_delivery:
                     cur_sub_dominant = d[0]
                     break
             else:
