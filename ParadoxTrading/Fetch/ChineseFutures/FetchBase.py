@@ -13,7 +13,7 @@ from ParadoxTrading.Fetch import FetchAbstract, RegisterAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
-class RegisterFutureTick(RegisterAbstract):
+class RegisterInstrument(RegisterAbstract):
     def __init__(
             self, _product: str = None,
             _instrument: str = None,
@@ -62,7 +62,7 @@ class RegisterFutureTick(RegisterAbstract):
         }
 
     @staticmethod
-    def fromJson(_json_str: str) -> 'RegisterFutureTick':
+    def fromJson(_json_str: str) -> 'RegisterInstrument':
         """
         create object from a json str
 
@@ -70,33 +70,65 @@ class RegisterFutureTick(RegisterAbstract):
         :return: market register object
         """
         data: typing.Dict[str, typing.Any] = dict(json.loads(_json_str))
-        return RegisterFutureTick(
+        return RegisterInstrument(
             data['product'],
             data['instrument'],
             data['sub_dominant'],
         )
 
 
-class FetchFutureTick(FetchAbstract):
-    def __init__(self):
+class RegisterIndex(RegisterAbstract):
+    def __init__(self, _product: str):
+        """
+        because it is index, there is only product as parameter
+
+        :param _product:
+        """
         super().__init__()
-        self.register_type: RegisterAbstract = RegisterFutureTick
 
-        self.mongo_host: str = 'localhost'
-        self.mongo_prod_db: str = 'FutureProd'
-        self.mongo_inst_db: str = 'FutureInst'
-        self.mongo_tradingday_db: str = 'FutureTradingDay'
+        self.product = _product
 
-        self.psql_host: str = 'localhost'
-        self.psql_dbname: str = 'FutureTick'
-        self.psql_user: str = ''
-        self.psql_password: str = ''
+    def toJson(self) -> str:
+        return json.dumps((
+            ('product', self.product),
+        ))
 
-        self.cache: Cache = Cache('cache')
-        self.market_key = 'market_{}_{}'
-        self.tradingday_key = 'tradingday_{}'
-        self.prod_key = 'prod_{}_{}'
-        self.inst_key = 'inst_{}_{}'
+    def toKwargs(self) -> dict:
+        return {
+            '_product': self.product
+        }
+
+    @staticmethod
+    def fromJson(_json_str: str) -> 'RegisterIndex':
+        data: typing.Dict[str, typing.Any] = dict(json.loads(_json_str))
+        return RegisterIndex(
+            data['product']
+        )
+
+
+class FetchBase(FetchAbstract):
+    def __init__(
+            self, _mongo_host='localhost', _psql_host='localhost',
+            _psql_user='', _psql_password='', _cache_path='cache'
+    ):
+        super().__init__()
+        self.register_type: RegisterAbstract = RegisterInstrument
+
+        self.mongo_host: str = _mongo_host
+        self.mongo_prod_db: str = 'ChineseFuturesProduct'
+        self.mongo_inst_db: str = 'ChineseFuturesInstrument'
+        self.mongo_tradingday_db: str = 'ChineseFuturesTradingDay'
+
+        self.psql_host: str = _psql_host
+        self.psql_dbname: str = None
+        self.psql_user: str = _psql_user
+        self.psql_password: str = _psql_password
+
+        self.cache: Cache = Cache(_cache_path)
+        self.market_key: str = None
+        self.tradingday_key: str = 'ChineseFuturesTradingDay_{}'
+        self.prod_key: str = 'ChineseFuturesProduct_{}_{}'
+        self.inst_key: str = 'ChineseFuturesInstrument_{}_{}'
 
         self._mongo_client: MongoClient = None
         self._mongo_prod: pymongo.database.Database = None
@@ -105,20 +137,7 @@ class FetchFutureTick(FetchAbstract):
         self._psql_con: psycopg2.extensions.connection = None
         self._psql_cur: psycopg2.extensions.cursor = None
 
-        self.columns = [
-            'tradingday', 'lastprice', 'highestprice', 'lowestprice',
-            'volume', 'turnover', 'openinterest',
-            'upperlimitprice', 'lowerlimitprice',
-            'askprice', 'askvolume', 'bidprice', 'bidvolume',
-            'averageprice', 'happentime'
-        ]
-        self.types = [
-            'character', 'double precision', 'double precision',
-            'double precision', 'integer', 'double precision',
-            'double precision', 'double precision', 'double precision',
-            'double precision', 'integer', 'double precision', 'integer',
-            'double precision', 'timestamp without time zone'
-        ]
+        self.columns: typing.List = []
 
     def _get_mongo_prod(self) -> pymongo.database.Database:
         if not self._mongo_prod:
@@ -126,8 +145,8 @@ class FetchFutureTick(FetchAbstract):
                 self._mongo_client: MongoClient = MongoClient(
                     host=self.mongo_host
                 )
-            self._mongo_prod: pymongo.database.Database = self._mongo_client[
-                self.mongo_prod_db]
+            self._mongo_prod: pymongo.database.Database = \
+                self._mongo_client[self.mongo_prod_db]
         return self._mongo_prod
 
     def _get_mongo_inst(self) -> pymongo.database.Database:
@@ -136,8 +155,8 @@ class FetchFutureTick(FetchAbstract):
                 self._mongo_client: MongoClient = MongoClient(
                     host=self.mongo_host
                 )
-            self._mongo_inst: pymongo.database.Database = self._mongo_client[
-                self.mongo_inst_db]
+            self._mongo_inst: pymongo.database.Database = \
+                self._mongo_client[self.mongo_inst_db]
         return self._mongo_inst
 
     def _get_mongo_tradingday(self) -> pymongo.database.Database:
@@ -146,48 +165,40 @@ class FetchFutureTick(FetchAbstract):
                 self._mongo_client: MongoClient = MongoClient(
                     host=self.mongo_host
                 )
-            self._mongo_tradingday: pymongo.database.Database = self._mongo_client[
-                self.mongo_tradingday_db
-            ]
+            self._mongo_tradingday: pymongo.database.Database = \
+                self._mongo_client[self.mongo_tradingday_db]
         return self._mongo_tradingday
 
     def _get_psql_con_cur(self) -> typing.Tuple[
         psycopg2.extensions.connection, psycopg2.extensions.cursor
     ]:
         if not self._psql_con:
-            self._psql_con: psycopg2.extensions.connection = psycopg2.connect(
-                dbname=self.psql_dbname,
-                host=self.psql_host,
-                user=self.psql_user,
-                password=self.psql_password,
-            )
+            self._psql_con: psycopg2.extensions.connection = \
+                psycopg2.connect(
+                    dbname=self.psql_dbname,
+                    host=self.psql_host,
+                    user=self.psql_user,
+                    password=self.psql_password,
+                )
         if not self._psql_cur:
-            self._psql_cur: psycopg2.extensions.cursor = self._psql_con.cursor()
+            self._psql_cur: psycopg2.extensions.cursor = \
+                self._psql_con.cursor()
 
         return self._psql_con, self._psql_cur
-
-    def allProductList(self) -> list:
-        """
-        get all product list stored in mongo
-
-        :return: list of product names
-        """
-        db = self._get_mongo_prod()
-        return db.collection_names()
-
-    def fetchTradeProduct(self, _tradingday: str) -> list:
-        data = self.fetchTradingDayInfo(_tradingday)
-        ret = []
-        if data is not None:
-            ret = data['ProductList']
-        return ret
 
     def isTradingDay(self, _tradingday: str) -> bool:
         return self.fetchTradingDayInfo(
             _tradingday
         ) is not None
 
-    def productIsTrade(
+    def fetchAvailableProduct(self, _tradingday: str) -> list:
+        data = self.fetchTradingDayInfo(_tradingday)
+        ret = []
+        if data is not None:
+            ret = data['ProductList']
+        return ret
+
+    def productIsAvailable(
             self, _product: str, _tradingday: str
     ) -> bool:
         """
@@ -227,7 +238,7 @@ class FetchFutureTick(FetchAbstract):
 
         return d['TradingDay'] if d is not None else None
 
-    def instrumentIsTrade(
+    def instrumentIsAvailable(
             self, _instrument: str, _tradingday: str
     ) -> bool:
         """
@@ -267,7 +278,7 @@ class FetchFutureTick(FetchAbstract):
 
         return d['TradingDay'] if d is not None else None
 
-    def fetchTradeInstrument(
+    def fetchAvailableInstrument(
             self, _product: str, _tradingday: str
     ) -> typing.List[str]:
         """
@@ -313,7 +324,7 @@ class FetchFutureTick(FetchAbstract):
             return self.cache[key]
         except KeyError:
             db = self._get_mongo_tradingday()
-            coll = db.tradingday
+            coll = db.TradingDay
             data = coll.find_one({'TradingDay': _tradingday})
             self.cache[key] = data
             return data
@@ -376,7 +387,7 @@ class FetchFutureTick(FetchAbstract):
                 inst = self.fetchSubDominant(_product, _tradingday)
 
         # check instrument valid
-        if inst is None or not self.instrumentIsTrade(
+        if inst is None or not self.instrumentIsAvailable(
                 inst, _tradingday):
             return None
         return inst
@@ -425,227 +436,3 @@ class FetchFutureTick(FetchAbstract):
             self, _begin_day: str, _end_day: str, _symbol: str, **kwargs
     ) -> DataStruct:
         pass
-
-
-class RegisterFutureTickIndex(RegisterAbstract):
-    def __init__(self, _product: str):
-        """
-        because it is index, there is only product as parameter
-
-        :param _product:
-        """
-        super().__init__()
-
-        self.product = _product
-
-    def toJson(self) -> str:
-        return json.dumps((
-            ('product', self.product),
-        ))
-
-    def toKwargs(self) -> dict:
-        return {
-            '_product': self.product
-        }
-
-    @staticmethod
-    def fromJson(_json_str: str) -> 'RegisterAbstract':
-        data: typing.Dict[str, typing.Any] = dict(json.loads(_json_str))
-        return RegisterFutureTickIndex(
-            data['product']
-        )
-
-
-class FetchFutureTickIndex(FetchFutureTick):
-    def __init__(self):
-        super().__init__()
-
-        self.register_type = RegisterFutureTickIndex
-
-        self.columns = [
-            'tradingday', 'lastprice', 'volume', 'openinterest', 'happentime'
-        ]
-        self.types = [
-            'character', 'double precision', 'integer', 'double precision',
-            'timestamp without time zone'
-        ]
-
-    def fetchSymbol(
-            self, _tradingday: str,
-            _product: str = None, _instrument: str = None,
-            _sub_dominant: bool = False,
-    ):
-        assert _product is not None
-
-        if self.productIsTrade(_product, _tradingday):
-            return _product
-        return None
-
-
-class RegisterFutureMin(RegisterFutureTick):
-    pass
-
-
-class FetchFutureMin(FetchFutureTick):
-    def __init__(self):
-        super().__init__()
-
-        self.register_type = RegisterFutureMin
-        # reset path
-        self.psql_dbname = 'FutureMin'
-
-        self.columns = [
-            'tradingday', 'openprice', 'highprice', 'lowprice', 'closeprice',
-            'volume', 'turnover', 'openinterest',
-            'presettlementprice', 'precloseprice', 'preopeninterest',
-            'bartime', 'barendtime',
-        ]
-        self.types = [
-            'character', 'double precision', 'double precision',
-            'double precision', 'double precision', 'integer',
-            'double precision', 'double precision',
-            'double precision', 'double precision', 'double precision',
-            'timestamp without time zone', 'timestamp without time zone',
-        ]
-
-    def fetchData(
-            self, _tradingday: str, _symbol: str = None,
-            _cache=True, _index='BarEndTime'
-    ) -> typing.Union[None, DataStruct]:
-        return super().fetchData(
-            _tradingday, _symbol,
-            _cache, _index
-        )
-
-
-class RegisterFutureMinIndex(RegisterFutureTickIndex):
-    pass
-
-
-class FetchFutureMinIndex(FetchFutureTickIndex):
-    def __init__(self):
-        super().__init__()
-
-        self.register_type = RegisterFutureMinIndex
-
-        self.psql_dbname = 'FutureMin'
-
-        self.columns = [
-            'tradingday', 'openprice', 'highprice', 'lowprice', 'closeprice',
-            'volume', 'openinterest', 'bartime', 'barendtime',
-        ]
-        self.types = [
-            'character', 'double precision', 'double precision',
-            'double precision', 'double precision', 'integer',
-            'double precision',
-            'timestamp without time zone', 'timestamp without time zone',
-        ]
-
-    def fetchData(
-            self, _tradingday: str, _symbol: str,
-            _cache=True, _index='BarEndTime'
-    ):
-        return super().fetchData(
-            _tradingday, _symbol,
-            _cache, _index
-        )
-
-
-class RegisterFutureHour(RegisterFutureTick):
-    pass
-
-
-class FetchFutureHour(FetchFutureMin):
-    def __init__(self):
-        super().__init__()
-
-        self.register_type = RegisterFutureHour
-        # reset path
-        self.psql_dbname = 'FutureHour'
-
-
-class RegisterFutureHourIndex(RegisterFutureTickIndex):
-    pass
-
-
-class FetchFutureHourIndex(FetchFutureMinIndex):
-    def __init__(self):
-        super().__init__()
-
-        self.register_type = RegisterFutureHourIndex
-
-        self.psql_dbname = 'FutureHour'
-
-
-class RegisterFutureDay(RegisterFutureTick):
-    pass
-
-
-class FetchFutureDay(FetchFutureTick):
-    def __init__(self):
-        super().__init__()
-        self.psql_dbname = 'FutureDay'
-
-        self.register_type = RegisterFutureDay
-
-        self.columns = [
-            'tradingday', 'openprice', 'highprice', 'lowprice', 'closeprice',
-            'volume', 'turnover', 'openinterest',
-            'presettlementprice', 'precloseprice', 'preopeninterest'
-        ]
-        del self.types
-
-    def fetchData(
-            self, _tradingday: str, _symbol: str,
-            _cache=True, _index='TradingDay'
-    ) -> typing.Union[None, DataStruct]:
-        return super().fetchData(
-            _tradingday, _symbol, _cache, _index
-        )
-
-    def fetchDayData(
-            self, _begin_day: str, _end_day: str = None,
-            _symbol: str = None, _index: str = 'TradingDay'
-    ) -> DataStruct:
-        begin_day = _begin_day
-        end_day = _end_day
-        if _end_day is None:
-            end_day = begin_day
-
-        con, cur = self._get_psql_con_cur()
-
-        query = "select * from {} where {} >= '{}' and {} < '{}'".format(
-            _symbol.lower(),
-            _index.lower(), begin_day,
-            _index.lower(), end_day,
-        )
-        cur.execute(query)
-        datas = list(cur.fetchall())
-
-        return DataStruct(self.columns, _index.lower(), datas)
-
-
-class RegisterFutureDayIndex(RegisterFutureTickIndex):
-    pass
-
-
-class FetchFutureDayIndex(FetchFutureDay):
-    def __init__(self):
-        super().__init__()
-
-        self.register_type = RegisterFutureDayIndex
-        self.columns = [
-            'tradingday', 'openprice', 'highprice', 'lowprice',
-            'closeprice', 'volume', 'openinterest',
-        ]
-
-    def fetchSymbol(
-            self, _tradingday: str,
-            _product: str = None, _instrument: str = None,
-            _sub_dominant: bool = False,
-    ) -> typing.Union[None, str]:
-        assert _product is not None
-
-        if self.productIsTrade(_product, _tradingday):
-            return _product
-        return None
