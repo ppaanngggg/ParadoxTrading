@@ -1,11 +1,8 @@
-from ParadoxTrading.Fetch import FetchExchangeMarketIndex
+from ParadoxTrading.Fetch.ChineseFutures import FetchDominantIndex
 from ParadoxTrading.Indicator import Plunge, EMA
 from ParadoxTrading.Chart import Wizard
 
-fetcher = FetchExchangeMarketIndex()
-fetcher.psql_host = '192.168.4.103'
-fetcher.psql_user = 'ubuntu'
-fetcher.mongo_host = '192.168.4.103'
+fetcher = FetchDominantIndex()
 rb = fetcher.fetchDayData('20100101', '20170101', 'rb')
 
 fast_ema = EMA(50).addMany(rb).getAllData()

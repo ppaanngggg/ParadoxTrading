@@ -1,11 +1,8 @@
 from ParadoxTrading.Chart import Wizard
-from ParadoxTrading.Fetch import FetchExchangeMarketIndex
+from ParadoxTrading.Fetch.ChineseFutures import FetchDominantIndex
 from ParadoxTrading.Indicator import ZigZag
 
-fetcher = FetchExchangeMarketIndex()
-fetcher.psql_host = '192.168.4.103'
-fetcher.psql_user = 'ubuntu'
-fetcher.mongo_host = '192.168.4.103'
+fetcher = FetchDominantIndex()
 
 market = fetcher.fetchDayData('20100701', '20170101', 'rb')
 zigzag = ZigZag(0.1).addMany(market).getAllData()

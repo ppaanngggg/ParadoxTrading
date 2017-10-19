@@ -1,8 +1,8 @@
-from ParadoxTrading.Fetch import FetchExchangeMarketIndex
+from ParadoxTrading.Fetch.ChineseFutures import FetchDominantIndex
 from ParadoxTrading.Indicator import EFF
 from ParadoxTrading.Chart import Wizard
 
-fetcher = FetchExchangeMarketIndex()
+fetcher = FetchDominantIndex()
 rb = fetcher.fetchDayData('20100101', '20170101', 'rb')
 
 eff = EFF(20).addMany(rb).getAllData()
