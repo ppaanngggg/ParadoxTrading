@@ -103,7 +103,7 @@ class StoreDailyData:
         for k, v in _product_dict.items():
             tmp_list = [(
                 d, _instrument_dict[d]['DeliveryMonth'],
-                _data_dict[d]['OpenInterest']
+                float(_data_dict[d]['OpenInterest']),
             ) for d in v['InstrumentList']]
             tmp_list = sorted(
                 tmp_list, key=lambda x: x[2], reverse=True
