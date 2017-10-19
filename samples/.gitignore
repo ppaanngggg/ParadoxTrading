@@ -1,1 +1,7 @@
-*.lprof
+cache
+*.ini
+*.csv
+*.out
+*.log
+*.con
+*.pkl

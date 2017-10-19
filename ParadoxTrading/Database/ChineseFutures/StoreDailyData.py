@@ -89,7 +89,7 @@ class StoreDailyData:
         else:
             for d in _sorted_list:
                 if d[1] > _dominant_delivery \
-                        and d[1] > _last_delivery:
+                        and d[1] >= _last_delivery:
                     cur_sub_dominant = d[0]
                     break
             else:
@@ -103,7 +103,7 @@ class StoreDailyData:
         for k, v in _product_dict.items():
             tmp_list = [(
                 d, _instrument_dict[d]['DeliveryMonth'],
-                _data_dict[d]['OpenInterest']
+                float(_data_dict[d]['OpenInterest']),
             ) for d in v['InstrumentList']]
             tmp_list = sorted(
                 tmp_list, key=lambda x: x[2], reverse=True
