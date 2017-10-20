@@ -29,7 +29,9 @@ class InterDayOnlineMarketSupply(MarketSupplyAbstract):
     def _get_data(self):
         # fetch data from database
         for k, v in self.register_dict.items():
-            symbol = self.fetcher.fetchSymbol(self.tradingday, )
+            symbol = self.fetcher.fetchSymbol(
+                self.tradingday, **v.toKwargs()
+            )
             # whether symbol exists
             if symbol is not None:
                 if symbol not in self.data_dict.keys():
