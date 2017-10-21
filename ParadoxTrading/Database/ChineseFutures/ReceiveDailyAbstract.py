@@ -6,6 +6,7 @@ import pymongo
 import pymongo.errors
 from pymongo import MongoClient
 
+
 class ReceiveDailyAbstract:
     DATABASE_NAME = 'ChineseFuturesRaw'
     COLLECTION_NAME = None
@@ -73,3 +74,11 @@ class ReceiveDailyAbstract:
             tradingday = arrow.get(
                 tradingday, 'YYYYMMDD'
             ).shift(days=1).format('YYYYMMDD')
+
+    def lastTradingDay(self):
+        ret = self.mongo_coll.find_one(
+            sort=[('TradingDay', pymongo.DESCENDING)]
+        )
+        if ret:
+            return ret['TradingDay']
+        return None

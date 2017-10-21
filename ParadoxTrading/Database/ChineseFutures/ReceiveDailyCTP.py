@@ -18,6 +18,7 @@ class ReceiveDailyCTP(ReceiveDailyAbstract):
         self.path = _path
 
     def fetchRaw(self, _tradingday):
+        logging.info('DailyCTP fetchRaw: {}'.format(_tradingday))
         try:
             f = open('{}/{}.pkl'.format(self.path, _tradingday), 'rb')
         except FileNotFoundError:

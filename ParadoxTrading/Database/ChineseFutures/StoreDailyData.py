@@ -425,3 +425,11 @@ class StoreDailyData:
         self.storeProductInfo(_product_dict)
         logging.info('storeTradingDayInfo: {}'.format(_tradingday))
         self.storeTradingDayInfo(_tradingday, _product_dict)
+
+    def lastTradingDay(self):
+        ret = self.tradingday_db.TradingDay.find_one(sort=[(
+            'TradingDay', -1
+        )])
+        if ret:
+            return ret['TradingDay']
+        return None
