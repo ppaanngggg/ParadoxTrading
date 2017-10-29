@@ -265,9 +265,12 @@ class CTPFileTradeTool:
             logging.info('!!! TRY({}) to login !!!'.format(i))
             if self.traderLogin():
                 break
+            logging.info('try login again')
+            self.delTraderSpi()
         else:
             logging.warning('!!! LOGIN FAILED !!!')
             return
+
         # fetch all instruments
         for i in range(self.retry_time):
             logging.info('!!! TRY({}) to fetch all instruments !!!'.format(i))
@@ -275,8 +278,10 @@ class CTPFileTradeTool:
                 break
         else:
             logging.warning('!!! FETCH ALL INSTRUMENTS FAILED !!!')
+            self.delTraderSpi()
             return
 
+        # trade each instrument
         for i in range(self.retry_time):
             logging.info('!!! TRY ({})th TIME !!!'.format(i))
             for k in order_table:
@@ -289,7 +294,6 @@ class CTPFileTradeTool:
 
         # release trader spi
         self.delTraderSpi()  # free ctp obj
-        sleep(1)
 
         # writer fill table to file
         self.writeFillTable(fill_table)

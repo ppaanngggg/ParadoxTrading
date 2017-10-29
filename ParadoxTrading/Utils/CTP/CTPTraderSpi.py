@@ -44,6 +44,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
         self.api.RegisterSpi(self)
 
     def Release(self):
+        self.api.RegisterSpi(None)
         self.api.Release()
 
     def incRequestID(self):

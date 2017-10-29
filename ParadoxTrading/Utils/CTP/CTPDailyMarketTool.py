@@ -55,21 +55,26 @@ class CTPDailyMarketTool:
         }
         self.data_table[data['InstrumentID']] = data
 
+    def delTraderSpi(self):
+        self.trader.Release()
+        del self.trader
+        self.trader = None
+
+    def delMarketSpi(self):
+        self.market.Release()
+        del self.market
+        self.market = None
+
     def reset(self):
         if self.trader is not None:
-            self.trader.Release()
-            del self.trader
-            self.trader = None
+            self.delTraderSpi()
         if self.market is not None:
-            self.market.Release()
-            del self.market
-            self.market = None
+            self.delMarketSpi()
         self.today = None
         self.tradingday = None
         self.data_table = {}
 
-    def marketFunc(self):
-
+    def traderLogin(self) -> bool:
         self.trader = CTPTraderSpi(
             self.config['CTP']['ConPath'].encode(),
             self.config['CTP']['TraderFront'].encode(),
@@ -77,20 +82,52 @@ class CTPDailyMarketTool:
             self.config['CTP']['UserID'].encode(),
             self.config['CTP']['Password'].encode(),
         )
+        if not self.trader.Connect():
+            return False
+        if not self.trader.ReqUserLogin():
+            return False
+        return True
 
-        for _ in range(self.RETRY_TIME):
-            if not self.trader.Connect():
-                continue
-            if not self.trader.ReqUserLogin():
-                continue
+    def marketLogin(self) -> bool:
+        self.market = CTPMarketSpi(
+            self.config['CTP']['ConPath'].encode(),
+            self.config['CTP']['MarketFront'].encode(),
+            self.config['CTP']['BrokerID'].encode(),
+            self.config['CTP']['UserID'].encode(),
+            self.config['CTP']['Password'].encode(),
+            self.dealMarket
+        )
+        if not self.market.Connect():
+            return False
+        if not self.market.ReqUserLogin():
+            return False
+        return True
+
+    def marketFunc(self):
+        # create trader spi and fetch all instruments
+        for i in range(self.RETRY_TIME):
+            logging.info('TRY ({}) times trader login'.format(i))
+            if self.traderLogin():
+                break
+            logging.info('try login again')
+            self.delTraderSpi()
+        else:
+            logging.error('trader login FAILED!')
+            self.reset()
+            return
+
+        # get all instrument
+        for i in range(self.RETRY_TIME):
+            logging.info('TRY ({}) get instrument'.format(i))
             instrument = self.trader.ReqQryInstrument()
             if instrument is not False:
                 break
         else:
-            logging.error('trader connect FAILED!')
+            logging.error('get instrument FAILED!')
             self.reset()
             return
 
+        # check whether today is tradingday
         self.today = arrow.now().format('YYYYMMDD')
         self.tradingday = self.trader.GetTradingDay().decode('gb2312')
         logging.info('today: {}, tradingday: {}'.format(
@@ -103,25 +140,19 @@ class CTPDailyMarketTool:
             self.reset()
             return
 
-        self.market = CTPMarketSpi(
-            self.config['CTP']['ConPath'].encode(),
-            self.config['CTP']['MarketFront'].encode(),
-            self.config['CTP']['BrokerID'].encode(),
-            self.config['CTP']['UserID'].encode(),
-            self.config['CTP']['Password'].encode(),
-            self.dealMarket
-        )
-
-        for _ in range(self.RETRY_TIME):
-            if not self.market.Connect():
-                continue
-            if self.market.ReqUserLogin():
+        # create market spi
+        for i in range(self.RETRY_TIME):
+            logging.info('TRY ({}) times market login'.format(i))
+            if self.marketLogin():
                 break
+            logging.info('try login again')
+            self.delMarketSpi()
         else:
-            logging.error('market connect FAILED!')
+            logging.error('market login FAILED!')
             self.reset()
             return
 
+        # sub instruments
         inst_list = instrument.index()
         for start_idx in range(0, len(inst_list), self.SUB_SIZE):
             end_idx = start_idx + self.SUB_SIZE
@@ -137,6 +168,7 @@ class CTPDailyMarketTool:
                 self.reset()
                 return
 
+        # wait to collect data
         logging.info('wait {} mins!'.format(self.WAIT_MIN))
         time.sleep(self.WAIT_MIN * 60)
         logging.warning('not reveice instrument: {}'.format(

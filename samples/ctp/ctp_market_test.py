@@ -11,4 +11,5 @@ logging.basicConfig(
 tool = CTPDailyMarketTool(
     './config.ini', './save/'
 )
+tool.RETRY_TIME = 3
 tool.marketFunc()
