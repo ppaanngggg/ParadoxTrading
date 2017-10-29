@@ -2,4 +2,5 @@ from .FetchBase import RegisterInstrument, RegisterIndex
 from .FetchDominantIndex import FetchDominantIndex
 from .FetchInstrumentDayData import FetchInstrumentDayData
 from .FetchInstrumentTickData import FetchInstrumentTickData
+from .FetchInstrumentMinData import FetchInstrumentMinData
 from .FetchProductIndex import FetchProductIndex
