@@ -6,21 +6,9 @@ import tabulate
 
 from ParadoxTrading.Engine import ActionType, DirectionType, FillEvent, \
     OrderEvent, OrderType, PortfolioAbstract, SignalEvent
+from ParadoxTrading.EngineExt.Futures.PointValue import POINT_VALUE
 from ParadoxTrading.Fetch import FetchAbstract
 from ParadoxTrading.Utils import DataStruct
-
-POINT_VALUE = {
-    'if': 300, 'ic': 200, 'ih': 300, 't': 10000, 'tf': 10000,  # cffex
-    'cu': 5, 'al': 5, 'zn': 5, 'pb': 5, 'ni': 1, 'sn': 1,  # shfe
-    'au': 1000, 'ag': 15, 'rb': 10, 'wr': 10, 'hc': 10,  # shfe
-    'fu': 50, 'bu': 10, 'ru': 10,  # shfe
-    'c': 10, 'cs': 10, 'a': 10, 'b': 10, 'm': 10, 'y': 10, 'p': 10,  # dce
-    'fb': 500, 'bb': 500, 'jd': 10,  # dce
-    'l': 5, 'v': 5, 'pp': 5, 'j': 100, 'jm': 60, 'i': 100,  # dce
-    'wh': 20, 'pm': 50, 'ri': 20, 'jr': 20, 'lr': 20,  # czce
-    'cf': 5, 'cy': 5, 'sr': 10, 'rs': 10, 'rm': 10, 'ma': 10, 'oi': 10,  # czce
-    'tc': 200, 'zc': 100, 'sm': 5, 'sf': 5, 'ta': 5, 'fg': 20,  # czce
-}
 
 
 class InstrumentMgr:
@@ -401,7 +389,6 @@ class InterDayPortfolio(PortfolioAbstract):
         # map symbol to latest price, need to be reset after settlement
         self.symbol_price_dict: typing.Dict[str, float] = {}
         # tmp value inter functions
-        self.total_fund: float = 0.0
 
     def dealSignal(self, _event: SignalEvent):
         self.strategy_mgr.dealSignal(_event)
@@ -442,7 +429,7 @@ class InterDayPortfolio(PortfolioAbstract):
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
                 i_mgr.next_quantity = int(i_mgr.strength) \
-                    * POINT_VALUE[i_mgr.product]
+                                      * POINT_VALUE[i_mgr.product]
                 if i_mgr.next_quantity != 0:
                     # next dominant instrument
                     i_mgr.next_instrument = self.fetcher.fetchSymbol(
@@ -484,8 +471,6 @@ class InterDayPortfolio(PortfolioAbstract):
         self.portfolio_mgr.dealSettlement(
             _tradingday, self.symbol_price_dict
         )
-        # 3. set cur total fund
-        self.total_fund = self.portfolio_mgr.getStaticFund()
         # 4. update each strategy's position to current status
         self._iter_update_cur_status()
 
@@ -496,7 +481,6 @@ class InterDayPortfolio(PortfolioAbstract):
         # 7. reset all tmp info
         self._iter_reset_status()
         self.symbol_price_dict = {}
-        self.total_fund = 0.0
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         pass

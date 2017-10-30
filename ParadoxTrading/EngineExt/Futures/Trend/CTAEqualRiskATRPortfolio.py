@@ -50,7 +50,7 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
             parts = self._calc_available_product()
             if parts == 0:
                 return
-            total_risk_alloc = self.total_fund * self.risk_rate
+            total_risk_alloc = self.portfolio_mgr.getStaticFund() * self.risk_rate
             part_risk_alloc = total_risk_alloc / parts
 
             tmp_dict = {}

@@ -51,7 +51,7 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
             if parts == 0:
                 return
 
-            part_fund_alloc = self.total_fund / parts
+            part_fund_alloc = self.portfolio_mgr.getStaticFund() / parts
 
             tmp_dict = {}
             for p_mgr in self.strategy_mgr:
