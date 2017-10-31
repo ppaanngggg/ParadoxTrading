@@ -1,8 +1,12 @@
 import logging
+import re
 import sys
+import typing
 
-from ParadoxTrading.Engine import FillEvent, SignalEvent
+from ParadoxTrading.Engine import FillEvent, SignalEvent, SignalType, \
+    OrderEvent, OrderType, ActionType, DirectionType
 from ParadoxTrading.Engine import PortfolioAbstract
+from ParadoxTrading.EngineExt.Futures.PointValue import POINT_VALUE
 from ParadoxTrading.Fetch import FetchAbstract
 from ParadoxTrading.Utils import DataStruct
 
@@ -25,15 +29,86 @@ class BarPortfolio(PortfolioAbstract):
     ):
         super().__init__(_init_fund, _margin_rate)
 
+        self.index_strategy_table: typing.Dict[int, str] = {}
+
         self.fetcher = _fetcher
         self.settlement_price_index = _settlement_price_index
+
+        self.addPickleKey('index_strategy_table')
+
+    def genOrder(
+            self, _symbol: str,
+            _action: int, _direction: int, _quantity: int
+    ) -> OrderEvent:
+        return OrderEvent(
+            _index=self.incOrderIndex(),
+            _symbol=_symbol,
+            _tradingday=self.engine.getTradingDay(),
+            _datetime=self.engine.getDatetime(),
+            _order_type=OrderType.MARKET,
+            _action=_action,
+            _direction=_direction,
+            _quantity=_quantity,
+        )
 
     def dealSignal(self, _event: SignalEvent):
         self.portfolio_mgr.dealSignal(_event)
 
+        instrument = _event.symbol
+        product = re.findall(r'[a-zA-Z]+', instrument)[0]
+
+        order_list: typing.List[OrderEvent] = []
+        short_quantity = self.portfolio_mgr.getPosition(
+            instrument, SignalType.SHORT
+        )
+        long_quantity = self.portfolio_mgr.getPosition(
+            instrument, SignalType.LONG
+        )
+        if _event.signal_type == SignalType.LONG:
+            if short_quantity > 0:  # close short position
+                order_list.append(self.genOrder(
+                    _event.symbol, ActionType.CLOSE, DirectionType.BUY,
+                    short_quantity
+                ))
+            if long_quantity == 0:  # open long position
+                order_list.append(self.genOrder(
+                    _event.symbol, ActionType.OPEN, DirectionType.BUY,
+                    POINT_VALUE[product]
+                ))
+        elif _event.signal_type == SignalType.SHORT:
+            if long_quantity > 0:
+                order_list.append(self.genOrder(
+                    _event.symbol, ActionType.CLOSE, DirectionType.SELL,
+                    long_quantity
+                ))
+            if short_quantity == 0:
+                order_list.append(self.genOrder(
+                    _event.symbol, ActionType.OPEN, DirectionType.SELL,
+                    POINT_VALUE[product]
+                ))
+        elif _event.signal_type == SignalType.EMPTY:
+            if long_quantity > 0:
+                order_list.append(self.genOrder(
+                    _event.symbol, ActionType.CLOSE, DirectionType.SELL,
+                    long_quantity
+                ))
+            if short_quantity > 0:  # close short position
+                order_list.append(self.genOrder(
+                    _event.symbol, ActionType.CLOSE, DirectionType.BUY,
+                    short_quantity
+                ))
+        else:
+            raise Exception('unknown signal type')
+
+        for o in order_list:
+            self.index_strategy_table[o.index] = _event.strategy
+            self.addEvent(o)
+            self.portfolio_mgr.dealOrder(_event.strategy, o)
+
     def dealFill(self, _event: FillEvent):
-        # self.portfolio_mgr.dealFill(, _event)
-        pass
+        self.portfolio_mgr.dealFill(
+            self.index_strategy_table[_event.index], _event
+        )
 
     def dealSettlement(self, _tradingday: str):
         assert _tradingday

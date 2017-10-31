@@ -1,5 +1,4 @@
-from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, OrderType, \
-    FillEvent
+from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, FillEvent
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -22,36 +21,22 @@ class BarBacktestExecution(ExecutionAbstract):
         self.commission_rate = _commission_rate
         self.price_idx = _price_idx
 
-    def dealOrderEvent(self,
-                       _order_event: OrderEvent):
-        if _order_event.order_type == OrderType.LIMIT:
-            fill_event = FillEvent(
-                _index=_order_event.index,
-                _symbol=_order_event.symbol,
-                _tradingday=self.engine.getTradingDay(),
-                _datetime=self.engine.getDatetime(),
-                _quantity=_order_event.quantity,
-                _action=_order_event.action,
-                _direction=_order_event.direction,
-                _price=_order_event.price,
-                _commission=self.commission_rate * _order_event.quantity * _order_event.price,
-            )
-            self.addEvent(fill_event)
-        elif _order_event.order_type == OrderType.MARKET:
-            assert _order_event.index not in self.order_dict.keys()
-            self.order_dict[_order_event.index] = _order_event
-        else:
-            raise Exception('unknown order type')
+    def dealOrderEvent(
+            self, _order_event: OrderEvent
+    ):
+        assert _order_event.index not in self.order_dict.keys()
+        self.order_dict[_order_event.index] = _order_event
 
     def matchMarket(self, _symbol: str, _data: DataStruct):
         assert len(_data) == 1
 
         time = _data.index()[0]
-        openprice: float = _data[self.price_idx][0]
 
         for index in sorted(self.order_dict.keys()):
             order = self.order_dict[index]
             if order.symbol == _symbol and time > order.datetime:
+                exec_price: float = _data[self.price_idx][0]
+                comm = self.commission_rate * order.quantity * exec_price
                 self.addEvent(FillEvent(
                     _index=order.index,
                     _symbol=order.symbol,
@@ -60,7 +45,7 @@ class BarBacktestExecution(ExecutionAbstract):
                     _quantity=order.quantity,
                     _action=order.action,
                     _direction=order.direction,
-                    _price=openprice,
-                    _commission=self.commission_rate * order.quantity * openprice
+                    _price=exec_price,
+                    _commission=comm
                 ))
                 del self.order_dict[index]
