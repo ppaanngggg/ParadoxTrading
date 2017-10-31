@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta
 
 from ParadoxTrading.Chart import Wizard
 from ParadoxTrading.Engine import StrategyAbstract, MarketEvent, \
@@ -19,12 +20,24 @@ class MAStrategy(StrategyAbstract):
 
         self.addMarketRegister(RegisterInstrument('rb'))
         self.ema: EMA = EMA(20)
-        self.last_status = SignalType.EMPTY
+        self.last_status: int = SignalType.EMPTY
+        self.empty_time: datetime = None
 
         self.addPickleKey('ema', 'last_status')
 
     def deal(self, _market_event: MarketEvent):
         data = _market_event.data
+        if self.empty_time is None:
+            self.empty_time = datetime.strptime(
+                self.engine.getTradingDay(), '%Y%m%d'
+            ) + timedelta(hours=14, minutes=45)
+
+        if self.engine.getDatetime() > self.empty_time:
+            if self.last_status != SignalType.EMPTY:
+                self.addEvent(_market_event.symbol, SignalType.EMPTY)
+                self.last_status = SignalType.EMPTY
+            return
+
         closeprice = data['closeprice'][0]
         ema_value = self.ema.addOne(data).getLastData()['ema'][0]
 
@@ -51,6 +64,8 @@ class MAStrategy(StrategyAbstract):
 
     def settlement(self, _settlement_event: SettlementEvent):
         self.ema = EMA(20)
+        self.last_status: int = SignalType.EMPTY
+        self.empty_time: datetime = None
 
 
 fetcher = FetchInstrumentMinData()
@@ -72,6 +87,7 @@ engine.run()
 
 portfolio.storeRecords('futures_bar_backtest')
 daily_returns = dailyReturn('futures_bar_backtest')
+print(daily_returns)
 buy_records, sell_record = FetchRecord().fillToBuySell(
     'futures_bar_backtest'
 )
