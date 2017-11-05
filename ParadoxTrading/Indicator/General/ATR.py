@@ -31,8 +31,11 @@ class ATR(IndicatorAbstract):
     def _addOne(self, _data_struct: DataStruct):
         if self.last_close_price is not None:
             index_value = _data_struct.index()[0]
-            tr_value = max(_data_struct[self.high_key][0], self.last_close_price) - \
-                       min(_data_struct[self.low_key][0], self.last_close_price)
+            tr_value = max(
+                _data_struct[self.high_key][0], self.last_close_price
+            ) - min(
+                _data_struct[self.low_key][0], self.last_close_price
+            )
             if self.last_atr is None:
                 self.last_atr = tr_value
             else:

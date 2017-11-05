@@ -24,7 +24,8 @@ class ArbitrageSimplePortfolio(InterDayPortfolio):
         strategy_num = self._calc_available_strategy()
         if strategy_num == 0:  # all strategy empty, return
             return
-        strategy_fund = self.total_fund * self.leverage_rate / strategy_num
+        strategy_fund = self.portfolio_mgr.getStaticFund() \
+            * self.leverage_rate / strategy_num
         for p_mgr in self.strategy_mgr:
             product_num = 0
             for i_mgr in p_mgr:
@@ -36,8 +37,10 @@ class ArbitrageSimplePortfolio(InterDayPortfolio):
             for i_mgr in p_mgr:
                 if i_mgr.strength == 0:  # empty product, skip
                     continue
-                price = self._fetch_buf_price(_tradingday, i_mgr.next_instrument)
-                i_mgr.next_quantity = int(
+                price = self._fetch_buf_price(
+                    _tradingday, i_mgr.next_instrument
+                )
+                i_mgr.next_quantity = round(
                     i_mgr.strength * product_fund / price /
                     POINT_VALUE[i_mgr.product]
                 ) * POINT_VALUE[i_mgr.product]

@@ -1,6 +1,7 @@
 import typing
 
-from ParadoxTrading.Engine import StrategyAbstract, MarketEvent, SettlementEvent, SignalType
+from ParadoxTrading.Engine import StrategyAbstract, MarketEvent, \
+    SettlementEvent, SignalType
 
 
 class MarketEventMgr:
