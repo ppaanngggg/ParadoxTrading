@@ -1,8 +1,9 @@
 import logging
-import typing
 
 import ParadoxTrading.Engine
-from ParadoxTrading.Engine.Event import MarketEvent, SignalEvent, SignalType, SettlementEvent
+import typing
+from ParadoxTrading.Engine.Event import MarketEvent, SettlementEvent, \
+    SignalEvent, SignalType
 from ParadoxTrading.Fetch import RegisterAbstract
 from ParadoxTrading.Utils import Serializable
 

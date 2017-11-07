@@ -1,10 +1,14 @@
+from collections import deque
+
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
 
 
 class ReturnRate(IndicatorAbstract):
     def __init__(
-            self, _period: int = 1,
+            self,
+            _smooth_period: int = 1,
+            _skip_period: int = 1,
             _use_abs: bool=False,
             _use_percent: bool=False,
             _use_key: str = 'closeprice',
@@ -20,17 +24,21 @@ class ReturnRate(IndicatorAbstract):
             [self.idx_key, self.ret_key],
             self.idx_key
         )
-        self.last_value = None
+
+        self.skip_period = _skip_period
+        self.smooth_period = _smooth_period
+        self.buf = deque(maxlen=self.skip_period)
         self.last_rate = None
-        self.period = _period
+
         self.use_abs = _use_abs
         self.use_percent = _use_percent
 
     def _addOne(self, _data_struct: DataStruct):
         index = _data_struct.index()[0]
         value = _data_struct[self.use_key][0]
-        if self.last_value is not None:
-            chg_rate = value / self.last_value - 1
+        if len(self.buf) >= self.skip_period:
+            last_value = self.buf.popleft()
+            chg_rate = value / last_value - 1
             if self.use_abs:
                 chg_rate = abs(chg_rate)
             if self.use_percent:
@@ -39,9 +47,9 @@ class ReturnRate(IndicatorAbstract):
                 self.last_rate = chg_rate
             else:
                 self.last_rate = (chg_rate - self.last_rate) / \
-                    self.period + self.last_rate
+                    self.smooth_period + self.last_rate
             self.data.addDict({
                 self.idx_key: index,
                 self.ret_key: self.last_rate
             })
-        self.last_value = value
+        self.buf.append(value)

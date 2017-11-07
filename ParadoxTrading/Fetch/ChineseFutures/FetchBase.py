@@ -373,7 +373,7 @@ class FetchBase(FetchAbstract):
 
         :param _tradingday: the tradingday
         :param _product: the product to fetch
-        :param _instrument: the instrument to fetch, if _product is None, then use this
+        :param _instrument: the instrument to fetch if prduct is None
         :param _sub_dominant: whether to use sub dominant
         :return:
         """
@@ -454,8 +454,8 @@ class FetchBase(FetchAbstract):
         query = "SELECT * FROM {} " \
                 "WHERE tradingday >= '{}' AND tradingday < '{}' " \
                 "ORDER BY {}".format(
-            _symbol.lower(), begin_day, end_day, _index.lower()
-        )
+                    _symbol.lower(), begin_day, end_day, _index.lower()
+                )
         cur.execute(query)
         datas = list(cur.fetchall())
 

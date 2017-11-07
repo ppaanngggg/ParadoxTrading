@@ -1,2 +1,2 @@
-from .ArbitrageSimplePortfolio import ArbitrageSimplePortfolio
+from .ArbitrageEqualFundPortfolio import ArbitrageEqualFundPortfolio
 from .ArbitrageStrategy import ArbitrageStrategy

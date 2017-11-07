@@ -7,7 +7,7 @@ import tabulate
 from ParadoxTrading.Engine import ActionType, DirectionType, FillEvent, \
     OrderEvent, OrderType, PortfolioAbstract, SignalEvent
 from ParadoxTrading.EngineExt.Futures.PointValue import POINT_VALUE
-from ParadoxTrading.Fetch import FetchAbstract
+from ParadoxTrading.Fetch.ChineseFutures.FetchBase import FetchBase
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -372,7 +372,7 @@ class StrategyMgr:
 class InterDayPortfolio(PortfolioAbstract):
     def __init__(
             self,
-            _fetcher: FetchAbstract,
+            _fetcher: FetchBase,
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
             _settlement_price_index: str = 'closeprice',
@@ -410,10 +410,15 @@ class InterDayPortfolio(PortfolioAbstract):
                         _tradingday, symbol
                     )[self.settlement_price_index][0]
                 except TypeError as e:
-                    logging.error('Tradingday: {}, Symbol: {}, e: {}'.format(
+                    # if not available, use the last tradingday's price
+                    logging.warning('Tradingday: {}, Symbol: {}, e: {}'.format(
                         _tradingday, symbol, e
                     ))
-                    sys.exit(1)
+                    self.symbol_price_dict[symbol] = self.fetcher.fetchData(
+                        self.fetcher.instrumentLastTradingDay(
+                            symbol, _tradingday
+                        ), symbol
+                    )[self.settlement_price_index][0]
 
     def _iter_update_cur_status(self):
         # iter each strategy's each product
@@ -429,7 +434,7 @@ class InterDayPortfolio(PortfolioAbstract):
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
                 i_mgr.next_quantity = int(i_mgr.strength) \
-                                      * POINT_VALUE[i_mgr.product]
+                    * POINT_VALUE[i_mgr.product]
                 if i_mgr.next_quantity != 0:
                     # next dominant instrument
                     i_mgr.next_instrument = self.fetcher.fetchSymbol(

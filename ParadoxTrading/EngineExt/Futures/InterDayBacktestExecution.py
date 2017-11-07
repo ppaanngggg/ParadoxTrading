@@ -1,5 +1,8 @@
-from ParadoxTrading.Engine import ExecutionAbstract, OrderEvent, OrderType, \
-    FillEvent
+import logging
+
+from ParadoxTrading.Engine import ExecutionAbstract, FillEvent, OrderEvent, \
+    OrderType
+from ParadoxTrading.Fetch.ChineseFutures.FetchBase import FetchBase
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -14,13 +17,13 @@ class InterDayBacktestExecution(ExecutionAbstract):
     """
 
     def __init__(
-            self, _fetcher,
+            self, _fetcher: FetchBase,
             _commission_rate: float = 0.0,
             _price_idx='openprice'
     ):
         super().__init__()
 
-        self.fetcher = _fetcher
+        self.fetcher: FetchBase = _fetcher
         self.commission_rate = _commission_rate
         self.price_idx = _price_idx
 
@@ -29,21 +32,33 @@ class InterDayBacktestExecution(ExecutionAbstract):
     ):
         assert _order_event.order_type == OrderType.MARKET
 
-        fill_price = self.fetcher.fetchData(
-            self.engine.getTradingDay(),
-            _order_event.symbol,
-        )[self.price_idx][0]
+        tradingday = self.engine.getTradingDay()
+        symbol = _order_event.symbol
+        try:
+            price = self.fetcher.fetchData(
+                self.engine.getTradingDay(), _order_event.symbol,
+            )[self.price_idx][0]
+        except TypeError as e:
+            # if not available, use last tradingday's closeprice
+            logging.warning('Tradingday: {}, Symbol: {}, e: {}'.format(
+                tradingday, symbol, e
+            ))
+            price = self.fetcher.fetchData(
+                self.fetcher.instrumentLastTradingDay(
+                    _order_event.symbol, self.engine.getTradingDay()
+                ), _order_event.symbol
+            )['closeprice'][0]
 
         fill_event = FillEvent(
             _index=_order_event.index,
-            _symbol=_order_event.symbol,
-            _tradingday=self.engine.getTradingDay(),
+            _symbol=symbol,
+            _tradingday=tradingday,
             _datetime=self.engine.getDatetime(),
             _quantity=_order_event.quantity,
             _action=_order_event.action,
             _direction=_order_event.direction,
-            _price=fill_price,
-            _commission=self.commission_rate * _order_event.quantity * fill_price,
+            _price=price,
+            _commission=self.commission_rate * _order_event.quantity * price
         )
         self.addEvent(fill_event)
 
