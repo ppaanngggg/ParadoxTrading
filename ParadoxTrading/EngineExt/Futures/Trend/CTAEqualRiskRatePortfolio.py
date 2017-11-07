@@ -123,6 +123,6 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
             self.rate_table[_symbol].addOne(_data)
         except KeyError:
             self.rate_table[_symbol] = ReturnRate(
-                self.rate_period, True
+                self.rate_period, _use_abs=True
             )
             self.rate_table[_symbol].addOne(_data)
