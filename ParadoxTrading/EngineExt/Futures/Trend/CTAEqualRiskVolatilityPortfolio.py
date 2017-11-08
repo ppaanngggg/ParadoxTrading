@@ -1,10 +1,10 @@
 import math
-import typing
 
-from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import \
-    InterDayPortfolio, POINT_VALUE
+import typing
+from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE, \
+    InterDayPortfolio
 from ParadoxTrading.Fetch import FetchAbstract
-from ParadoxTrading.Indicator import Volatility
+from ParadoxTrading.Indicator import FastVolatility
 from ParadoxTrading.Utils import DataStruct
 
 
@@ -30,7 +30,7 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
         self.adjust_count = 0
         self.volatility_period = _volatility_period
         self.volatility_smooth = _volatility_smooth
-        self.volatility_table: typing.Dict[str, Volatility] = {}
+        self.volatility_table: typing.Dict[str, FastVolatility] = {}
 
         self.addPickleKey('adjust_count', 'volatility_table')
 
@@ -61,39 +61,57 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
                         i_mgr.next_quantity = 0
                     else:
                         # if strength status changes or instrument changes
-                        tmp_v = self.volatility_table[i_mgr.product].getAllData()['volatility'][-1]
+                        tmp_v = self.volatility_table[
+                            i_mgr.product
+                        ].getAllData()['volatility'][-1]
                         var = tmp_v ** 2
 
                         real_w = self.risk_rate / tmp_v
                         real_v = real_w ** 2 * var
-                        price = self._fetch_buf_price(_tradingday, i_mgr.next_instrument)
-                        real_q = part_fund_alloc * real_w / (price * POINT_VALUE[i_mgr.product])
+                        price = self._fetch_buf_price(
+                            _tradingday, i_mgr.next_instrument
+                        )
+                        real_q = part_fund_alloc * real_w / (
+                            price * POINT_VALUE[i_mgr.product]
+                        )
                         floor_q = math.floor(real_q)
-                        floor_w = floor_q * price * POINT_VALUE[i_mgr.product] / part_fund_alloc
+                        floor_w = floor_q * price * POINT_VALUE[
+                            i_mgr.product
+                        ] / part_fund_alloc
                         floor_v = floor_w ** 2 * var
                         ceil_q = math.ceil(real_q)
-                        ceil_w = ceil_q * price * POINT_VALUE[i_mgr.product] / part_fund_alloc
+                        ceil_w = ceil_q * price * POINT_VALUE[
+                            i_mgr.product
+                        ] / part_fund_alloc
                         ceil_v = ceil_w ** 2 * var
                         tmp_dict[i_mgr] = {
-                            'real_w': real_w, 'real_q': real_q, 'real_v': real_v,
-                            'floor_w': floor_w, 'floor_q': floor_q, 'floor_v': floor_v,
-                            'ceil_w': ceil_w, 'ceil_q': ceil_q, 'ceil_v': ceil_v,
-                            'per_risk': ceil_v - floor_v, 'diff_risk': ceil_v - real_v
+                            'real_w': real_w, 'real_q': real_q,
+                            'real_v': real_v,
+                            'floor_w': floor_w, 'floor_q': floor_q,
+                            'floor_v': floor_v,
+                            'ceil_w': ceil_w, 'ceil_q': ceil_q,
+                            'ceil_v': ceil_v,
+                            'per_risk': ceil_v - floor_v,
+                            'diff_risk': ceil_v - real_v
                         }
 
             free_risk_alloc = self.risk_rate ** 2 * parts
             for d in tmp_dict.values():
                 free_risk_alloc -= d['floor_v']
 
-            tmp_tuples = sorted(tmp_dict.items(), key=lambda x: x[1]['per_risk'])
+            tmp_tuples = sorted(
+                tmp_dict.items(), key=lambda x: x[1]['per_risk']
+            )
             for i_mgr, tmp in tmp_tuples:
                 if free_risk_alloc > tmp['per_risk']:
-                    i_mgr.next_quantity = tmp['ceil_q'] * POINT_VALUE[i_mgr.product]
+                    i_mgr.next_quantity = tmp['ceil_q'] \
+                        * POINT_VALUE[i_mgr.product]
                     if i_mgr.strength < 0:
                         i_mgr.next_quantity = -i_mgr.next_quantity
                     free_risk_alloc -= tmp['per_risk']
                 else:
-                    i_mgr.next_quantity = tmp['floor_q'] * POINT_VALUE[i_mgr.product]
+                    i_mgr.next_quantity = tmp['floor_q'] \
+                        * POINT_VALUE[i_mgr.product]
                     if i_mgr.strength < 0:
                         i_mgr.next_quantity = -i_mgr.next_quantity
         else:
@@ -108,7 +126,7 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
         try:
             self.volatility_table[_symbol].addOne(_data)
         except KeyError:
-            self.volatility_table[_symbol] = Volatility(
+            self.volatility_table[_symbol] = FastVolatility(
                 _period=self.volatility_period,
                 _factor=252, _smooth=self.volatility_smooth,
                 _use_key=self.settlement_price_index,

@@ -53,7 +53,7 @@ class FastVolatility(IndicatorAbstract):
 
             std_value = math.sqrt(
                 self.sum_of_pow / len(self.buf) - self.mean ** 2
-            )
+            ) * self.factor
             if self.smooth > 1 and len(self.data):
                 last_std_value = self.data[self.ret_key][-1]
                 std_value = (
