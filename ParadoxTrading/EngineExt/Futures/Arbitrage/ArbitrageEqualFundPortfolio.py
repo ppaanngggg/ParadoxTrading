@@ -30,28 +30,26 @@ class ArbitrageEqualFundPortfolio(InterDayPortfolio):
         if self.adjust_period >= self.adjust_period:
             flag = True
 
-        if flag:
+        if flag:  # to rebalance
             self.adjust_period = 0
 
             strategy_num = self._calc_available_strategy()
             if strategy_num == 0:  # all strategy empty
-                strategy_fund = 0.0
-            else:
-                strategy_fund = self.portfolio_mgr.getStaticFund() \
-                    * self.leverage_rate / strategy_num
+                return
+            strategy_fund = self.portfolio_mgr.getStaticFund() * (
+                self.leverage_rate / strategy_num
+            )
             for p_mgr in self.strategy_mgr:
+                # count product number
                 product_num = 0
                 for i_mgr in p_mgr:
                     if i_mgr.strength != 0:
                         product_num += 1
-                if product_num == 0:  # all product empty
-                    product_fund = 0.0
-                else:
-                    product_fund = strategy_fund / product_num
+                if product_num == 0:  # all empty, next strategy
+                    continue
+                product_fund = strategy_fund / product_num
                 for i_mgr in p_mgr:
-                    if i_mgr.strength == 0:  # empty product, skip
-                        i_mgr.next_quantity = 0
-                    else:
+                    if i_mgr.strength != 0:  # set available product
                         price = self._fetch_buf_price(
                             _tradingday, i_mgr.next_instrument
                         )

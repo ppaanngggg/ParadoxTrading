@@ -490,10 +490,15 @@ class InterDayPortfolio(PortfolioAbstract):
     def dealMarket(self, _symbol: str, _data: DataStruct):
         pass
 
-    # utility
+    # utility functions
     def _detect_update_instrument(
             self, _tradingday
     ) -> bool:
+        """
+        Iter to update all products' current instruments.
+        If strength is 0, remain None.
+        If any product's instrument changes, return True, else False
+        """
         flag = False
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
@@ -505,7 +510,6 @@ class InterDayPortfolio(PortfolioAbstract):
                     )
                     if i_mgr.next_instrument != i_mgr.cur_instrument:
                         flag = True
-
         return flag
 
     def _detect_change(self) -> bool:
@@ -523,8 +527,6 @@ class InterDayPortfolio(PortfolioAbstract):
     def _detect_sign_change(self) -> bool:
         """
         detect sign of strength changes
-
-        :return:
         """
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
@@ -538,8 +540,6 @@ class InterDayPortfolio(PortfolioAbstract):
     def _calc_total_strength(self) -> float:
         """
         sum all the strength
-
-        :return:
         """
         total_strength = 0.0
         for p_mgr in self.strategy_mgr:
@@ -548,6 +548,9 @@ class InterDayPortfolio(PortfolioAbstract):
         return total_strength
 
     def _calc_available_strategy(self) -> int:
+        """
+        count all available strategy
+        """
         parts = 0
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
@@ -559,8 +562,6 @@ class InterDayPortfolio(PortfolioAbstract):
     def _calc_available_product(self) -> int:
         """
         count how many strategies open positions
-
-        :return:
         """
         parts = 0
         for p_mgr in self.strategy_mgr:
@@ -570,6 +571,9 @@ class InterDayPortfolio(PortfolioAbstract):
         return parts
 
     def _fetch_buf_price(self, _tradingday, _symbol) -> float:
+        """
+        fetch price and store into buf
+        """
         try:
             price = self.symbol_price_dict[_symbol]
         except KeyError:
