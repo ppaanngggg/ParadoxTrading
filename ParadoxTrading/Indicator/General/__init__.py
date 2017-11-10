@@ -1,4 +1,5 @@
 from .AdaBBands import AdaBBands
+from .AdaKalman import AdaKalman
 from .ATR import ATR
 from .BBands import BBands
 from .BIAS import BIAS

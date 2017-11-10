@@ -45,8 +45,7 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
         if self.adjust_count >= self.adjust_period:
             flag = True
 
-        if flag:
-            # reset count if adjust
+        if flag:  # rebalance and reset count
             self.adjust_count = 0
 
             parts = self._calc_available_product()
@@ -58,42 +57,41 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
             for p_mgr in self.strategy_mgr:
                 for i_mgr in p_mgr:
                     if i_mgr.strength == 0:
-                        i_mgr.next_quantity = 0
-                    else:
-                        # if strength status changes or instrument changes
-                        tmp_v = self.volatility_table[
-                            i_mgr.product
-                        ].getAllData()['volatility'][-1]
-                        var = tmp_v ** 2
+                        continue
+                    # if strength status changes or instrument changes
+                    tmp_v = self.volatility_table[
+                        i_mgr.product
+                    ].getAllData()['volatility'][-1]
+                    var = tmp_v ** 2
 
-                        real_w = self.risk_rate / tmp_v
-                        real_v = real_w ** 2 * var
-                        price = self._fetch_buf_price(
-                            _tradingday, i_mgr.next_instrument
-                        )
-                        real_q = part_fund_alloc * real_w / (
-                            price * POINT_VALUE[i_mgr.product]
-                        )
-                        floor_q = math.floor(real_q)
-                        floor_w = floor_q * price * POINT_VALUE[
-                            i_mgr.product
-                        ] / part_fund_alloc
-                        floor_v = floor_w ** 2 * var
-                        ceil_q = math.ceil(real_q)
-                        ceil_w = ceil_q * price * POINT_VALUE[
-                            i_mgr.product
-                        ] / part_fund_alloc
-                        ceil_v = ceil_w ** 2 * var
-                        tmp_dict[i_mgr] = {
-                            'real_w': real_w, 'real_q': real_q,
-                            'real_v': real_v,
-                            'floor_w': floor_w, 'floor_q': floor_q,
-                            'floor_v': floor_v,
-                            'ceil_w': ceil_w, 'ceil_q': ceil_q,
-                            'ceil_v': ceil_v,
-                            'per_risk': ceil_v - floor_v,
-                            'diff_risk': ceil_v - real_v
-                        }
+                    real_w = self.risk_rate / tmp_v
+                    real_v = real_w ** 2 * var
+                    price = self._fetch_buf_price(
+                        _tradingday, i_mgr.next_instrument
+                    )
+                    real_q = part_fund_alloc * real_w / (
+                        price * POINT_VALUE[i_mgr.product]
+                    )
+                    floor_q = math.floor(real_q)
+                    floor_w = floor_q * price * POINT_VALUE[
+                        i_mgr.product
+                    ] / part_fund_alloc
+                    floor_v = floor_w ** 2 * var
+                    ceil_q = math.ceil(real_q)
+                    ceil_w = ceil_q * price * POINT_VALUE[
+                        i_mgr.product
+                    ] / part_fund_alloc
+                    ceil_v = ceil_w ** 2 * var
+                    tmp_dict[i_mgr] = {
+                        'real_w': real_w, 'real_q': real_q,
+                        'real_v': real_v,
+                        'floor_w': floor_w, 'floor_q': floor_q,
+                        'floor_v': floor_v,
+                        'ceil_w': ceil_w, 'ceil_q': ceil_q,
+                        'ceil_v': ceil_v,
+                        'per_risk': ceil_v - floor_v,
+                        'diff_risk': ceil_v - real_v
+                    }
 
             free_risk_alloc = self.risk_rate ** 2 * parts
             for d in tmp_dict.values():
