@@ -7,7 +7,8 @@ from ParadoxTrading.Utils import DataStruct
 
 class FastSTD(IndicatorAbstract):
     def __init__(
-            self, _period: int, _use_key: str = 'closeprice',
+            self, _period: int, _ignore_mean: bool = False,
+            _use_key: str = 'closeprice',
             _idx_key: str = 'time', _ret_key: str = 'std'
     ):
         super().__init__()
@@ -22,7 +23,9 @@ class FastSTD(IndicatorAbstract):
 
         self.sum_of_pow = 0.0
         self.mean = 0.0
+
         self.period = _period
+        self.ignore_mean = _ignore_mean
         self.buf = deque(maxlen=self.period)
 
     def _addOne(self, _data_struct: DataStruct):
@@ -33,12 +36,14 @@ class FastSTD(IndicatorAbstract):
             self.buf.append(value)
             self.sum_of_pow += value ** 2
             self.sum_of_pow -= last_value ** 2
-            self.mean += (value - last_value) / self.period
+            if not self.ignore_mean:
+                self.mean += (value - last_value) / self.period
         else:
             n = len(self.buf)
             self.buf.append(value)
             self.sum_of_pow += value ** 2
-            self.mean = (self.mean * n + value) / len(self.buf)
+            if not self.ignore_mean:
+                self.mean = (self.mean * n + value) / len(self.buf)
 
         self.data.addDict({
             self.idx_key: index,

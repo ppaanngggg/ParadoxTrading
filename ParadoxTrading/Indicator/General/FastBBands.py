@@ -6,8 +6,9 @@ from collections import deque
 
 class FastBBands(IndicatorAbstract):
     def __init__(
-        self, _period: int = 26, _use_key: str = 'closeprice',
-        _rate: float = 2.0, _idx_key: str = 'time',
+        self, _period: int = 26, _rate: float = 2.0,
+        _ignore_mean: bool = False,
+        _use_key: str = 'closeprice', _idx_key: str = 'time',
         _ret_key=('upband', 'midband', 'downband')
     ):
         super().__init__()
@@ -22,6 +23,7 @@ class FastBBands(IndicatorAbstract):
 
         self.period = _period
         self.rate = _rate
+        self.ignore_mean = _ignore_mean
         self.buf = deque(maxlen=self.period)
 
         self.mean = 0.0
@@ -35,12 +37,14 @@ class FastBBands(IndicatorAbstract):
             self.buf.append(value)
             self.sum_of_pow += value ** 2
             self.sum_of_pow -= last_value ** 2
-            self.mean += (value - last_value) / self.period
+            if not self.ignore_mean:
+                self.mean += (value - last_value) / self.period
         else:
             n = len(self.buf)
             self.buf.append(value)
             self.sum_of_pow += value ** 2
-            self.mean = (self.mean * n + value) / len(self.buf)
+            if not self.ignore_mean:
+                self.mean = (self.mean * n + value) / len(self.buf)
 
         std = math.sqrt(
             self.sum_of_pow / len(self.buf) - self.mean ** 2
