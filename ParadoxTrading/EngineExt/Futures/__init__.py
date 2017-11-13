@@ -9,5 +9,6 @@ from .InterDayOnlineEngine import InterDayOnlineEngine
 from .InterDayOnlineExecution import InterDayOnlineExecution
 from .InterDayOnlineMarketSupply import InterDayOnlineMarketSupply
 from .InterDayPortfolio import InterDayPortfolio
-from .Trend import CTAEqualRiskATRPortfolio, CTAEqualRiskRatePortfolio, \
-    CTAEqualRiskVolatilityPortfolio, CTAStatusType, CTAStrategy
+from .Trend import CTAEqualFundPortfolio, CTAEqualRiskATRPortfolio, \
+    CTAEqualRiskRatePortfolio, CTAEqualRiskVolatilityPortfolio, \
+    CTAStatusType, CTAStrategy

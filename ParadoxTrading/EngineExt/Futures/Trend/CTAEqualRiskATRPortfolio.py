@@ -50,7 +50,8 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
             parts = self._calc_available_product()
             if parts == 0:
                 return
-            total_risk_alloc = self.portfolio_mgr.getStaticFund() * self.risk_rate
+            total_risk_alloc = self.portfolio_mgr.getStaticFund() \
+                * self.risk_rate
             part_risk_alloc = total_risk_alloc / parts
 
             tmp_dict = {}
@@ -60,8 +61,11 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
                         i_mgr.next_quantity = 0
                     else:
                         # if strength status changes or instrument changes
-                        atr = self.atr_table[i_mgr.product].getAllData()['atr'][-1]
-                        real = part_risk_alloc / atr / POINT_VALUE[i_mgr.product]
+                        atr = self.atr_table[
+                            i_mgr.product
+                        ].getAllData()['atr'][-1]
+                        real = part_risk_alloc / atr \
+                            / POINT_VALUE[i_mgr.product]
                         per_risk = POINT_VALUE[i_mgr.product] * atr
                         tmp_dict[i_mgr] = {
                             'atr': atr, 'real': real, 'per_risk': per_risk,
@@ -74,15 +78,19 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
                 free_risk_alloc -= math.floor(d['real']) * d['per_risk']
 
             # greedy to contain more product
-            tmp_tuples = sorted(tmp_dict.items(), key=lambda x: x[1]['per_risk'])
+            tmp_tuples = sorted(
+                tmp_dict.items(), key=lambda x: x[1]['per_risk']
+            )
             for i_mgr, tmp in tmp_tuples:
                 if free_risk_alloc > tmp['per_risk']:  # if risk available
-                    i_mgr.next_quantity = math.ceil(tmp['real']) * POINT_VALUE[i_mgr.product]
+                    i_mgr.next_quantity = math.ceil(tmp['real']) \
+                        * POINT_VALUE[i_mgr.product]
                     if i_mgr.strength < 0:
                         i_mgr.next_quantity = -i_mgr.next_quantity
                     free_risk_alloc -= tmp['per_risk']
                 else:
-                    i_mgr.next_quantity = math.floor(tmp['real']) * POINT_VALUE[i_mgr.product]
+                    i_mgr.next_quantity = math.floor(tmp['real']) \
+                        * POINT_VALUE[i_mgr.product]
                     if i_mgr.strength < 0:
                         i_mgr.next_quantity = -i_mgr.next_quantity
         else:
