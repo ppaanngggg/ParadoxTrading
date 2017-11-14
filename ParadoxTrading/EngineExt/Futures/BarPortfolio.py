@@ -16,7 +16,7 @@ class BarPortfolio(PortfolioAbstract):
     It is a simple portfolio management mod.
     When it receive a signal event, it will send a 1 hand limit order,
     and the limit price will be set as the latest closeprice. And it will
-    check the portfolio of strategy which sends the event, it will close 
+    check the portfolio of strategy which sends the event, it will close
     positions if possible
     """
 
@@ -36,7 +36,7 @@ class BarPortfolio(PortfolioAbstract):
 
         self.addPickleKey('index_strategy_table')
 
-    def genOrder(
+    def _gen_order(
             self, _symbol: str,
             _action: int, _direction: int, _quantity: int
     ) -> OrderEvent:
@@ -52,6 +52,7 @@ class BarPortfolio(PortfolioAbstract):
         )
 
     def dealSignal(self, _event: SignalEvent):
+        # add signal event to portfolio record
         self.portfolio_mgr.dealSignal(_event)
 
         instrument = _event.symbol
@@ -66,34 +67,34 @@ class BarPortfolio(PortfolioAbstract):
         )
         if _event.signal_type == SignalType.LONG:
             if short_quantity > 0:  # close short position
-                order_list.append(self.genOrder(
+                order_list.append(self._gen_order(
                     _event.symbol, ActionType.CLOSE, DirectionType.BUY,
                     short_quantity
                 ))
             if long_quantity == 0:  # open long position
-                order_list.append(self.genOrder(
+                order_list.append(self._gen_order(
                     _event.symbol, ActionType.OPEN, DirectionType.BUY,
                     POINT_VALUE[product]
                 ))
         elif _event.signal_type == SignalType.SHORT:
-            if long_quantity > 0:
-                order_list.append(self.genOrder(
+            if long_quantity > 0:  # close long position
+                order_list.append(self._gen_order(
                     _event.symbol, ActionType.CLOSE, DirectionType.SELL,
                     long_quantity
                 ))
-            if short_quantity == 0:
-                order_list.append(self.genOrder(
+            if short_quantity == 0:  # open short position
+                order_list.append(self._gen_order(
                     _event.symbol, ActionType.OPEN, DirectionType.SELL,
                     POINT_VALUE[product]
                 ))
         elif _event.signal_type == SignalType.EMPTY:
-            if long_quantity > 0:
-                order_list.append(self.genOrder(
+            if long_quantity > 0:  # close long position
+                order_list.append(self._gen_order(
                     _event.symbol, ActionType.CLOSE, DirectionType.SELL,
                     long_quantity
                 ))
             if short_quantity > 0:  # close short position
-                order_list.append(self.genOrder(
+                order_list.append(self._gen_order(
                     _event.symbol, ActionType.CLOSE, DirectionType.BUY,
                     short_quantity
                 ))
@@ -101,8 +102,11 @@ class BarPortfolio(PortfolioAbstract):
             raise Exception('unknown signal type')
 
         for o in order_list:
+            # buf the strategy who send order
             self.index_strategy_table[o.index] = _event.strategy
+            # send order event
             self.addEvent(o)
+            # add order event to record
             self.portfolio_mgr.dealOrder(_event.strategy, o)
 
     def dealFill(self, _event: FillEvent):

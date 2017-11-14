@@ -1,8 +1,9 @@
 import logging
-import typing
 
-from ParadoxTrading.Engine import EngineAbstract, EventType, ReturnMarket, \
-    ReturnSettlement, MarketSupplyAbstract, ExecutionAbstract, PortfolioAbstract, StrategyAbstract
+import typing
+from ParadoxTrading.Engine import EngineAbstract, EventType, \
+    ExecutionAbstract, MarketSupplyAbstract, PortfolioAbstract, ReturnMarket, \
+    ReturnSettlement, StrategyAbstract
 
 
 class BacktestEngine(EngineAbstract):
@@ -42,7 +43,8 @@ class BacktestEngine(EngineAbstract):
             while True:
                 if isinstance(ret, ReturnMarket):
                     # !!! the trigger must be ReturnMarket !!!
-                    # match market for each tick, maybe there are orders to be filled.
+                    # match market for each tick,
+                    # maybe there are orders to be filled.
                     # If filled, execution will add fill event into queue
                     # in fact, this is the simulation of exchange
                     self.execution.matchMarket(ret.symbol, ret.data)
