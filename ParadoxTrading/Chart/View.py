@@ -56,7 +56,7 @@ class View:
     def addBar(
             self, _name: str,
             _x_list: typing.Sequence, _y_list: typing.Sequence,
-            _color: typing.Any = None, _show_value: bool = True,
+            _color: typing.Any = None, _show_value: bool = False,
     ):
         assert _name not in self.series_table.keys()
         self.series_table[_name] = BarSeries(
@@ -66,7 +66,7 @@ class View:
     def addLine(
             self, _name: str,
             _x_list: typing.Sequence, _y_list: typing.Sequence,
-            _color: typing.Any = None, _show_value: bool = True,
+            _color: typing.Any = None, _show_value: bool = False,
     ):
         assert _name not in self.series_table.keys()
         self.series_table[_name] = LineSeries(
@@ -76,7 +76,7 @@ class View:
     def addScatter(
             self, _name: str,
             _x_list: typing.Sequence, _y_list: typing.Sequence,
-            _color: typing.Any = None, _show_value: bool = True
+            _color: typing.Any = None, _show_value: bool = False
     ):
         assert _name not in self.series_table.keys()
         self.series_table[_name] = ScatterSeries(
@@ -89,7 +89,7 @@ class View:
             _y_list: typing.Sequence[typing.Sequence],
             _inc_color: typing.Any = None,
             _dec_color: typing.Any = None,
-            _show_value: bool = True
+            _show_value: bool = False
     ):
         assert _name not in self.series_table.keys()
         self.series_table[_name] = CandleSeries(

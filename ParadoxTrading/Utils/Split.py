@@ -42,7 +42,9 @@ class SplitAbstract:
     def getBarEndTimeList(self) -> typing.List[DATETIME_TYPE]:
         return self.bar_end_time_list
 
-    def _get_begin_end_time(self, _cur_time: DATETIME_TYPE) -> (DATETIME_TYPE, DATETIME_TYPE):
+    def _get_begin_end_time(
+        self, _cur_time: DATETIME_TYPE
+    ) -> (DATETIME_TYPE, DATETIME_TYPE):
         raise NotImplementedError('You need to implement _get_begin_end_time!')
 
     def _create_new_bar(self, _data: DataStruct, _cur_time: DATETIME_TYPE):
@@ -140,7 +142,10 @@ class SplitIntoWeek(SplitAbstract):
         weekday = cur_date.weekday()
         begin_datetime: datetime = cur_date - timedelta(days=weekday)
         end_datetime: datetime = begin_datetime + timedelta(weeks=1)
-        return begin_datetime.strftime('%Y%m%d'), end_datetime.strftime('%Y%m%d')
+        return (
+            begin_datetime.strftime('%Y%m%d'),
+            end_datetime.strftime('%Y%m%d')
+        )
 
 
 class SplitIntoMonth(SplitAbstract):
@@ -150,7 +155,10 @@ class SplitIntoMonth(SplitAbstract):
         cur_date = arrow.get(_cur_time, 'YYYYMMDD')
         begin_datetime = cur_date.replace(day=1)
         end_datetime = begin_datetime.shift(months=1)
-        return begin_datetime.format('YYYYMMDD'), end_datetime.format('YYYYMMDD')
+        return (
+            begin_datetime.format('YYYYMMDD'),
+            end_datetime.format('YYYYMMDD')
+        )
 
 
 class SplitIntoYear(SplitAbstract):
@@ -160,4 +168,7 @@ class SplitIntoYear(SplitAbstract):
         cur_date = arrow.get(_cur_time, 'YYYYMMDD')
         begin_datetime = cur_date.replace(day=1)
         end_datetime = begin_datetime.shift(years=1)
-        return begin_datetime.format('YYYYMMDD'), end_datetime.format('YYYYMMDD')
+        return (
+            begin_datetime.format('YYYYMMDD'),
+            end_datetime.format('YYYYMMDD')
+        )

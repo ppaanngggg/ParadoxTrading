@@ -18,6 +18,7 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
             _adjust_period: int = 5,
             _volatility_period: int = 30,
             _volatility_smooth: int = 12,
+            _quantity_limit: int = 3,
             _settlement_price_index: str = 'closeprice'
     ):
         super().__init__(
@@ -31,6 +32,8 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
         self.volatility_period = _volatility_period
         self.volatility_smooth = _volatility_smooth
         self.volatility_table: typing.Dict[str, FastVolatility] = {}
+
+        self.quantity_limit = _quantity_limit
 
         self.addPickleKey('adjust_count', 'volatility_table')
 
@@ -51,7 +54,9 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
             parts = self._calc_available_product()
             if parts == 0:
                 return
-            part_fund_alloc = self.portfolio_mgr.getStaticFund() / parts
+
+            total_fund = self.portfolio_mgr.getStaticFund()
+            part_fund_alloc = total_fund / parts
 
             tmp_dict = {}
             for p_mgr in self.strategy_mgr:
@@ -66,12 +71,20 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
 
                     real_w = self.risk_rate / tmp_v
                     real_v = real_w ** 2 * var
+
+                    # limit max quantity
                     price = self._fetch_buf_price(
                         _tradingday, i_mgr.next_instrument
                     )
+                    max_quantity = int(
+                        total_fund * self.quantity_limit /
+                        price / POINT_VALUE[i_mgr.product]
+                    )
+
                     real_q = part_fund_alloc * real_w / (
                         price * POINT_VALUE[i_mgr.product]
                     )
+                    real_q = min(max_quantity, real_q)
                     floor_q = math.floor(real_q)
                     floor_w = floor_q * price * POINT_VALUE[
                         i_mgr.product

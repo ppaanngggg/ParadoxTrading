@@ -17,7 +17,8 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
             _risk_rate: float = 0.01,
             _adjust_period: int = 5,
             _rate_period: int = 50,
-            _settlement_price_index: str = 'closeprice'
+            _quantity_limit: int = 3,
+            _settlement_price_index: str = 'closeprice',
     ):
         super().__init__(
             _fetcher, _init_fund, _margin_rate, _settlement_price_index
@@ -29,6 +30,8 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
         self.adjust_count = 0
         self.rate_period = _rate_period
         self.rate_table: typing.Dict[str, ReturnRate] = {}
+
+        self.quantity_limit = _quantity_limit
 
         self.addPickleKey('adjust_count', 'rate_table')
 
@@ -51,46 +54,54 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
             if parts == 0:
                 return
 
-            part_fund_alloc = self.portfolio_mgr.getStaticFund() / parts
+            total_fund = self.portfolio_mgr.getStaticFund()
+            part_fund_alloc = total_fund / parts
 
             tmp_dict = {}
             for p_mgr in self.strategy_mgr:
                 for i_mgr in p_mgr:
                     if i_mgr.strength == 0:
-                        i_mgr.next_quantity = 0
-                    else:
-                        # if strength status changes or instrument changes
-                        rate_abs = self.rate_table[
-                            i_mgr.product
-                        ].getAllData()['returnrate'][-1]
-                        real_w = self.risk_rate / rate_abs
-                        real_v = real_w * rate_abs
-                        price = self._fetch_buf_price(
-                            _tradingday, i_mgr.next_instrument
-                        )
-                        real_q = part_fund_alloc * real_w / (
-                            price * POINT_VALUE[i_mgr.product]
-                        )
-                        floor_q = math.floor(real_q)
-                        floor_w = floor_q * price * POINT_VALUE[
-                            i_mgr.product
-                        ] / part_fund_alloc
-                        floor_v = floor_w * rate_abs
-                        ceil_q = math.ceil(real_q)
-                        ceil_w = ceil_q * price * POINT_VALUE[
-                            i_mgr.product
-                        ] / part_fund_alloc
-                        ceil_v = ceil_w * rate_abs
-                        tmp_dict[i_mgr] = {
-                            'real_w': real_w, 'real_q': real_q,
-                            'real_v': real_v,
-                            'floor_w': floor_w, 'floor_q': floor_q,
-                            'floor_v': floor_v,
-                            'ceil_w': ceil_w, 'ceil_q': ceil_q,
-                            'ceil_v': ceil_v,
-                            'per_risk': ceil_v - floor_v,
-                            'diff_risk': ceil_v - real_v
-                        }
+                        continue
+                    # if strength status changes or instrument changes
+                    rate_abs = self.rate_table[
+                        i_mgr.product
+                    ].getAllData()['returnrate'][-1]
+                    real_w = self.risk_rate / rate_abs
+                    real_v = real_w * rate_abs
+
+                    # limit max quantity
+                    price = self._fetch_buf_price(
+                        _tradingday, i_mgr.next_instrument
+                    )
+                    max_quantity = int(
+                        total_fund * self.quantity_limit /
+                        price / POINT_VALUE[i_mgr.product]
+                    )
+
+                    real_q = part_fund_alloc * real_w / (
+                        price * POINT_VALUE[i_mgr.product]
+                    )
+                    real_q = min(max_quantity, real_q)
+                    floor_q = math.floor(real_q)
+                    floor_w = floor_q * price * POINT_VALUE[
+                        i_mgr.product
+                    ] / part_fund_alloc
+                    floor_v = floor_w * rate_abs
+                    ceil_q = math.ceil(real_q)
+                    ceil_w = ceil_q * price * POINT_VALUE[
+                        i_mgr.product
+                    ] / part_fund_alloc
+                    ceil_v = ceil_w * rate_abs
+                    tmp_dict[i_mgr] = {
+                        'real_w': real_w, 'real_q': real_q,
+                        'real_v': real_v,
+                        'floor_w': floor_w, 'floor_q': floor_q,
+                        'floor_v': floor_v,
+                        'ceil_w': ceil_w, 'ceil_q': ceil_q,
+                        'ceil_v': ceil_v,
+                        'per_risk': ceil_v - floor_v,
+                        'diff_risk': ceil_v - real_v
+                    }
 
             free_risk_alloc = self.risk_rate * parts
             for d in tmp_dict.values():
@@ -123,6 +134,6 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
             self.rate_table[_symbol].addOne(_data)
         except KeyError:
             self.rate_table[_symbol] = ReturnRate(
-                self.rate_period, _use_abs=True
+                _smooth_period=self.rate_period, _use_abs=True
             )
             self.rate_table[_symbol].addOne(_data)

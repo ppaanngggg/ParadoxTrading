@@ -1,8 +1,8 @@
 import math
-import typing
 
-from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import \
-    InterDayPortfolio, POINT_VALUE
+import typing
+from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE, \
+    InterDayPortfolio
 from ParadoxTrading.Fetch import FetchAbstract
 from ParadoxTrading.Indicator import ATR
 from ParadoxTrading.Utils import DataStruct
@@ -17,6 +17,7 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
             _risk_rate: float = 0.01,
             _adjust_period: int = 5,
             _atr_period: int = 50,
+            _quantity_limit: int = 3,
             _settlement_price_index: str = 'closeprice'
     ):
         super().__init__(
@@ -29,6 +30,8 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
         self.adjust_count = 0
         self.atr_period = _atr_period
         self.atr_table: typing.Dict[str, ATR] = {}
+
+        self.quantity_limit = _quantity_limit
 
         self.addPickleKey('adjust_count', 'atr_table')
 
@@ -50,27 +53,37 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
             parts = self._calc_available_product()
             if parts == 0:
                 return
-            total_risk_alloc = self.portfolio_mgr.getStaticFund() \
-                * self.risk_rate
+
+            total_fund = self.portfolio_mgr.getStaticFund()
+            total_risk_alloc = total_fund * self.risk_rate
             part_risk_alloc = total_risk_alloc / parts
 
             tmp_dict = {}
             for p_mgr in self.strategy_mgr:
                 for i_mgr in p_mgr:
                     if i_mgr.strength == 0:
-                        i_mgr.next_quantity = 0
-                    else:
-                        # if strength status changes or instrument changes
-                        atr = self.atr_table[
-                            i_mgr.product
-                        ].getAllData()['atr'][-1]
-                        real = part_risk_alloc / atr \
-                            / POINT_VALUE[i_mgr.product]
-                        per_risk = POINT_VALUE[i_mgr.product] * atr
-                        tmp_dict[i_mgr] = {
-                            'atr': atr, 'real': real, 'per_risk': per_risk,
-                            'diff_risk': per_risk * math.ceil(real) - real
-                        }
+                        continue
+                    # limit max quantity
+                    price = self._fetch_buf_price(
+                        _tradingday, i_mgr.next_instrument
+                    )
+                    max_quantity = int(
+                        total_fund * self.quantity_limit /
+                        price / POINT_VALUE[i_mgr.product]
+                    )
+                    # if strength status changes or instrument changes
+                    atr = self.atr_table[
+                        i_mgr.product
+                    ].getAllData()['atr'][-1]
+                    real = part_risk_alloc / atr \
+                        / POINT_VALUE[i_mgr.product]
+                    per_risk = POINT_VALUE[i_mgr.product] * atr
+                    tmp_dict[i_mgr] = {
+                        'atr': atr,
+                        'real': min(real, max_quantity),
+                        'per_risk': per_risk,
+                        'diff_risk': per_risk * math.ceil(real) - real
+                    }
 
             # reduce minimum risk
             free_risk_alloc = total_risk_alloc

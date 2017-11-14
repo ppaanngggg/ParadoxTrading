@@ -34,10 +34,11 @@ class MarketEventMgr:
             assert _market_event.symbol in self.available_product
             assert _market_event.symbol not in self.product_dict.keys()
             self.product_dict[_market_event.symbol] = _market_event
-            # if match, then return
-            rest_keys = self.available_product - self.product_dict.keys()
-            if not rest_keys:
-                return self.product_index, self.product_dict
+
+        # if match, then return
+        rest_keys = self.available_product - self.product_dict.keys()
+        if not rest_keys:
+            return self.product_index, self.product_dict
 
     def resetTradingDayInfo(self):
         self.available_product = None
