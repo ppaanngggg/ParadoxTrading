@@ -61,9 +61,14 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
             tmp_dict = {}
             for p_mgr in self.strategy_mgr:
                 for i_mgr in p_mgr:
+                    # remain 0
                     if i_mgr.strength == 0:
                         continue
-                    # if strength status changes or instrument changes
+                    # volatility not ready
+                    if len(
+                        self.volatility_table[i_mgr.product]
+                    ) < self.volatility_period:
+                        continue
                     tmp_v = self.volatility_table[
                         i_mgr.product
                     ].getAllData()['volatility'][-1]

@@ -63,6 +63,9 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
                 for i_mgr in p_mgr:
                     if i_mgr.strength == 0:
                         continue
+                    # atr not ready
+                    if len(self.atr_table[i_mgr.product]) < self.atr_period:
+                        continue
                     # limit max quantity
                     price = self._fetch_buf_price(
                         _tradingday, i_mgr.next_instrument

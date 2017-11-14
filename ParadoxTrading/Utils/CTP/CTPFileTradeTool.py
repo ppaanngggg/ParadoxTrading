@@ -4,10 +4,12 @@ import logging
 import typing
 from time import sleep
 
+import PyCTP
 import schedule
 
 from ParadoxTrading.Engine import ActionType, DirectionType
 from ParadoxTrading.Utils.CTP.CTPTraderSpi import CTPTraderSpi
+from ParadoxTrading.Utils.CTP.CTPMarketSpi import CTPMarketSpi
 
 
 class OrderObj:
@@ -56,6 +58,8 @@ class FillObj:
 
 
 class CTPFileTradeTool:
+    SUB_SIZE = 100
+
     def __init__(
             self, _config_path: str,
             _order_csv_path: str, _fill_csv_path: str,
@@ -69,37 +73,44 @@ class CTPFileTradeTool:
         self.retry_time = _retry_time
         self.price_rate = _price_rate
 
+        self.market: CTPMarketSpi = None
         self.trader: CTPTraderSpi = None
 
-    def newTraderSpi(self):
-        """
-        create a new trader obj
-        """
-        self.trader = CTPTraderSpi(
-            self.config['CTP']['ConPath'].encode(),
-            self.config['CTP']['TraderFront'].encode(),
-            self.config['CTP']['BrokerID'].encode(),
-            self.config['CTP']['UserID'].encode(),
-            self.config['CTP']['Password'].encode(),
-        )
+        # buf data
+        self.order_table: typing.Dict[int, OrderObj] = {}
+        self.fill_table: typing.Dict[int, FillObj] = {}
+        self.data_table = {}
+        self.instrument_table = {}
+        self.commission_table = {}
 
     def delTraderSpi(self):
-        """
-        release trader obj and reset arg
-        """
         self.trader.Release()
         del self.trader
-        self.trader: CTPTraderSpi = None
+        self.trader = None
+
+    def delMarketSpi(self):
+        self.market.Release()
+        del self.market
+        self.market = None
+
+    def reset(self):
+        if self.trader is not None:
+            self.delTraderSpi()
+        if self.market is not None:
+            self.delMarketSpi()
+
+        self.order_table = {}
+        self.fill_table = {}
+        self.data_table = {}
+        self.instrument_table = {}
+        self.commission_table = {}
 
     def getOrderAndFillTable(self):
-        order_table: typing.Dict[int, OrderObj] = {}
-        fill_table: typing.Dict[int, FillObj] = {}
-
         try:
             order_file = open(self.order_csv_path)
         except FileNotFoundError:
             logging.warning('NO order csv found')
-            return order_table, fill_table
+            return
 
         order_file.readline()
         order_reader = csv.reader(order_file)
@@ -109,11 +120,12 @@ class CTPFileTradeTool:
             index = int(index)
             direction = DirectionType.fromStr(direction)
             action = ActionType.fromStr(action)
-            order_table[index] = OrderObj(
-                _index=index, _symbol=instrument, _quantity=int(float(quantity)),
+            self.order_table[index] = OrderObj(
+                _index=index, _symbol=instrument,
+                _quantity=int(float(quantity)),
                 _action=action, _direction=direction
             )
-            fill_table[index] = FillObj(
+            self.fill_table[index] = FillObj(
                 _index=index, _symbol=instrument,
                 _action=action, _direction=direction,
             )
@@ -123,7 +135,7 @@ class CTPFileTradeTool:
             fill_file = open(self.fill_csv_path)
         except FileNotFoundError:
             logging.warning('NO fill csv found')
-            return order_table, fill_table
+            return
 
         fill_file.readline()
         fill_reader = csv.reader(fill_file)
@@ -131,7 +143,7 @@ class CTPFileTradeTool:
         for fill_line in fill_reader:
             index, _, quantity, _, _, price, commission = fill_line
             index = int(index)
-            fill_obj = fill_table[index]
+            fill_obj = self.fill_table[index]
             fill_obj.quantity = int(float(quantity))
             fill_obj.price = float(price)
             fill_obj.commission = float(commission)
@@ -139,70 +151,133 @@ class CTPFileTradeTool:
         order_file.close()
         fill_file.close()
 
-        return order_table, fill_table
+    def checkOrderAndFill(self):
+        """
+        if any instrument not equal, then return True, else False
+        """
+        for index in self.order_table:
+            if self.fill_table[index].quantity \
+                    != self.order_table[index].quantity:
+                return True
+        return False
+
+    def dealMarket(
+            self,
+            _market_data: PyCTP.CThostFtdcDepthMarketDataField
+    ):
+        data = {
+            'InstrumentID': _market_data.InstrumentID.decode('gb2312'),
+            'TradingDay': _market_data.TradingDay.decode('gb2312'),
+            'ActionDay': _market_data.ActionDay.decode('gb2312'),
+            'UpdateTime': _market_data.UpdateTime.decode('gb2312'),
+            'UpdateMillisec': _market_data.UpdateMillisec,
+            'LastPrice': _market_data.LastPrice,
+            'AskPrice': _market_data.AskPrice1,
+            'BidPrice': _market_data.BidPrice1,
+        }
+        self.data_table[data['InstrumentID'].lower()] = data
 
     def traderLogin(self):
-        self.newTraderSpi()  # create ctp obj
-
+        self.trader = CTPTraderSpi(
+            self.config['CTP']['ConPath'].encode(),
+            self.config['CTP']['TraderFront'].encode(),
+            self.config['CTP']['BrokerID'].encode(),
+            self.config['CTP']['UserID'].encode(),
+            self.config['CTP']['Password'].encode(),
+        )
         if not self.trader.Connect():  # connect front
             return False
-        sleep(1)
         if not self.trader.ReqUserLogin():  # login
             return False
-        sleep(1)
         if not self.trader.ReqSettlementInfoConfirm():  # settlement
             return False
         sleep(1)
         return True
 
-    def traderAllInstrument(self, _instrument_table: dict):
+    def marketLogin(self) -> bool:
+        self.market = CTPMarketSpi(
+            self.config['CTP']['ConPath'].encode(),
+            self.config['CTP']['MarketFront'].encode(),
+            self.config['CTP']['BrokerID'].encode(),
+            self.config['CTP']['UserID'].encode(),
+            self.config['CTP']['Password'].encode(),
+            self.dealMarket
+        )
+        if not self.market.Connect():
+            return False
+        if not self.market.ReqUserLogin():
+            return False
+        return True
+
+    def traderAllInstrument(self):
         tmp = self.trader.ReqQryInstrument()  # all instrument
         if tmp is False:
             return False
         for d in tmp:
-            _instrument_table[d.index()[0].lower()] = d.toDict()
+            self.instrument_table[
+                d.index()[0].lower()
+            ] = d.toDict()
         sleep(1)
         return True
 
-    def doTrade(
-            self, _order_obj: OrderObj, _fill_obj: FillObj,
-            _instrument_table, _commission_table
-    ):
-        quantity_diff = int(_order_obj.quantity - _fill_obj.quantity)
+    def subscribe(self):
+        inst_list = []
+        for v in self.order_table.values():
+            inst_list.append(
+                self.instrument_table[
+                    v.symbol
+                ]['InstrumentID'].encode('gb2312')
+            )
+        for start_idx in range(0, len(inst_list), self.SUB_SIZE):
+            end_idx = start_idx + self.SUB_SIZE
+            sub_inst_list = inst_list[start_idx: end_idx]
+            for _ in range(self.retry_time):
+                ret = self.market.SubscribeMarketData(sub_inst_list)
+                sleep(1)
+                if ret is not False:
+                    break
+            else:
+                return False
+        return True
+
+    def doTrade(self, _index: int):
+        order_obj = self.order_table[_index]
+        fill_obj = self.fill_table[_index]
+        quantity_diff = int(
+            order_obj.quantity - fill_obj.quantity
+        )
         if not quantity_diff > 0:  # order finished
             return
 
-        inst_info = _instrument_table[_order_obj.symbol]
+        inst_info = self.instrument_table[order_obj.symbol]
         # encode the bytes instrument for ctp
         instrument = inst_info['InstrumentID'].encode()
         # get commission from buffer
         try:
-            comm_info = _commission_table[_order_obj.symbol]
+            comm_info = self.commission_table[order_obj.symbol]
         except KeyError:  # fetch it if failed
-            comm_info = self.trader.ReqQryInstrumentCommissionRate(instrument)
+            comm_info = self.trader.ReqQryInstrumentCommissionRate(
+                instrument
+            )
             sleep(1)
             if comm_info is False:
                 return
-            _commission_table[_order_obj.symbol] = comm_info
+            self.commission_table[order_obj.symbol] = comm_info
 
         for _ in range(quantity_diff):  # order one by one
-            # depth market data
-            market_info = self.trader.ReqQryDepthMarketData(instrument)
-            sleep(1)
-            if market_info is False:
-                continue
             # limit price
+            market_info = self.data_table[order_obj.symbol]
             price_diff = self.price_rate * inst_info['PriceTick']
-            if _order_obj.direction == DirectionType.BUY:
+            if order_obj.direction == DirectionType.BUY:
                 price = market_info['AskPrice'] + price_diff
-            elif _order_obj.direction == DirectionType.SELL:
+            elif order_obj.direction == DirectionType.SELL:
                 price = market_info['BidPrice'] - price_diff
             else:
                 raise Exception('unknown direction')
             # send order
             trade_info = self.trader.ReqOrderInsert(
                 instrument,
-                _order_obj.direction, _order_obj.action,
+                order_obj.direction, order_obj.action,
                 1, price
             )
             sleep(1)
@@ -210,32 +285,35 @@ class CTPFileTradeTool:
                 continue
             # !!! trade succeed !!!
             comm_value = 0
-            if _order_obj.action == ActionType.OPEN:
-                comm_value += comm_info['OpenRatioByMoney'] * trade_info['Price'] * \
-                              trade_info['Volume'] * inst_info['VolumeMultiple']
-                comm_value += comm_info['OpenRatioByVolume'] * trade_info['Volume']
-            elif _order_obj.action == ActionType.CLOSE:
-                comm_value += comm_info['CloseRatioByMoney'] * trade_info['Price'] * \
-                              trade_info['Volume'] * inst_info['VolumeMultiple']
+            if order_obj.action == ActionType.OPEN:
+                comm_value += comm_info['OpenRatioByMoney'] * \
+                    trade_info['Price'] * trade_info['Volume'] * \
+                    inst_info['VolumeMultiple']
+                comm_value += comm_info['OpenRatioByVolume'] * \
+                    trade_info['Volume']
+            elif order_obj.action == ActionType.CLOSE:
+                comm_value += comm_info['CloseRatioByMoney'] * \
+                    trade_info['Price'] * trade_info['Volume'] * \
+                    inst_info['VolumeMultiple']
                 comm_value += comm_info['CloseRatioByVolume'] * \
-                              trade_info['Volume']
+                    trade_info['Volume']
             else:
                 raise Exception('unknown action')
-            _fill_obj.add(
+            fill_obj.add(
                 _quantity=trade_info['Volume'],
                 _price=trade_info['Price'],
                 _commission=comm_value,
             )
-            logging.info('FILL: {}'.format(_fill_obj))
+            logging.info('FILL: {}'.format(fill_obj))
 
-    def writeFillTable(self, _fill_table: typing.Dict[int, FillObj]):
+    def writeFillTable(self):
         fill_file = open(self.fill_csv_path, 'w')
         fill_writer = csv.writer(fill_file)
         fill_writer.writerow((
             'Index', 'Symbol', 'Quantity',
             'Action', 'Direction', 'Price', 'Commission'
         ))
-        for k, v in _fill_table.items():
+        for k, v in self.fill_table.items():
             if v.quantity == 0:  # skip not filled
                 continue
             fill_writer.writerow((
@@ -246,57 +324,60 @@ class CTPFileTradeTool:
             ))
         fill_file.close()
 
-    def checkOrderAndFill(self, _order_table, _fill_table):
-        for index in _order_table:
-            if _fill_table[index].quantity != _order_table[index].quantity:
-                return True
-        return False
-
     def tradeFunc(self):
-        instrument_table = {}
-        commission_table = {}
-        order_table, fill_table = self.getOrderAndFillTable()
-
-        if not self.checkOrderAndFill(order_table, fill_table):
+        self.getOrderAndFillTable()
+        if not self.checkOrderAndFill():
             return
 
         # try to login
         for i in range(self.retry_time):
-            logging.info('!!! TRY({}) to login !!!'.format(i))
+            logging.info('TRY ({}) times trader login'.format(i))
             if self.traderLogin():
                 break
             logging.info('try login again')
             self.delTraderSpi()
         else:
-            logging.warning('!!! LOGIN FAILED !!!')
+            logging.error('trader login FAILED!')
             return
 
         # fetch all instruments
         for i in range(self.retry_time):
-            logging.info('!!! TRY({}) to fetch all instruments !!!'.format(i))
-            if self.traderAllInstrument(instrument_table):
+            logging.info('TRY ({}) get instrument'.format(i))
+            if self.traderAllInstrument():
                 break
         else:
-            logging.warning('!!! FETCH ALL INSTRUMENTS FAILED !!!')
-            self.delTraderSpi()
+            logging.error('get instrument FAILED!')
+            self.reset()
+            return
+
+        # create market spi
+        for i in range(self.retry_time):
+            logging.info('TRY ({}) times market login'.format(i))
+            if self.marketLogin():
+                break
+            logging.info('try login again')
+            self.delMarketSpi()
+        else:
+            logging.error('market login FAILED!')
+            self.reset()
+            return
+
+        # sub market data
+        if not self.subscribe():
+            self.reset()
             return
 
         # trade each instrument
         for i in range(self.retry_time):
-            logging.info('!!! TRY ({})th TIME !!!'.format(i))
-            for k in order_table:
-                self.doTrade(
-                    order_table[k], fill_table[k],
-                    instrument_table, commission_table
-                )
-            if not self.checkOrderAndFill(order_table, fill_table):
+            logging.info('TRY ({}) times do trade !!!'.format(i))
+            for k in self.order_table:
+                self.doTrade(k)
+            if not self.checkOrderAndFill():
                 break
 
-        # release trader spi
-        self.delTraderSpi()  # free ctp obj
+        self.writeFillTable()
 
-        # writer fill table to file
-        self.writeFillTable(fill_table)
+        self.reset()
 
     def run(self):
         schedule.every().day.at("21:00").do(self.tradeFunc)

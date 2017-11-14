@@ -195,7 +195,9 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             ))
             self.eventSet()
 
-    def ReqQrySettlementInfo(self, _tradingday: bytes = b'') -> typing.Union[bool, bytes]:
+    def ReqQrySettlementInfo(
+            self, _tradingday: bytes = b''
+    ) -> typing.Union[bool, bytes]:
         req = PyCTP.CThostFtdcQrySettlementInfoField()
         req.BrokerID = self.broker_id
         req.InvestorID = self.user_id
@@ -238,7 +240,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
 
     def OnRspSettlementInfoConfirm(
             self,
-            _settlement_info_confirm: PyCTP.CThostFtdcSettlementInfoConfirmField,
+            _confirm: PyCTP.CThostFtdcSettlementInfoConfirmField,
             _rsp_info: PyCTP.CThostFtdcRspInfoField,
             _request_id: int, _is_last: bool
     ):
@@ -301,7 +303,7 @@ class CTPTraderSpi(PyCTP.CThostFtdcTraderSpi):
             ))
             self.eventSet()
 
-    def ReqQryDepthMarketData(self, _instrument_id):
+    def ReqQryDepthMarketData(self, _instrument_id: bytes):
         req = PyCTP.CThostFtdcQryDepthMarketDataField()
         req.InstrumentID = _instrument_id
 

@@ -5,7 +5,6 @@ from ParadoxTrading.Utils.CTP import CTPFileTradeTool
 logging.basicConfig(
     level=logging.INFO,
     format='%(levelname)s[%(asctime)s] - %(message)s',
-    filename='trade.log',
 )
 
 tool = CTPFileTradeTool(

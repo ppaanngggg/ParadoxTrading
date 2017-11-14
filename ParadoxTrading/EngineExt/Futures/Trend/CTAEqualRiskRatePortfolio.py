@@ -62,6 +62,9 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
                 for i_mgr in p_mgr:
                     if i_mgr.strength == 0:
                         continue
+                    # rate not ready
+                    if len(self.rate_table[i_mgr.product]) < self.rate_period:
+                        continue
                     # if strength status changes or instrument changes
                     rate_abs = self.rate_table[
                         i_mgr.product
