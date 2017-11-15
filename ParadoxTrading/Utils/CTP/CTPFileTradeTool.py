@@ -327,6 +327,7 @@ class CTPFileTradeTool:
     def tradeFunc(self):
         self.getOrderAndFillTable()
         if not self.checkOrderAndFill():
+            self.reset()
             return
 
         # try to login
@@ -338,6 +339,7 @@ class CTPFileTradeTool:
             self.delTraderSpi()
         else:
             logging.error('trader login FAILED!')
+            self.reset()
             return
 
         # fetch all instruments
