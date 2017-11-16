@@ -188,7 +188,8 @@ class FetchBase(FetchAbstract):
 
     def isTradingDay(self, _tradingday: str) -> bool:
         """
-        check whether _tradingday is a tradingday
+        check whether _tradingday is a tradingday,
+        return True if any product available
 
         :param _tradingday:
         :return:
@@ -198,6 +199,9 @@ class FetchBase(FetchAbstract):
         ) is not None
 
     def fetchAvailableProduct(self, _tradingday: str) -> list:
+        """
+        fetch all available product on pointed tradingday
+        """
         data = self.fetchTradingDayInfo(_tradingday)
         ret = []
         if data is not None:
@@ -213,6 +217,20 @@ class FetchBase(FetchAbstract):
         return self.fetchProductInfo(
             _product, _tradingday
         ) is not None
+
+    def productFirstTradingDay(
+            self, _product: str,
+    ) -> typing.Union[None, str]:
+        """
+        get the first tradingday of this product
+        """
+        db = self._get_mongo_prod()
+        coll = db[_product.lower()]
+        d = coll.find_one(
+            sort=[('TradingDay', pymongo.ASCENDING)]
+        )
+
+        return d['TradingDay'] if d is not None else None
 
     def productLastTradingDay(
             self, _product: str, _tradingday: str
@@ -274,7 +292,7 @@ class FetchBase(FetchAbstract):
             self, _product: str, _tradingday: str
     ) -> typing.List[str]:
         """
-        fetch all traded insts of one product on tradingday
+        fetch all traded instruments of pointed product on tradingday
         """
         data = self.fetchProductInfo(_product, _tradingday)
         ret = []
@@ -291,6 +309,20 @@ class FetchBase(FetchAbstract):
         return self.fetchInstrumentInfo(
             _instrument, _tradingday
         ) is not None
+
+    def instrumentFirstTradingDay(
+            self, _instrument: str
+    ) -> typing.Union[None, str]:
+        """
+        get the first tradingday of this instrument
+        """
+        db = self._get_mongo_inst()
+        coll = db[_instrument.lower()]
+        d = coll.find_one(
+            sort=[('TradingDay', pymongo.ASCENDING)]
+        )
+
+        return d['TradingDay'] if d is not None else None
 
     def instrumentLastTradingDay(
             self, _instrument: str, _tradingday: str
@@ -325,6 +357,9 @@ class FetchBase(FetchAbstract):
     def fetchTradingDayInfo(
             self, _tradingday: str
     ) -> typing.Union[None, typing.Dict]:
+        """
+        get the whole tradingday record in mongo
+        """
         key = self.tradingday_key.format(_tradingday)
         try:
             return self.cache[key]
@@ -338,6 +373,9 @@ class FetchBase(FetchAbstract):
     def fetchProductInfo(
             self, _product: str, _tradingday: str
     ) -> typing.Union[None, typing.Dict]:
+        """
+        get the whole product record in mongo
+        """
         product = _product.lower()
         key = self.prod_key.format(product, _tradingday)
         try:
@@ -352,6 +390,9 @@ class FetchBase(FetchAbstract):
     def fetchInstrumentInfo(
             self, _instrument: str, _tradingday: str
     ) -> typing.Union[None, typing.Dict]:
+        """
+        get the whole instrument record in mongo
+        """
         instrument = _instrument.lower()
         key = self.inst_key.format(instrument, _tradingday)
         try:
@@ -444,6 +485,9 @@ class FetchBase(FetchAbstract):
             self, _begin_day: str, _end_day: str,
             _symbol: str, _index: str = 'HappenTime'
     ) -> DataStruct:
+        """
+        get the data from _begin_day to _end_day(excluded)
+        """
         begin_day = _begin_day
         end_day = _end_day
         if _end_day is None:

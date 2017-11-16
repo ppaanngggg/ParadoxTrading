@@ -1,16 +1,14 @@
-import typing
 from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta
 
-import h5py
 import pandas as pd
 import tabulate
+import typing
 
 
 class DataStruct:
     """
-
-    the core data struct of ParadoxTrading
+    the core data struct of ParadoxTrading.
 
     :param _keys: the keys of this datastruct
     :param _index_name: the index of this datastruct
@@ -20,12 +18,13 @@ class DataStruct:
     """
 
     EXPAND_STRICT = 'strict'
+    EXPAND_INTERSECT = 'intersect'
 
     def __init__(
             self,
             _keys: typing.Sequence[str],
             _index_name: str,
-            _rows: typing.Sequence = None,
+            _rows: typing.Sequence[typing.Sequence] = None,
             _dicts: typing.Sequence[dict] = None
     ):
         assert _index_name in _keys
@@ -84,60 +83,6 @@ class DataStruct:
             return tabulate.tabulate(tmp_rows, headers=tmp_keys)
         tmp_rows, tmp_keys = self.toRows()
         return tabulate.tabulate(tmp_rows, headers=tmp_keys)
-
-    def clone(self, _columns: typing.List[str] = None) -> 'DataStruct':
-        """
-        copy all the data to a new datastruct,
-        !!! WARN !!!: if the value in data is a reference to
-        a object, it will just copy a reference to the same
-        object
-
-        :return: the new datastruct
-        """
-        if _columns is None:
-            return self.iloc[:]
-
-        keys_new = [self.index_name] + _columns
-        datastruct = DataStruct(
-            keys_new, self.index_name
-        )
-        keys_self = self.getColumnNames(_include_index_name=False)
-        for column in _columns:
-            assert column != self.index_name
-            assert column in keys_self
-        datastruct.addRows(*self.toRows(keys_new))
-        return datastruct
-
-    def merge(self, _struct: "DataStruct"):
-        """
-        merge one struct into self, and sorted by index
-
-        :param _struct: another datastruct
-        """
-        self.addRows(*_struct.toRows())
-
-    def expand(self, _struct: "DataStruct", _type: str = 'strict'):
-        """
-        expand columns by another datastruct
-            - strict:
-                1. two datastruct have the totally same index
-                2. names in the other datastruct don't exist in self
-                3. copy columns to self
-            - ...
-
-        :param _struct: another datastruct
-        :param _type: expand type
-        """
-        if _type == self.EXPAND_STRICT:
-            assert len(self) == len(_struct)
-            for idx1, idx2 in zip(self.index(), _struct.index()):
-                assert idx1 == idx2
-            for name in _struct.getColumnNames(False):
-                assert name not in self.getColumnNames()
-            for name in _struct.getColumnNames(False):
-                self.data[name] = _struct.getColumn(name)
-        else:
-            raise Exception('unknown type!')
 
     def addRow(
             self,
@@ -249,67 +194,93 @@ class DataStruct:
         row, keys = self.toRow(_index)
         return dict(zip(keys, row))
 
-    def toHDF5(self, _f_name: str, _mode: str = 'w'):
+    def clone(self, _columns: typing.List[str] = None) -> 'DataStruct':
         """
-        save data struct to hdf5
+        copy all the data to a new datastruct,
+        !!! WARN !!!: if the value in data is a reference to
+        a object, it will just copy a reference to the same
+        object
 
-        :param _f_name:
-        :param _mode:
-        :return:
+        :return: the new datastruct
         """
-        f = h5py.File(_f_name, _mode)
-        f.attrs['index_name'] = self.index_name
+        if _columns is None:
+            return self.iloc[:]
 
-        for k, v in self.data.items():
-            v_sample = v[0]
-            if isinstance(v_sample, int):
-                d_type = 'int32'
-                attr = 'int'
-            elif isinstance(v_sample, float):
-                d_type = 'float64'
-                attr = 'float'
-            elif isinstance(v_sample, str):
-                d_type = h5py.special_dtype(vlen=str)
-                attr = 'str'
-            elif isinstance(v_sample, datetime):
-                d_type = 'float64'
-                attr = 'datetime'
-            else:
-                raise Exception('unsupported type, sorry')
+        # check column available
+        keys_self = self.getColumnNames(_include_index_name=False)
+        for column in _columns:
+            assert column in keys_self
 
-            if attr == 'datetime':
-                self.datetime2float(k)
+        keys_new = _columns
+        if self.index_name not in keys_new:  # add index if not
+            keys_new.append(self.index_name)
+        # create new datastruct
+        datastruct = DataStruct(
+            keys_new, self.index_name
+        )
 
-            dataset = f.create_dataset(
-                k, (len(self),), dtype=d_type
-            )
-            dataset[:] = self[k]
-            dataset.attrs['type'] = attr
-
-            if attr == 'datetime':
-                self.float2datetime(k)
-
-        f.close()
-
-    @staticmethod
-    def fromHDF5(_f_name: str) -> 'DataStruct':
-        """
-        load data struct from hdf5
-
-        :param _f_name:
-        :return:
-        """
-        f = h5py.File(_f_name)
-
-        datastruct = DataStruct(list(f.keys()), f.attrs['index_name'])
-        for k in f.keys():
-            dataset = f[k]
-            datastruct.data[k] = dataset[:].tolist()
-            if dataset.attrs['type'] == 'datetime':
-                datastruct.float2datetime(k)
-
-        f.close()
+        datastruct.addRows(*self.toRows(keys_new))
         return datastruct
+
+    def merge(self, _struct: "DataStruct"):
+        """
+        merge one struct into self, and sorted by index
+
+        :param _struct: another datastruct
+        """
+        self.addRows(*_struct.toRows())
+
+    def expand(
+        self, _struct: "DataStruct", _type: str = 'strict'
+    ) -> 'DataStruct':
+        """
+        expand columns by another datastruct
+            - strict:
+                1. two datastruct have the totally same index
+                2. names in the other datastruct don't exist in self
+                3. copy columns to self
+            - ...
+
+        :param _struct: another datastruct
+        :param _type: expand type
+        """
+        assert self.index_name == _struct.index_name
+
+        self_names = self.getColumnNames(_include_index_name=False)
+        struct_names = _struct.getColumnNames(_include_index_name=False)
+        assert not (set(self_names) & set(struct_names))
+
+        if _type == self.EXPAND_STRICT:
+            assert len(self) == len(_struct)
+            for idx1, idx2 in zip(self.index(), _struct.index()):
+                assert idx1 == idx2
+            index = self.index()
+        elif _type == self.EXPAND_INTERSECT:
+            index = sorted(set(self.index()) & set(_struct.index()))
+        else:
+            raise Exception('unknown type!')
+
+        new_names = self_names + struct_names
+        new_names.append(self.index_name)
+        new_struct = DataStruct(new_names, self.index_name)
+
+        for i in index:
+            tmp_dict = {self.index_name: i}
+            self_dict = self.loc[i]
+            if self_dict is None:
+                self_dict = dict(self_names, [None] * len(self_names))
+            else:
+                self_dict = self_dict.toDict()
+            tmp_dict.update(self_dict)
+            struct_dict = _struct.loc[i]
+            if struct_dict is None:
+                struct_dict = dict(struct_names, [None] * len(struct_names))
+            else:
+                struct_dict = struct_dict.toDict()
+            tmp_dict.update(struct_dict)
+            new_struct.addDict(tmp_dict)
+
+        return new_struct
 
     def toPandas(self) -> pd.DataFrame:
         df = pd.DataFrame(data=self.data, index=self.index())
@@ -412,81 +383,6 @@ class DataStruct:
         assert len(_column) == len(self)
         self.data[_key] = _column
 
-    def any2str(self, _key: str = None):
-        """
-        turn one column from any typing to str, simply use str()
-
-        :param _key: default use index
-        :return:
-        """
-        k = _key
-        if k is None:
-            k = self.index_name
-        self.data[k] = [str(d) for d in self.data[k]]
-
-    def datetime2float(self, _key: str = None):
-        """
-        turn one column from datetime to float
-
-        :param _key:
-        :return:
-        """
-        k = _key
-        if k is None:
-            k = self.index_name
-        self.data[k] = [(d - datetime(1970, 1, 1)).total_seconds()
-                        for d in self.data[k]]
-
-    def float2datetime(self, _key: str = None):
-        """
-        turn float back to datetime
-
-        :param _key:
-        :return:
-        """
-        k = _key
-        if k is None:
-            k = self.index_name
-        self.data[k] = [datetime(1970, 1, 1) + timedelta(seconds=d)
-                        for d in self.data[k]]
-
-    def str2float(self, _key: str = None):
-        """
-        turn one column from str to float, simply use float()
-
-        :param _key:
-        :return:
-        """
-        k = _key
-        if k is None:
-            k = self.index_name
-        self.data[k] = [float(d) for d in self.data[k]]
-
-    def str2int(self, _key: str = None):
-        """
-        turn one column from str to int, simply use int()
-
-        :param _key:
-        :return:
-        """
-        k = _key
-        if k is None:
-            k = self.index_name
-        self.data[k] = [int(d) for d in self.data[k]]
-
-    def str2datetime(self, _key: str = None):
-        """
-        turn one column from str to datetime
-
-        :param _key:
-        :return:
-        """
-        k = _key
-        if k is None:
-            k = self.index_name
-        self.data[k] = [datetime.strptime(d, '%Y%m%d %H:%M:%S.%f')
-                        for d in self.data[k]]
-
 
 class Loc:
     def __init__(self, _struct: DataStruct):
@@ -497,8 +393,9 @@ class Loc:
         if getitem by the index value, return the result if index value found
         else return None,
 
-        if getitem by a range of index value, return the range of values by find
-        the number of start and stop, (start is included, stop excluded)
+        if getitem by a range of index value,
+        return the range of values by find the number of start and stop,
+        (start is included, stop excluded)
 
         :param _item:
         :return:
