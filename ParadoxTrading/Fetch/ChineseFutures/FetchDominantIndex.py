@@ -26,6 +26,7 @@ class FetchDominantIndex(FetchInstrumentDayData):
             self, _tradingday: str, _product: str = None, **kwargs
     ):
         assert _product is not None
+        _product = _product.lower()
 
         if self.productIsAvailable(_product, _tradingday):
             return _product

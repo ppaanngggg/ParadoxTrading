@@ -40,19 +40,23 @@ class DataGenerator:
             symbol = _fetcher.fetchSymbol(
                 _tradingday, **v.toKwargs()
             )
-            # whether symbol exists
-            if symbol is not None:
-                if symbol not in self.data_dict.keys():
-                    # fetch data and set index to 0 init
-                    self.data_dict[symbol] = _fetcher.fetchData(
-                        _tradingday, _symbol=symbol)
-                    self.index_dict[symbol] = 0
+            if symbol is None:
+                continue
 
-                # map symbol to market register key
-                try:
-                    _symbol_dict[symbol].add(k)
-                except KeyError:
-                    _symbol_dict[symbol] = {k}
+            if symbol not in self.data_dict.keys():
+                # fetch data and set index to 0 init
+                data = _fetcher.fetchData(_tradingday, _symbol=symbol)
+                if data is None:
+                    logging.warning('data {} not available'.format(symbol))
+                    continue
+                self.data_dict[symbol] = data
+                self.index_dict[symbol] = 0
+
+            # map symbol to market register key
+            try:
+                _symbol_dict[symbol].add(k)
+            except KeyError:
+                _symbol_dict[symbol] = {k}
         logging.debug('Available symbol: {}'.format(_symbol_dict.keys()))
 
     def gen(self) -> typing.Union[None, typing.Tuple[str, DataStruct]]:

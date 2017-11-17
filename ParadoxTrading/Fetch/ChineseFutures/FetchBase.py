@@ -14,28 +14,28 @@ from ParadoxTrading.Utils import DataStruct
 
 
 class RegisterInstrument(RegisterAbstract):
+    DOMINANT = 1
+    SUB_DOMINANT = 2
+    BEFORE_DOMINANT = 3
+    AFTER_DOMINANT = 4
+
     def __init__(
-            self, _product: str = None,
-            _instrument: str = None,
-            _sub_dominant: bool = False
+            self, _product: str = None, _type: int = 1
     ):
         """
         Market Register is used to store market sub information,
         pre-processed data and strategies used it
 
         :param _product: reg which product, if not None, ignore instrument
-        :param _instrument: reg which instrument
-        :param _sub_dominant: only work when use product,
-            false means using dominant inst,
-            true means sub dominant one
+        :param _type: type to register, default dominant
         """
         super().__init__()
-        assert _product is not None or _instrument is not None
+        assert _product is not None
+        assert _type in [1, 2, 3, 4]
 
         # market register info
         self.product = _product
-        self.instrument = _instrument
-        self.sub_dominant = _sub_dominant
+        self.type = _type
 
     def toJson(self) -> str:
         """
@@ -45,8 +45,7 @@ class RegisterInstrument(RegisterAbstract):
         """
         return json.dumps((
             ('product', self.product),
-            ('instrument', self.instrument),
-            ('sub_dominant', self.sub_dominant),
+            ('type', self.type),
         ))
 
     def toKwargs(self) -> dict:
@@ -57,8 +56,7 @@ class RegisterInstrument(RegisterAbstract):
         """
         return {
             '_product': self.product,
-            '_instrument': self.instrument,
-            '_sub_dominant': self.sub_dominant,
+            '_type': self.type,
         }
 
     @staticmethod
@@ -69,11 +67,10 @@ class RegisterInstrument(RegisterAbstract):
         :param _json_str: json str stores register info
         :return: market register object
         """
-        data: typing.Dict[str, typing.Any] = dict(json.loads(_json_str))
+        data = dict(json.loads(_json_str))
         return RegisterInstrument(
             data['product'],
-            data['instrument'],
-            data['sub_dominant'],
+            data['type'],
         )
 
 
@@ -405,40 +402,56 @@ class FetchBase(FetchAbstract):
             return data
 
     def fetchSymbol(
-            self, _tradingday: str,
-            _product: str = None, _instrument: str = None,
-            _sub_dominant: bool = False,
+            self, _tradingday: str, _product: str, _type: int = 1,
     ) -> typing.Union[None, str]:
         """
         get symbol from database
 
         :param _tradingday: the tradingday
         :param _product: the product to fetch
-        :param _instrument: the instrument to fetch if prduct is None
-        :param _sub_dominant: whether to use sub dominant
+        :param _type:
         :return:
         """
-        assert _product is not None or _instrument is not None
+        assert _product is not None
 
-        if _product is not None:
-            _product = _product.lower()
-        if _instrument is not None:
-            _instrument = _instrument.lower()
+        product = _product.lower()
 
-        # set inst to real instrument name
-        inst = _instrument
-        if _product is not None:
-            if not _sub_dominant:
-                inst = self.fetchDominant(_product, _tradingday)
-            else:
-                inst = self.fetchSubDominant(_product, _tradingday)
+        if _type == RegisterInstrument.DOMINANT:
+            instrument = self.fetchDominant(product, _tradingday)
+        elif _type == RegisterInstrument.SUB_DOMINANT:
+            instrument = self.fetchSubDominant(product, _tradingday)
+        elif _type == RegisterInstrument.BEFORE_DOMINANT:
+            dominant = self.fetchDominant(product, _tradingday)
+            if dominant is None:
+                return None
+            tmp = self.fetchAvailableInstrument(product, _tradingday)
+            if not tmp:
+                return None
+            tmp.sort()
+            tmp_index = tmp.index(dominant)
+            tmp_index -= 1
+            if tmp_index < 0:
+                return None
+            instrument = tmp[tmp_index]
+        elif _type == RegisterInstrument.AFTER_DOMINANT:
+            dominant = self.fetchDominant(product, _tradingday)
+            if dominant is None:
+                return None
+            tmp = self.fetchAvailableInstrument(product, _tradingday)
+            if not tmp:
+                return None
+            tmp.sort()
+            tmp_index = tmp.index(dominant)
+            tmp_index += 1
+            if tmp_index >= len(tmp):
+                return None
+            instrument = tmp[tmp_index]
 
-        # check instrument valid
-        if inst is None or not self.instrumentIsAvailable(
-                inst, _tradingday
+        if instrument is None or not self.instrumentIsAvailable(
+            instrument, _tradingday
         ):
             return None
-        return inst
+        return instrument
 
     def fetchData(
             self, _tradingday: str, _symbol: str,
