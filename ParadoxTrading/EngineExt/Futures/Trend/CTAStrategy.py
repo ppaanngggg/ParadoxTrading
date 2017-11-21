@@ -37,18 +37,9 @@ class CTAStrategy(StrategyAbstract):
         self.addPickleKey('status_mgr')
 
     def addEvent(
-            self, _symbol: str,
-            _strength: float,
-            _signal_type: int = None,
+            self, _symbol: str, _strength: float,
     ):
-        if _strength > 0:
-            signal_type = SignalType.LONG
-        elif _strength < 0:
-            signal_type = SignalType.SHORT
-        else:
-            signal_type = SignalType.EMPTY
-        super().addEvent(_symbol, signal_type, _strength)
-
+        super().addEvent(_symbol, _strength)
         self.status_mgr.setStatus(_strength)
 
     def deal(self, _market_event: MarketEvent):

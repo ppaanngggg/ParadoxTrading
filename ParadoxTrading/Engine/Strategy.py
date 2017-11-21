@@ -1,7 +1,7 @@
 import logging
+import typing
 
 import ParadoxTrading.Engine
-import typing
 from ParadoxTrading.Engine.Event import MarketEvent, SettlementEvent, \
     SignalEvent, SignalType
 from ParadoxTrading.Fetch import RegisterAbstract
@@ -71,30 +71,35 @@ class StrategyAbstract(Serializable):
         return key
 
     def addEvent(
-            self, _symbol: str,
-            _signal_type: int,
-            _strength: typing.Any = None
+            self, _symbol: str, _strength: float,
     ):
         """
         add signal event to event queue.
 
         :param _symbol: which symbol is the signal for
-        :param _signal_type: long or short
         :param _strength: defined by user
         :return:
         """
         assert isinstance(_symbol, str)
+
+        if _strength > 0:
+            signal_type = SignalType.LONG
+        elif _strength < 0:
+            signal_type = SignalType.SHORT
+        else:
+            signal_type = SignalType.EMPTY
+
         self.engine.addEvent(SignalEvent(
             _symbol=_symbol,
             _strategy=self.name,
             _tradingday=self.engine.getTradingDay(),
             _datetime=self.engine.getDatetime(),
-            _signal_type=_signal_type,
+            _signal_type=signal_type,
             _strength=_strength,
         ))
         logging.info('Strategy({}) send {} {} {} when {}'.format(
             self.name, _symbol,
-            SignalType.toStr(_signal_type),
+            SignalType.toStr(signal_type),
             _strength,
             self.engine.getDatetime()
         ))

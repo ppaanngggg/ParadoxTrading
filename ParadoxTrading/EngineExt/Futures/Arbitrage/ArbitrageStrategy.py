@@ -1,7 +1,7 @@
 import typing
 
 from ParadoxTrading.Engine import StrategyAbstract, MarketEvent, \
-    SettlementEvent, SignalType
+    SettlementEvent
 from ParadoxTrading.Fetch import FetchAbstract
 
 
@@ -16,7 +16,7 @@ class MarketEventMgr:
         self.product_dict = {}
 
     def addMarketEvent(
-        self, _tradingday: str, _market_event: MarketEvent
+            self, _tradingday: str, _market_event: MarketEvent
     ):
         if self.available_product is None:
             # update availbale product current tradingday
@@ -36,8 +36,7 @@ class MarketEventMgr:
             self.product_dict[_market_event.symbol] = _market_event
 
         # if match, then return
-        rest_keys = self.available_product - self.product_dict.keys()
-        if not rest_keys:
+        if not (self.available_product - self.product_dict.keys()):
             return self.product_index, self.product_dict
 
     def resetTradingDayInfo(self):
@@ -53,18 +52,6 @@ class ArbitrageStrategy(StrategyAbstract):
         )
         self.addPickleKey('market_event_mgr')
 
-    def addEvent(
-            self, _symbol: str, _strength: float,
-            _signal_type: int = None,
-    ):
-        if _strength > 0:
-            signal_type = SignalType.LONG
-        elif _strength < 0:
-            signal_type = SignalType.SHORT
-        else:
-            signal_type = SignalType.EMPTY
-        super().addEvent(_symbol, signal_type, _strength)
-
     def deal(self, _market_event: MarketEvent):
         ret = self.market_event_mgr.addMarketEvent(
             self.engine.getTradingDay(), _market_event
@@ -73,7 +60,7 @@ class ArbitrageStrategy(StrategyAbstract):
             self.do_deal(ret[0], ret[1])
 
     def do_deal(
-        self, _index, _product_dict: typing.Dict[str, MarketEvent]
+            self, _index, _product_dict: typing.Dict[str, MarketEvent]
     ):
         raise NotImplementedError('deal not implemented')
 

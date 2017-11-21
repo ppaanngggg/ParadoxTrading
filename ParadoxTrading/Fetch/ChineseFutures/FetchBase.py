@@ -402,7 +402,8 @@ class FetchBase(FetchAbstract):
             return data
 
     def fetchSymbol(
-            self, _tradingday: str, _product: str, _type: int = 1,
+            self, _tradingday: str, _product: str,
+            _type: int = RegisterInstrument.DOMINANT,
     ) -> typing.Union[None, str]:
         """
         get symbol from database

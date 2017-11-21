@@ -59,6 +59,7 @@ class BarPortfolio(PortfolioAbstract):
         product = re.findall(r'[a-zA-Z]+', instrument)[0]
 
         order_list: typing.List[OrderEvent] = []
+        target_quantity = int(abs(_event.strength))
         short_quantity = self.portfolio_mgr.getPosition(
             instrument, SignalType.SHORT
         )
@@ -71,21 +72,33 @@ class BarPortfolio(PortfolioAbstract):
                     _event.symbol, ActionType.CLOSE, DirectionType.BUY,
                     short_quantity
                 ))
-            if long_quantity == 0:  # open long position
+            if target_quantity > long_quantity:  # open long position
                 order_list.append(self._gen_order(
                     _event.symbol, ActionType.OPEN, DirectionType.BUY,
-                    POINT_VALUE[product]
+                    POINT_VALUE[product] * (target_quantity - long_quantity)
                 ))
+            elif target_quantity < long_quantity:  # close long position
+                order_list.append(self._gen_order(
+                    _event.symbol, ActionType.CLOSE, DirectionType.SELL,
+                    POINT_VALUE[product] * (long_quantity - target_quantity)
+                ))
+            else:  # nothing to do
+                pass
         elif _event.signal_type == SignalType.SHORT:
             if long_quantity > 0:  # close long position
                 order_list.append(self._gen_order(
                     _event.symbol, ActionType.CLOSE, DirectionType.SELL,
                     long_quantity
                 ))
-            if short_quantity == 0:  # open short position
+            if target_quantity > short_quantity:  # open short position
                 order_list.append(self._gen_order(
                     _event.symbol, ActionType.OPEN, DirectionType.SELL,
-                    POINT_VALUE[product]
+                    POINT_VALUE[product] * (target_quantity - short_quantity)
+                ))
+            elif target_quantity < short_quantity:  # close short position
+                order_list.append(self._gen_order(
+                    _event.symbol, ActionType.CLOSE, DirectionType.BUY,
+                    POINT_VALUE[product] * (short_quantity - target_quantity)
                 ))
         elif _event.signal_type == SignalType.EMPTY:
             if long_quantity > 0:  # close long position
