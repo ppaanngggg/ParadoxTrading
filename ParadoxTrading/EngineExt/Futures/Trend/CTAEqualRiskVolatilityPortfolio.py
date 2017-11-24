@@ -66,20 +66,18 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
 
         # unlimited real weight and quantity
         real_w = self.risk_rate / tmp_v
-        real_q = _part_fund_alloc * real_w / (
-            price * point_value
-        )
-        # real quantity, weight and quantity
+        real_q = _part_fund_alloc * real_w / (price * point_value)
+        # real quantity, weight and risk
         real_q = min(max_quantity, real_q)
         real_w = real_q * price * point_value / _part_fund_alloc
         real_v = real_w ** 2 * var
 
-        # floor quantity, weight and quantity
+        # floor quantity, weight and risk
         floor_q = math.floor(real_q)
         floor_w = floor_q * price * point_value / _part_fund_alloc
         floor_v = floor_w ** 2 * var
 
-        # ceil quantity, weight and quantity
+        # ceil quantity, weight and risk
         ceil_q = math.ceil(real_q)
         ceil_w = ceil_q * price * point_value / _part_fund_alloc
         ceil_v = ceil_w ** 2 * var
@@ -120,7 +118,8 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
                             < self.volatility_period:
                         continue
                     tmp_dict[i_mgr] = self._get_dict(
-                        i_mgr, _tradingday, part_fund_alloc)
+                        i_mgr, _tradingday, part_fund_alloc
+                    )
 
             # remove minimum risk
             free_risk_alloc = self.risk_rate ** 2 * parts
@@ -142,7 +141,6 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
                         quantity = -quantity
                 if quantity != 0:
                     i_mgr.next_instrument_dict[tmp['instrument']] = quantity
-
         else:
             for p_mgr in self.strategy_mgr:
                 for i_mgr in p_mgr:
