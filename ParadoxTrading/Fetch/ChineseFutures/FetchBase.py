@@ -307,6 +307,14 @@ class FetchBase(FetchAbstract):
             _instrument, _tradingday
         ) is not None
 
+    def instrumentDeliveryMonth(
+            self, _instrument: str, _tradingday: str
+    ) -> typing.Union[None, str]:
+        data = self.fetchInstrumentInfo(_instrument, _tradingday)
+        if data is not None:
+            return data['DeliveryMonth']
+        return None
+
     def instrumentFirstTradingDay(
             self, _instrument: str
     ) -> typing.Union[None, str]:
@@ -402,7 +410,7 @@ class FetchBase(FetchAbstract):
             return data
 
     def fetchSymbol(
-            self, _tradingday: str, _product: str,
+            self, _tradingday: str, _product: str = None,
             _type: int = RegisterInstrument.DOMINANT,
     ) -> typing.Union[None, str]:
         """
@@ -447,9 +455,11 @@ class FetchBase(FetchAbstract):
             if tmp_index >= len(tmp):
                 return None
             instrument = tmp[tmp_index]
+        else:
+            raise Exception('unknown type')
 
         if instrument is None or not self.instrumentIsAvailable(
-            instrument, _tradingday
+                instrument, _tradingday
         ):
             return None
         return instrument
@@ -512,8 +522,8 @@ class FetchBase(FetchAbstract):
         query = "SELECT * FROM {} " \
                 "WHERE tradingday >= '{}' AND tradingday < '{}' " \
                 "ORDER BY {}".format(
-                    _symbol.lower(), begin_day, end_day, _index.lower()
-                )
+            _symbol.lower(), begin_day, end_day, _index.lower()
+        )
         cur.execute(query)
         datas = list(cur.fetchall())
 
