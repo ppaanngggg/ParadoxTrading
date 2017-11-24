@@ -1,17 +1,17 @@
 from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE, \
     InterDayPortfolio
-from ParadoxTrading.Fetch import FetchAbstract
+from ParadoxTrading.Fetch.ChineseFutures.FetchBase import FetchBase
 
 
 class CTAEqualFundPortfolio(InterDayPortfolio):
     def __init__(
-        self,
-        _fetcher: FetchAbstract,
-        _init_fund: float = 0.0,
-        _margin_rate: float = 1.0,
-        _leverage_rate: float = 1.0,
-        _adjust_period: int = 5,
-        _settlement_price_index: str = 'closeprice',
+            self,
+            _fetcher: FetchBase,
+            _init_fund: float = 0.0,
+            _margin_rate: float = 1.0,
+            _leverage_rate: float = 1.0,
+            _adjust_period: int = 5,
+            _settlement_price_index: str = 'closeprice',
     ):
         super().__init__(
             _fetcher, _init_fund, _margin_rate, _settlement_price_index
@@ -40,7 +40,7 @@ class CTAEqualFundPortfolio(InterDayPortfolio):
             if parts == 0:
                 return
             product_fund = self.portfolio_mgr.getStaticFund() \
-                * self.leverage_rate / parts
+                           * self.leverage_rate / parts
 
             for p_mgr in self.strategy_mgr:
                 for i_mgr in p_mgr:

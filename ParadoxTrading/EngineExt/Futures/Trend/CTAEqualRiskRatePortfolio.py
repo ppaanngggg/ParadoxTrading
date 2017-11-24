@@ -1,9 +1,9 @@
 import math
-
 import typing
+
 from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE, \
     InterDayPortfolio
-from ParadoxTrading.Fetch import FetchAbstract
+from ParadoxTrading.Fetch.ChineseFutures.FetchBase import FetchBase
 from ParadoxTrading.Indicator import ReturnRate
 from ParadoxTrading.Utils import DataStruct
 
@@ -11,7 +11,7 @@ from ParadoxTrading.Utils import DataStruct
 class CTAEqualRiskRatePortfolio(InterDayPortfolio):
     def __init__(
             self,
-            _fetcher: FetchAbstract,
+            _fetcher: FetchBase,
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
             _risk_rate: float = 0.01,
@@ -115,13 +115,13 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
             for i_mgr, tmp in tmp_tuples:
                 if free_risk_alloc > tmp['per_risk']:
                     i_mgr.next_quantity = tmp['ceil_q'] * \
-                        POINT_VALUE[i_mgr.product]
+                                          POINT_VALUE[i_mgr.product]
                     if i_mgr.strength < 0:
                         i_mgr.next_quantity = -i_mgr.next_quantity
                     free_risk_alloc -= tmp['per_risk']
                 else:
                     i_mgr.next_quantity = tmp['floor_q'] * \
-                        POINT_VALUE[i_mgr.product]
+                                          POINT_VALUE[i_mgr.product]
                     if i_mgr.strength < 0:
                         i_mgr.next_quantity = -i_mgr.next_quantity
         else:
