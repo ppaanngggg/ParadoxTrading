@@ -18,190 +18,191 @@ class InstrumentMgr:
 
     def __init__(self, _product):
         # pointed to its key
-        self.product = _product
+        self.product: str = _product
         # strength management
-        self.prev_strength = 0.0
-        self.strength = 0.0
-        # instrument and quantity management
-        self.cur_instrument = None
-        self.cur_quantity = 0
-        self.next_instrument = None
-        self.next_quantity = 0
+        self.prev_strength: float = 0.0
+        self.strength: float = 0.0
 
-        # map instrument to quantity changes
-        self.chg_detail: typing.Dict[str, int] = {}
+        self.cur_instrument_dict: typing.Dict[str, int] = {}
+        self.next_instrument_dict: typing.Dict[str, int] = {}
 
     def reset(self):
         self.prev_strength = self.strength
-        self.next_instrument = None
-        self.next_quantity = 0
-        self.chg_detail: typing.Dict[str, int] = {}
+        self.next_instrument_dict: typing.Dict[str, int] = {}
 
     def dealSignal(self, _event: SignalEvent):
         """
         update strength
-
-        :param _event:
-        :return:
         """
         self.strength = _event.strength
 
     def dealFill(self, _event: FillEvent):
         """
         store quantity into detail
-
-        :param _event:
-        :return:
         """
         if _event.direction == DirectionType.BUY:
             try:
-                self.chg_detail[_event.symbol] += _event.quantity
+                self.cur_instrument_dict[_event.symbol] += _event.quantity
             except KeyError:
-                self.chg_detail[_event.symbol] = _event.quantity
+                self.cur_instrument_dict[_event.symbol] = _event.quantity
         elif _event.direction == DirectionType.SELL:
             try:
-                self.chg_detail[_event.symbol] -= _event.quantity
+                self.cur_instrument_dict[_event.symbol] -= _event.quantity
             except KeyError:
-                self.chg_detail[_event.symbol] = -_event.quantity
+                self.cur_instrument_dict[_event.symbol] = -_event.quantity
         else:
             raise Exception('unknown direction')
 
-    def updateCurStatus(self):
-        tmp_dict = {}
-        # get cur position
-        if self.cur_instrument:
-            tmp_dict[self.cur_instrument] = self.cur_quantity
-        # update positions
-        for k, v in self.chg_detail.items():
-            try:
-                tmp_dict[k] += v
-            except KeyError:
-                tmp_dict[k] = v
-        # remove empty position
-        new_dict = {}
-        for k, v in tmp_dict.items():
-            if v:
-                new_dict[k] = v
-        if new_dict:  # there is position
-            assert len(new_dict) == 1
-            for k, v in new_dict.items():
-                self.cur_instrument = k
-                self.cur_quantity = v
-        else:  # no position
-            self.cur_instrument = None
-            self.cur_quantity = 0
+        # if empty, then clear from dict
+        if self.cur_instrument_dict[_event.symbol] == 0:
+            del self.cur_instrument_dict[_event.symbol]
 
-    def _open_buy_order_dict(self, _quantity):
+    @staticmethod
+    def _open_buy_order_dict(_instrument, _quantity):
+        assert _quantity > 0
         return {
-            'Instrument': self.next_instrument,
+            'Instrument': _instrument,
             'Action': ActionType.OPEN,
             'Direction': DirectionType.BUY,
             'Quantity': _quantity,
         }
 
-    def _open_sell_order_dict(self, _quantity):
+    @staticmethod
+    def _open_sell_order_dict(_instrument, _quantity):
+        assert _quantity > 0
         return {
-            'Instrument': self.next_instrument,
+            'Instrument': _instrument,
             'Action': ActionType.OPEN,
             'Direction': DirectionType.SELL,
             'Quantity': _quantity,
         }
 
-    def _close_buy_order_dict(self, _quantity):
+    @staticmethod
+    def _close_buy_order_dict(_instrument, _quantity):
+        assert _quantity > 0
         return {
-            'Instrument': self.cur_instrument,
+            'Instrument': _instrument,
             'Action': ActionType.CLOSE,
             'Direction': DirectionType.BUY,
             'Quantity': _quantity,
         }
 
-    def _close_sell_order_dict(self, _quantity):
+    @staticmethod
+    def _close_sell_order_dict(_instrument, _quantity):
+        assert _quantity > 0
         return {
-            'Instrument': self.cur_instrument,
+            'Instrument': _instrument,
             'Action': ActionType.CLOSE,
             'Direction': DirectionType.SELL,
             'Quantity': _quantity,
         }
 
-    def _open_next_order_dict(self):
-        if self.next_quantity > 0:  # open buy
-            return self._open_buy_order_dict(self.next_quantity)
-        elif self.next_quantity < 0:
-            return self._open_sell_order_dict(-self.next_quantity)
-        else:
-            assert self.next_quantity != 0
-
-    def _close_cur_order_dict(self):
-        if self.cur_quantity > 0:
-            return self._close_sell_order_dict(self.cur_quantity)
-        elif self.cur_quantity < 0:
-            return self._close_buy_order_dict(-self.cur_quantity)
-        else:
-            assert self.cur_quantity != 0
-
-    def _adjust_order_dict(self):
-        quantity_diff = self.next_quantity - self.cur_quantity
-        assert quantity_diff
-        if self.next_quantity > 0:
-            if quantity_diff > 0:
-                return self._open_buy_order_dict(quantity_diff)
-            elif quantity_diff < 0:
-                return self._close_sell_order_dict(-quantity_diff)
-            else:
-                assert quantity_diff
-        elif self.next_quantity < 0:
-            if quantity_diff < 0:
-                return self._open_sell_order_dict(-quantity_diff)
-            elif quantity_diff > 0:
-                return self._close_buy_order_dict(quantity_diff)
-            else:
-                assert quantity_diff
-        else:
-            assert self.next_quantity
-
-    def getOrderDicts(self) -> typing.List[dict]:
+    @staticmethod
+    def _adjust_order_dicts(
+            _instrument, _cur_quantity, _next_quantity
+    ) -> typing.List[dict]:
         ret = []
-
-        if self.cur_quantity != 0:  # cur is not empty
-            assert self.cur_instrument is not None
-            if self.next_quantity != 0:  # next is not empty
-                assert self.next_instrument is not None
-                if self.next_instrument != self.cur_instrument \
-                        or self.next_quantity * self.cur_quantity < 0:
-                    # instrument changed, or strength direction changed
-                    ret.append(self._close_cur_order_dict())  # close cur
-                    ret.append(self._open_next_order_dict())  # open next
-                else:
-                    assert self.next_instrument == self.cur_instrument
-                    if self.next_quantity != self.cur_quantity:  # adjust
-                        ret.append(self._adjust_order_dict())
-                    else:  # do nothing
-                        pass
-            else:  # next it empty, need to close position
-                ret.append(self._close_cur_order_dict())
-        else:  # cur is empty
-            if self.next_quantity != 0:  # next is not empty
-                assert self.next_instrument is not None
-                ret.append(self._open_next_order_dict())
-            else:  # next is empty too, do nothing
-                pass
+        if _next_quantity > 0:
+            if _cur_quantity > 0:
+                if _next_quantity > _cur_quantity:
+                    ret.append(InstrumentMgr._open_buy_order_dict(
+                        _instrument, _next_quantity - _cur_quantity
+                    ))
+                elif _next_quantity < _cur_quantity:
+                    ret.append(InstrumentMgr._close_sell_order_dict(
+                        _instrument, _cur_quantity - _next_quantity
+                    ))
+                else:  # nothing changes
+                    pass
+            elif _cur_quantity < 0:
+                ret.append(InstrumentMgr._close_buy_order_dict(
+                    _instrument, -_cur_quantity
+                ))
+                ret.append(InstrumentMgr._open_buy_order_dict(
+                    _instrument, _next_quantity
+                ))
+            else:
+                raise Exception('why _cur_quantity == 0 ???')
+        elif _next_quantity < 0:
+            if _cur_quantity < 0:
+                if _next_quantity < _cur_quantity:
+                    ret.append(InstrumentMgr._open_sell_order_dict(
+                        _instrument, _cur_quantity - _next_quantity
+                    ))
+                elif _next_quantity > _cur_quantity:
+                    ret.append(InstrumentMgr._close_buy_order_dict(
+                        _instrument, _next_quantity - _cur_quantity
+                    ))
+                else:  # nothing changes
+                    pass
+            elif _cur_quantity > 0:
+                ret.append(InstrumentMgr._close_sell_order_dict(
+                    _instrument, _cur_quantity
+                ))
+                ret.append(InstrumentMgr._open_sell_order_dict(
+                    _instrument, -_next_quantity
+                ))
+            else:
+                raise Exception('why _cur_quantity == 0 ???')
+        else:
+            raise Exception('why _next_quantity == 0 ???')
 
         return ret
 
-    def __repr__(self) -> str:
-        return \
-            '-- PRODUCT: {} --\n' \
-            'PREV_STRENGTH: {}, STRENGTH: {}\n' \
-            'CUR_INSTRUMENT: {}, CUR_QUANTITY: {}\n' \
-            'NEXT_INSTRUMENT: {}, NEXT_QUANTITY: {}\n' \
-            'DETAIL: {}\n' \
-            '---'.format(
-                self.product,
-                self.prev_strength, self.strength,
-                self.cur_instrument, self.cur_quantity,
-                self.next_instrument, self.next_quantity,
-                self.chg_detail
-            )
+    def getOrderDicts(self) -> typing.List[dict]:
+        # check quantity is not zero
+        for v in self.cur_instrument_dict.values():
+            assert v != 0
+        for v in self.next_instrument_dict.values():
+            assert v != 0
+
+        ret = []
+
+        for k in self.cur_instrument_dict:
+            if k not in self.next_instrument_dict:  # close now
+                if self.cur_instrument_dict[k] > 0:
+                    ret.append(InstrumentMgr._close_sell_order_dict(
+                        k, self.cur_instrument_dict[k]
+                    ))
+                elif self.cur_instrument_dict[k] < 0:
+                    ret.append(InstrumentMgr._close_buy_order_dict(
+                        k, -self.cur_instrument_dict[k]
+                    ))
+                else:
+                    raise Exception(
+                        'why cur_instrument_dict[k] == 0 ???'
+                    )
+
+        for k in self.next_instrument_dict:
+            if k in self.cur_instrument_dict:  # adjust
+                ret += self._adjust_order_dicts(
+                    k, self.cur_instrument_dict[k], self.next_instrument_dict[k]
+                )
+            else:  # new open
+                if self.next_instrument_dict[k] > 0:
+                    ret.append(InstrumentMgr._open_buy_order_dict(
+                        k, self.next_instrument_dict[k]
+                    ))
+                elif self.next_instrument_dict[k] < 0:
+                    ret.append(InstrumentMgr._open_sell_order_dict(
+                        k, -self.next_instrument_dict[k]
+                    ))
+                else:
+                    raise Exception(
+                        'why next_instrument_dict[k] == 0 ???'
+                    )
+
+        return ret
+
+    def __repr__(self):
+        ret = '### InstrumentMgr ###\n' \
+              'PRODUCT: {}, PREV_STRENGTH: {}, STRENGTH:{}\n' \
+              'CUR_INSTRUMENT_DICT: {}\n' \
+              'NEXT_INSTRUMENT_DICT: {}'
+        return ret.format(
+            self.product, self.prev_strength, self.strength,
+            self.cur_instrument_dict, self.next_instrument_dict
+        )
 
 
 class ProductMgr:
@@ -245,7 +246,7 @@ class ProductMgr:
             product = self.order_table.pop(_event.index)
         except KeyError as e:
             logging.error('order index({}) not found in order_table'.format(e))
-            ret = input('Continue?(y/n)')
+            ret = input('Continue?(y/n): ')
             if ret != 'y':
                 sys.exit(1)
             product = input('Please input product name:')
@@ -265,25 +266,6 @@ class ProductMgr:
         """
         for p in self.product_table.values():
             yield p
-
-    def getInstrumentTable(self):
-        table = []
-        for i_mgr in self:
-            table.append([
-                i_mgr.product, i_mgr.strength,
-                i_mgr.cur_instrument, i_mgr.cur_quantity,
-                i_mgr.next_instrument, i_mgr.next_quantity
-            ])
-        return tabulate.tabulate(table, [
-            'product', 'strength',
-            'cur instrument', 'cur quantity',
-            'next instrument', 'next quantity',
-        ])
-
-    def __repr__(self) -> str:
-        return '@@@ PRODUCT STATUS @@@\n{}'.format(
-            self.getInstrumentTable()
-        )
 
 
 class StrategyMgr:
@@ -326,7 +308,7 @@ class StrategyMgr:
             strategy = self.order_table.pop(_event.index)
         except KeyError as e:
             logging.error('order index({}) not found in order_table'.format(e))
-            ret = input('Continue?(y/n)')
+            ret = input('Continue?(y/n): ')
             if ret != 'y':
                 sys.exit(1)
             strategy = input('Please input strategy name:')
@@ -348,24 +330,38 @@ class StrategyMgr:
         for s in self.strategy_table.values():
             yield s
 
-    def getInstrumentTable(self):
+    def getCurInstrumentTable(self):
         table = []
         for p_mgr in self:
             for i_mgr in p_mgr:
-                table.append([
-                    p_mgr.strategy, i_mgr.product, i_mgr.strength,
-                    i_mgr.cur_instrument, i_mgr.cur_quantity,
-                    i_mgr.next_instrument, i_mgr.next_quantity
-                ])
+                for k, v in i_mgr.cur_instrument_dict.items():
+                    table.append([
+                        p_mgr.strategy, i_mgr.product, i_mgr.strength,
+                        k, v
+                    ])
         return tabulate.tabulate(table, [
             'strategy', 'product', 'strength',
             'cur instrument', 'cur quantity',
+        ])
+
+    def getNextInstrumentTable(self):
+        table = []
+        for p_mgr in self:
+            for i_mgr in p_mgr:
+                for k, v in i_mgr.next_instrument_dict.items():
+                    table.append([
+                        p_mgr.strategy, i_mgr.product, i_mgr.strength,
+                        k, v
+                    ])
+        return tabulate.tabulate(table, [
+            'strategy', 'product', 'strength',
             'next instrument', 'next quantity',
         ])
 
     def __repr__(self):
-        return '@@@ STRATEGY STATUS @@@\n{}'.format(
-            self.getInstrumentTable()
+        return '@@@ STRATEGY STATUS @@@\n{}\n{}'.format(
+            self.getCurInstrumentTable(),
+            self.getNextInstrumentTable(),
         )
 
 
@@ -375,11 +371,13 @@ class InterDayPortfolio(PortfolioAbstract):
             _fetcher: FetchBase,
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
+            _simulate_product_index: bool = False,
             _settlement_price_index: str = 'closeprice',
     ):
         super().__init__(_init_fund, _margin_rate)
 
         self.fetcher = _fetcher
+        self.simulate_product_index = _simulate_product_index
         self.settlement_price_index = _settlement_price_index
 
         self.strategy_mgr = StrategyMgr()
@@ -388,7 +386,6 @@ class InterDayPortfolio(PortfolioAbstract):
 
         # map symbol to latest price, need to be reset after settlement
         self.symbol_price_dict: typing.Dict[str, float] = {}
-        # tmp value inter functions
 
     def dealSignal(self, _event: SignalEvent):
         self.strategy_mgr.dealSignal(_event)
@@ -404,27 +401,23 @@ class InterDayPortfolio(PortfolioAbstract):
         # get price dict for each portfolio
         keys = self.symbol_price_dict.keys()
         for symbol in self.portfolio_mgr.getSymbolList():
-            if symbol not in keys:
-                try:
-                    self.symbol_price_dict[symbol] = self.fetcher.fetchData(
-                        _tradingday, symbol
-                    )[self.settlement_price_index][0]
-                except TypeError as e:
-                    # if not available, use the last tradingday's price
-                    logging.warning('Tradingday: {}, Symbol: {}, e: {}'.format(
-                        _tradingday, symbol, e
-                    ))
-                    self.symbol_price_dict[symbol] = self.fetcher.fetchData(
-                        self.fetcher.instrumentLastTradingDay(
-                            symbol, _tradingday
-                        ), symbol
-                    )[self.settlement_price_index][0]
-
-    def _iter_update_cur_status(self):
-        # iter each strategy's each product
-        for p_mgr in self.strategy_mgr:
-            for i_mgr in p_mgr:
-                i_mgr.updateCurStatus()
+            if symbol in keys:
+                continue
+            try:
+                self.symbol_price_dict[symbol] = self.fetcher.fetchData(
+                    _tradingday, symbol
+                )[self.settlement_price_index][0]
+            except TypeError as e:
+                # if not available, use the last tradingday's price
+                logging.warning('Tradingday: {}, Symbol: {}, e: {}'.format(
+                    _tradingday, symbol, e
+                ))
+                if input('Continue?(y/n): ') != 'y':
+                    sys.exit(1)
+                self.symbol_price_dict[symbol] = self.fetcher.fetchData(
+                    self.fetcher.instrumentLastTradingDay(
+                        symbol, _tradingday), symbol
+                )[self.settlement_price_index][0]
 
     def _iter_update_next_status(self, _tradingday):
         """
@@ -433,13 +426,13 @@ class InterDayPortfolio(PortfolioAbstract):
         """
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
-                i_mgr.next_quantity = int(i_mgr.strength) \
-                    * POINT_VALUE[i_mgr.product]
-                if i_mgr.next_quantity != 0:
-                    # next dominant instrument
-                    i_mgr.next_instrument = self.fetcher.fetchSymbol(
-                        _tradingday, _product=i_mgr.product
-                    )
+                if i_mgr.strength == 0:
+                    continue
+                next_instrument = self.fetcher.fetchSymbol(
+                    _tradingday, _product=i_mgr.product
+                )
+                i_mgr.next_instrument_dict[next_instrument] = \
+                    POINT_VALUE[i_mgr.product] * int(i_mgr.strength)
 
     def _iter_send_order(self):
         for p_mgr in self.strategy_mgr:
@@ -470,28 +463,24 @@ class InterDayPortfolio(PortfolioAbstract):
         # check it's the end of prev tradingday
         assert _tradingday
 
-        # 1. get the table map symbols to their price
+        # settle current portfolio's positions
         self._update_symbol_price_dict(_tradingday)
-        # 2. portfolio settlement
         self.portfolio_mgr.dealSettlement(
             _tradingday, self.symbol_price_dict
         )
-        # 4. update each strategy's position to current status
-        self._iter_update_cur_status()
 
-        # 5. update next status
+        # update next portfolio status and send orders
         self._iter_update_next_status(_tradingday)
-        # 6. send new orders
         self._iter_send_order()
-        # 7. reset all tmp info
         self._iter_reset_status()
+
         self.symbol_price_dict = {}
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         pass
 
     # utility functions
-    def _detect_update_instrument(
+    def _detect_instrument_change(
             self, _tradingday
     ) -> bool:
         """
@@ -499,20 +488,19 @@ class InterDayPortfolio(PortfolioAbstract):
         If strength is 0, remain None.
         If any product's instrument changes, return True, else False
         """
-        flag = False
         for p_mgr in self.strategy_mgr:
             for i_mgr in p_mgr:
                 if i_mgr.strength == 0:
-                    pass
-                else:
-                    i_mgr.next_instrument = self.fetcher.fetchSymbol(
-                        _tradingday, _product=i_mgr.product
-                    )
-                    if i_mgr.next_instrument != i_mgr.cur_instrument:
-                        flag = True
-        return flag
+                    continue
+                # alloc dominant
+                instrument = self.fetcher.fetchSymbol(
+                    _tradingday, _product=i_mgr.product
+                )
+                if instrument in i_mgr.cur_instrument_dict:
+                    return True
+        return False
 
-    def _detect_change(self) -> bool:
+    def _detect_strength_change(self) -> bool:
         """
         detect any strength changes
 
