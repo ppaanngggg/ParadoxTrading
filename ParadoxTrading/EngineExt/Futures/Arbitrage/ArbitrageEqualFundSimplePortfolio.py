@@ -45,8 +45,6 @@ class ArbitrageEqualFundSimplePortfolio(InterDayPortfolio):
                 quantity = -quantity
             _i_mgr.next_instrument_dict[dominant] = quantity
 
-        input((_i_mgr.product, quantity * price))
-
     def _update_product_status(
             self, _tradingday: str,
             _i_mgr: InstrumentMgr, _fund: float,
@@ -107,8 +105,6 @@ class ArbitrageEqualFundSimplePortfolio(InterDayPortfolio):
             _i_mgr.next_instrument_dict[lower_instrument] = lower_quantity
         if higher_quantity != 0:
             _i_mgr.next_instrument_dict[higher_instrument] = higher_quantity
-
-        input((_i_mgr.product, higher_price * higher_quantity + lower_price * lower_quantity))
 
     def _do_update_next_status(
             self, _tradingday: str,
