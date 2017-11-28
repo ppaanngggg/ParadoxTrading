@@ -44,7 +44,7 @@ class InterDayBacktestExecution(ExecutionAbstract):
             logging.warning('Tradingday: {}, Symbol: {}, e: {}'.format(
                 tradingday, symbol, e
             ))
-            if input('Continue:(y/n): ') != 'y':
+            if input('Continue?(y/n): ') != 'y':
                 sys.exit(1)
             price = self.fetcher.fetchData(
                 self.fetcher.instrumentLastTradingDay(

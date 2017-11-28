@@ -1,7 +1,8 @@
 import typing
+
 from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE, \
     InstrumentMgr, InterDayPortfolio, ProductMgr
-from ParadoxTrading.Fetch import FetchAbstract
+from ParadoxTrading.Fetch.ChineseFutures.FetchBase import FetchBase
 from ParadoxTrading.Indicator import FastVolatility
 from ParadoxTrading.Utils import DataStruct
 
@@ -9,18 +10,20 @@ from ParadoxTrading.Utils import DataStruct
 class ArbitrageEqualFundVolatilityPortfolio(InterDayPortfolio):
     def __init__(
             self,
-            _fetcher: FetchAbstract,
+            _fetcher: FetchBase,
             _init_fund: float = 0.0,
             _margin_rate: float = 1.0,
             _leverage_rate: float = 1.0,
             _adjust_period: int = 5,
             _volatility_period: int = 30,
             _volatility_smooth: int = 12,
+            _simulate_product_index: bool = False,
             _settlement_price_index: str = 'closeprice'
     ):
         super().__init__(
             _fetcher, _init_fund, _margin_rate,
-            _settlement_price_index
+            _simulate_product_index=_simulate_product_index,
+            _settlement_price_index=_settlement_price_index,
         )
 
         self.adjust_period = _adjust_period
@@ -55,16 +58,19 @@ class ArbitrageEqualFundVolatilityPortfolio(InterDayPortfolio):
 
         for i_mgr, vol in tmp_table.items():
             fund = _strategy_fund * (vol / vol_sum)
+            symbol = self.fetcher.fetchSymbol(
+                _tradingday, i_mgr.product
+            )
             price = self._fetch_buf_price(
-                _tradingday, i_mgr.next_instrument
+                _tradingday, symbol
             )
             quantity = round(
                 fund / price / POINT_VALUE[i_mgr.product]
             ) * POINT_VALUE[i_mgr.product]
             if i_mgr.strength > 0:
-                i_mgr.next_quantity = quantity
+                i_mgr.next_instrument_dict[symbol] = quantity
             elif i_mgr.strength < 0:
-                i_mgr.next_quantity = -quantity
+                i_mgr.next_instrument_dict[symbol] = -quantity
             else:
                 raise Exception('strength == 0 ???')
 
@@ -72,7 +78,7 @@ class ArbitrageEqualFundVolatilityPortfolio(InterDayPortfolio):
         # detect any sign changes
         flag = self._detect_sign_change()
         # update instrument and detect changes
-        if self._detect_update_instrument(_tradingday):
+        if self._detect_instrument_change(_tradingday):
             flag = True
         # inc adjust count
         self.adjust_count += 1
@@ -97,9 +103,9 @@ class ArbitrageEqualFundVolatilityPortfolio(InterDayPortfolio):
             for p_mgr in self.strategy_mgr:
                 for i_mgr in p_mgr:
                     if i_mgr.strength == 0:
-                        i_mgr.next_quantity = 0
-                    else:
-                        i_mgr.next_quantity = i_mgr.cur_quantity
+                        continue
+                    # copy current status
+                    i_mgr.next_instrument_dict = i_mgr.cur_instrument_dict
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         try:

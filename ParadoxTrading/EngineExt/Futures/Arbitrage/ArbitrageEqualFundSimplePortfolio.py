@@ -31,19 +31,19 @@ class ArbitrageEqualFundSimplePortfolio(InterDayPortfolio):
             _i_mgr: InstrumentMgr, _fund: float,
             _point_value: int,
     ):
-        dominant = self.fetcher.fetchSymbol(
+        symbol = self.fetcher.fetchSymbol(
             _tradingday, _i_mgr.product
         )
         price = self._fetch_buf_price(
-            _tradingday, dominant
+            _tradingday, symbol
         )
-        quantity = int(
+        quantity = round(
             _fund / price / _point_value
         ) * _point_value
         if quantity > 0:
             if _i_mgr.strength < 0:
                 quantity = -quantity
-            _i_mgr.next_instrument_dict[dominant] = quantity
+            _i_mgr.next_instrument_dict[symbol] = quantity
 
     def _update_product_status(
             self, _tradingday: str,
