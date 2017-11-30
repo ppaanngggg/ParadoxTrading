@@ -249,7 +249,7 @@ class ProductMgr:
             ret = input('Continue?(y/n): ')
             if ret != 'y':
                 sys.exit(1)
-            product = input('Please input product name:')
+            product = input('Please input product name: ')
         self.product_table[product].dealFill(_event)
 
         return product
@@ -311,7 +311,7 @@ class StrategyMgr:
             ret = input('Continue?(y/n): ')
             if ret != 'y':
                 sys.exit(1)
-            strategy = input('Please input strategy name:')
+            strategy = input('Please input strategy name: ')
         self.strategy_table[strategy].dealFill(_event)
 
         return strategy

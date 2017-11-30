@@ -314,7 +314,7 @@ class PortfolioMgr:
             logging.error('fill event index({}) not found'.format(
                 _fill_event.index
             ))
-            ret = input('Continue?(y/n)')
+            ret = input('Continue?(y/n): ')
             if ret != 'y':
                 sys.exit(1)
 

@@ -57,8 +57,8 @@ class InterDayOnlineExecution(ExecutionAbstract):
                     assert action == order.action
                     assert direction == order.direction
                 except AssertionError as e:
-                    logging.error('Order and Fill not match, {}'.format(index))
-                    ret = input('Continue?(y/n)')
+                    logging.error('Order and Fill not match: {}'.format(index))
+                    ret = input('Continue?(y/n): ')
                     if ret != 'y':
                         sys.exit(1)
 
