@@ -18,6 +18,10 @@ class RegisterInstrument(RegisterAbstract):
     SUB_DOMINANT = 2
     BEFORE_DOMINANT = 3
     AFTER_DOMINANT = 4
+    MOST_OPENINTEREST = 5
+    SECOND_OPENINTEREST = 6
+    MOST_VOLUME = 7
+    SECOND_VOLUME = 8
 
     def __init__(
             self, _product: str = None, _type: int = 1
@@ -31,7 +35,7 @@ class RegisterInstrument(RegisterAbstract):
         """
         super().__init__()
         assert _product is not None
-        assert _type in [1, 2, 3, 4]
+        assert _type in [1, 2, 3, 4, 5, 6]
 
         # market register info
         self.product = _product
@@ -409,6 +413,21 @@ class FetchBase(FetchAbstract):
             self.cache[key] = data
             return data
 
+    def _get_sorted_list(
+            self, _product: str, _tradingday: str, _key: str
+    ):
+        instrument_list = self.fetchAvailableInstrument(
+            _product, _tradingday
+        )
+        if not instrument_list:
+            return None
+        tmp = [(
+            k, self.fetchData(_tradingday, k)[_key][0]
+        ) for k in instrument_list]
+        tmp.sort(key=lambda x: x[1])
+
+        return tmp
+
     def fetchSymbol(
             self, _tradingday: str, _product: str = None,
             _type: int = RegisterInstrument.DOMINANT,
@@ -421,14 +440,15 @@ class FetchBase(FetchAbstract):
         :param _type:
         :return:
         """
+
         assert _product is not None
 
         product = _product.lower()
 
         if _type == RegisterInstrument.DOMINANT:
-            instrument = self.fetchDominant(product, _tradingday)
+            return self.fetchDominant(product, _tradingday)
         elif _type == RegisterInstrument.SUB_DOMINANT:
-            instrument = self.fetchSubDominant(product, _tradingday)
+            return self.fetchSubDominant(product, _tradingday)
         elif _type == RegisterInstrument.BEFORE_DOMINANT:
             dominant = self.fetchDominant(product, _tradingday)
             if dominant is None:
@@ -441,7 +461,7 @@ class FetchBase(FetchAbstract):
             tmp_index -= 1
             if tmp_index < 0:
                 return None
-            instrument = tmp[tmp_index]
+            return tmp[tmp_index]
         elif _type == RegisterInstrument.AFTER_DOMINANT:
             dominant = self.fetchDominant(product, _tradingday)
             if dominant is None:
@@ -454,15 +474,29 @@ class FetchBase(FetchAbstract):
             tmp_index += 1
             if tmp_index >= len(tmp):
                 return None
-            instrument = tmp[tmp_index]
+            return tmp[tmp_index]
+        elif _type == RegisterInstrument.MOST_OPENINTEREST:
+            ret = self._get_sorted_list(
+                product, _tradingday, 'openinterest'
+            )
+            return None if ret is None else ret[-1][0]
+        elif _type == RegisterInstrument.SECOND_OPENINTEREST:
+            ret = self._get_sorted_list(
+                product, _tradingday, 'openinterest'
+            )
+            return None if ret is None else ret[-2][0]
+        elif _type == RegisterInstrument.MOST_VOLUME:
+            ret = self._get_sorted_list(
+                product, _tradingday, 'volume'
+            )
+            return None if ret is None else ret[-1][0]
+        elif _type == RegisterInstrument.SECOND_VOLUME:
+            ret = self._get_sorted_list(
+                product, _tradingday, 'volume'
+            )
+            return None if ret is None else ret[-2][0]
         else:
             raise Exception('unknown type')
-
-        if instrument is None or not self.instrumentIsAvailable(
-                instrument, _tradingday
-        ):
-            return None
-        return instrument
 
     def fetchData(
             self, _tradingday: str, _symbol: str,
@@ -525,6 +559,6 @@ class FetchBase(FetchAbstract):
             _symbol.lower(), begin_day, end_day, _index.lower()
         )
         cur.execute(query)
-        datas = list(cur.fetchall())
+        data = list(cur.fetchall())
 
-        return DataStruct(self.columns, _index.lower(), datas)
+        return DataStruct(self.columns, _index.lower(), data)
