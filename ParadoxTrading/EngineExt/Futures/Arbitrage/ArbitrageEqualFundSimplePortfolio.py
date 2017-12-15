@@ -111,18 +111,17 @@ class ArbitrageEqualFundSimplePortfolio(InterDayPortfolio):
             _p_mgr: ProductMgr, _strategy_fund: float
     ):
         # count product number
-        num = 0
+        abs_total = 0
         for i_mgr in _p_mgr:
-            if i_mgr.strength == 0:
-                continue
-            num += 1
-        if num == 0:  # all empty, remain all zero
+            abs_total += abs(i_mgr.strength)
+        if abs_total == 0:  # all empty, remain all zero
             return
 
-        fund = _strategy_fund / num
+        # set each product
         for i_mgr in _p_mgr:
             if i_mgr.strength == 0:
                 continue
+            fund = _strategy_fund / abs_total * abs(i_mgr.strength)
             point_value = POINT_VALUE[i_mgr.product]
             if not self.simulate_product_index:
                 self._update_dominant_status(

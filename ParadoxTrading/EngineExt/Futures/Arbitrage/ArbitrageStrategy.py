@@ -22,7 +22,6 @@ class MarketEventMgr:
             # update availbale product current tradingday
             tmp = self.fetcher.fetchAvailableProduct(_tradingday)
             self.available_product = set(tmp) & self.product_set
-
         index_value = _market_event.data.index()[0]
         if self.product_index != index_value:
             # time changes

@@ -33,7 +33,7 @@ setup(
         'pandas',
         'diskcache',
         'schedule',
-        'requests', 'beautifulsoup4', 'urllib3', 'lxml'
+        'requests', 'beautifulsoup4', 'urllib3', 'lxml', 'arch'
         # 'PyCTP'
     ],
     dependency_links=[

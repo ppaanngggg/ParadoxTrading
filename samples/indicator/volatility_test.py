@@ -16,7 +16,7 @@ print(time.clock())
 
 wizard = Wizard()
 
-price_view = wizard.addView('price', _view_stretch=3)
+price_view = wizard.addView('price')
 price_view.addLine('market', market.index(), market['closeprice'])
 
 sub_view = wizard.addView('std')
