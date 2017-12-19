@@ -431,8 +431,14 @@ class InterDayPortfolio(PortfolioAbstract):
                 next_instrument = self.fetcher.fetchSymbol(
                     _tradingday, _product=i_mgr.product
                 )
+                if i_mgr.strength > 0:
+                    quantity = 1
+                elif i_mgr.strength < 0:
+                    quantity = -1
+                else:
+                    quantity = 0
                 i_mgr.next_instrument_dict[next_instrument] = \
-                    POINT_VALUE[i_mgr.product] * int(i_mgr.strength)
+                    POINT_VALUE[i_mgr.product] * quantity
 
     def _iter_send_order(self):
         for p_mgr in self.strategy_mgr:
