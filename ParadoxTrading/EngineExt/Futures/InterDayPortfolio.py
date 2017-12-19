@@ -492,11 +492,10 @@ class InterDayPortfolio(PortfolioAbstract):
             for i_mgr in p_mgr:
                 if i_mgr.strength == 0:
                     continue
-                # alloc dominant
                 instrument = self.fetcher.fetchSymbol(
                     _tradingday, _product=i_mgr.product
                 )
-                if instrument in i_mgr.cur_instrument_dict:
+                if instrument not in i_mgr.cur_instrument_dict:
                     return True
         return False
 

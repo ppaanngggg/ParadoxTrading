@@ -57,6 +57,7 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
         rate_abs = self.rate_table[
             _i_mgr.product
         ].getAllData()['returnrate'][-1]
+        rate_abs /= abs(_i_mgr.strength)  # scale by strength
 
         # unlimit real weight and quantity
         real_w = self.risk_rate / rate_abs
@@ -87,7 +88,7 @@ class CTAEqualRiskRatePortfolio(InterDayPortfolio):
         }
 
     def _iter_update_next_status(self, _tradingday):
-        flag = self._detect_sign_change()
+        flag = self._detect_strength_change()
         if self._detect_instrument_change(_tradingday):
             flag = True
         # inc adjust count, adjust if count reach limit period

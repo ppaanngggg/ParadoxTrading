@@ -62,6 +62,7 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
         tmp_v = self.volatility_table[
             _i_mgr.product
         ].getAllData()['volatility'][-1]
+        tmp_v /= abs(_i_mgr.strength)  # scale by strength
         var = tmp_v ** 2
 
         # unlimited real weight and quantity
@@ -92,7 +93,7 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
         }
 
     def _iter_update_next_status(self, _tradingday):
-        flag = self._detect_sign_change()
+        flag = self._detect_strength_change()
         if self._detect_instrument_change(_tradingday):
             flag = True
         # inc adjust count, adjust if count reach limit period

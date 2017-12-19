@@ -59,6 +59,7 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
         atr = self.atr_table[
             _i_mgr.product
         ].getAllData()['atr'][-1]
+        atr /= abs(_i_mgr.strength)  # scale by strength
         real = _part_risk_alloc / atr / point_value
         per_risk = point_value * atr
         return {
@@ -70,7 +71,7 @@ class CTAEqualRiskATRPortfolio(InterDayPortfolio):
 
     def _iter_update_next_status(self, _tradingday):
         # 1. flag is true if sign change
-        flag = self._detect_sign_change()
+        flag = self._detect_strength_change()
         # 2. flag is true if instrument change
         if self._detect_instrument_change(_tradingday):
             flag = True

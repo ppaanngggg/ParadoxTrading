@@ -42,6 +42,7 @@ class CTAEqualFundPortfolio(InterDayPortfolio):
         )
         per_fund = price * point_value
         real_q = _part_fund_alloc / per_fund
+        real_q *= abs(_i_mgr.strength)  # scale by strength
         return {
             'point_value': point_value,
             'instrument': instrument,

@@ -46,7 +46,6 @@ class CTAEqualRiskGARCHPortfolio(InterDayPortfolio):
             self, _i_mgr: InstrumentMgr,
             _tradingday: str, _part_fund_alloc: float,
     ):
-
         # limit max quantity
         point_value = POINT_VALUE[_i_mgr.product]
         instrument = self.fetcher.fetchSymbol(
@@ -64,6 +63,7 @@ class CTAEqualRiskGARCHPortfolio(InterDayPortfolio):
         tmp_v = self.GARCH_dict[
             _i_mgr.product
         ].getAllData()['predict'][-1]
+        tmp_v /= abs(_i_mgr.strength)  # scale by strength
         var = tmp_v ** 2
 
         # unlimited real weight and quantity
@@ -94,7 +94,7 @@ class CTAEqualRiskGARCHPortfolio(InterDayPortfolio):
         }
 
     def _iter_update_next_status(self, _tradingday):
-        flag = self._detect_sign_change()
+        flag = self._detect_strength_change()  # any change
         if self._detect_instrument_change(_tradingday):
             flag = True
         # inc adjust count, adjust if count reach limit period
