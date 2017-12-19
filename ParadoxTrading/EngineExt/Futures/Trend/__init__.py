@@ -1,5 +1,6 @@
 from .CTAEqualFundPortfolio import CTAEqualFundPortfolio
 from .CTAEqualRiskATRPortfolio import CTAEqualRiskATRPortfolio
+from .CTAEqualRiskGARCHPortfolio import CTAEqualRiskGARCHPortfolio
 from .CTAEqualRiskRatePortfolio import CTAEqualRiskRatePortfolio
 from .CTAEqualRiskVolatilityPortfolio import CTAEqualRiskVolatilityPortfolio
 from .CTAStrategy import CTAStatusType, CTAStrategy

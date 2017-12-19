@@ -13,4 +13,4 @@ from .TickBacktestExecution import TickBacktestExecution
 from .TickPortfolio import TickPortfolio
 from .Trend import CTAEqualFundPortfolio, CTAEqualRiskATRPortfolio, \
     CTAEqualRiskRatePortfolio, CTAEqualRiskVolatilityPortfolio, \
-    CTAStatusType, CTAStrategy
+    CTAStatusType, CTAStrategy, CTAEqualRiskGARCHPortfolio

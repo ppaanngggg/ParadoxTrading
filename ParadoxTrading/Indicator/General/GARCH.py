@@ -1,9 +1,10 @@
 import math
 
 import numpy as np
+from arch import arch_model
+
 from ParadoxTrading.Indicator.IndicatorAbstract import IndicatorAbstract
 from ParadoxTrading.Utils import DataStruct
-from arch import arch_model
 
 
 class GARCH(IndicatorAbstract):
@@ -11,7 +12,8 @@ class GARCH(IndicatorAbstract):
     def __init__(
             self,
             _fit_period: int = 60,
-            _fit_length: int = 500,
+            _fit_begin: int = 252,
+            _factor: int = 1,
             _smooth_period: int = 1,
             _use_key: str = 'closeprice',
             _idx_key: str = 'time',
@@ -21,7 +23,8 @@ class GARCH(IndicatorAbstract):
 
         self.fit_count = 0
         self.fit_period = _fit_period
-        self.fit_length = _fit_length
+        self.fit_begin = _fit_begin
+        self.factor = math.sqrt(_factor)
         self.smooth_period = _smooth_period
 
         self.use_key = _use_key
@@ -47,10 +50,12 @@ class GARCH(IndicatorAbstract):
             self.rate_buf.append(rate)
 
             self.fit_count += 1
-            if self.fit_count > self.fit_period:
-                rate_arr = np.array(self.rate_buf[-self.fit_length:])
+            if self.fit_count > self.fit_period and \
+                    len(self.rate_buf) >= self.fit_begin:
+                rate_arr = np.array(self.rate_buf)
                 am = arch_model(rate_arr, mean='Zero')
                 res = am.fit(disp='off', show_warning=False)
+                # input(res.summary())
                 self.param = res.params.values
                 self.sigma2 = res.conditional_volatility[-1] ** 2
                 self.fit_count = 0
@@ -60,7 +65,8 @@ class GARCH(IndicatorAbstract):
                               self.param[1] * rate * rate + \
                               self.param[2] * self.sigma2
                 tmp = math.sqrt(self.sigma2)
-                if self.smooth_period > 1 and len(self.data): # smooth
+                tmp *= self.factor
+                if self.smooth_period > 1 and len(self.data):  # smooth
                     last_value = self.data[self.ret_key][-1]
                     tmp = (tmp - last_value) / self.smooth_period + last_value
                 self.data.addDict({
