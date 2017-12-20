@@ -1,4 +1,5 @@
 import math
+import typing
 
 import numpy as np
 from arch import arch_model
@@ -17,7 +18,7 @@ class GARCH(IndicatorAbstract):
             _smooth_period: int = 1,
             _use_key: str = 'closeprice',
             _idx_key: str = 'time',
-            _ret_key: str = 'predict'
+            _ret_key: typing.Tuple[str] = ('estimate', 'predict')
     ):
         super().__init__()
 
@@ -32,7 +33,7 @@ class GARCH(IndicatorAbstract):
         self.ret_key = _ret_key
 
         self.data = DataStruct(
-            [self.idx_key, self.ret_key],
+            [self.idx_key, self.ret_key[0], self.ret_key[1]],
             self.idx_key
         )
 
@@ -52,6 +53,7 @@ class GARCH(IndicatorAbstract):
             self.fit_count += 1
             if self.fit_count > self.fit_period and \
                     len(self.rate_buf) >= self.fit_begin:
+                # retrain model and reset sigma2
                 rate_arr = np.array(self.rate_buf)
                 am = arch_model(rate_arr, mean='Zero')
                 res = am.fit(disp='off', show_warning=False)
@@ -61,17 +63,19 @@ class GARCH(IndicatorAbstract):
                 self.fit_count = 0
 
             if self.param is not None:
+                estimate = math.sqrt(self.sigma2) * self.factor
                 self.sigma2 = self.param[0] + \
                               self.param[1] * rate * rate + \
                               self.param[2] * self.sigma2
-                tmp = math.sqrt(self.sigma2)
-                tmp *= self.factor
+                predict = math.sqrt(self.sigma2)
+                predict *= self.factor
                 if self.smooth_period > 1 and len(self.data):  # smooth
-                    last_value = self.data[self.ret_key][-1]
-                    tmp = (tmp - last_value) / self.smooth_period + last_value
+                    last_value = self.data[self.ret_key[1]][-1]
+                    predict = (predict - last_value) / self.smooth_period + last_value
                 self.data.addDict({
                     self.idx_key: index,
-                    self.ret_key: tmp,
+                    self.ret_key[0]: estimate,
+                    self.ret_key[1]: predict,
                 })
 
         self.last_price = price

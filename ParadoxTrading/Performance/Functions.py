@@ -13,7 +13,14 @@ def dailyReturn(
         _mongo_database='Backtest'
 ) -> DataStruct:
     fetcher = FetchRecord(_mongo_host, _mongo_database)
-    return fetcher.settlement(_backtest_key).clone(['fund'])
+    fund_data = fetcher.settlement(_backtest_key).clone(['fund'])
+    fund_list = fund_data['fund']
+    first_value = fund_list[0]
+    i = 1
+    for i in range(1, len(fund_list)):
+        if fund_list[i] != first_value:
+            break
+    return fund_data.iloc[i - 1:]
 
 
 def marginRate(
