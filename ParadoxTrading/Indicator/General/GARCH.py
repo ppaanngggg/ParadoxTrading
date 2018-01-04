@@ -65,13 +65,14 @@ class GARCH(IndicatorAbstract):
             if self.param is not None:
                 estimate = math.sqrt(self.sigma2) * self.factor
                 self.sigma2 = self.param[0] + \
-                              self.param[1] * rate * rate + \
-                              self.param[2] * self.sigma2
+                    self.param[1] * rate * rate + \
+                    self.param[2] * self.sigma2
                 predict = math.sqrt(self.sigma2)
                 predict *= self.factor
                 if self.smooth_period > 1 and len(self.data):  # smooth
                     last_value = self.data[self.ret_key[1]][-1]
-                    predict = (predict - last_value) / self.smooth_period + last_value
+                    predict = (predict - last_value) / \
+                        self.smooth_period + last_value
                 self.data.addDict({
                     self.idx_key: index,
                     self.ret_key[0]: estimate,
