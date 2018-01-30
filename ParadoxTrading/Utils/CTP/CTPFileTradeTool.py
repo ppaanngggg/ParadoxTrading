@@ -266,7 +266,14 @@ class CTPFileTradeTool:
 
         for _ in range(quantity_diff):  # order one by one
             # limit price
-            market_info = self.data_table[order_obj.symbol]
+            try:
+                market_info = self.data_table[order_obj.symbol]
+            except KeyError:
+                logging.warning('{} has not market data'.format(
+                    order_obj.symbol
+                ))
+                sleep(1)
+                continue
             price_diff = self.price_rate * inst_info['PriceTick']
             if order_obj.direction == DirectionType.BUY:
                 price = market_info['AskPrice'] + price_diff

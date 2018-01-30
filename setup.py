@@ -25,18 +25,15 @@ setup(
     ],
     install_requires=[
         'numpy', 'tabulate',
-        'h5py',
-        'psycopg2',
-        'pymongo',
+        'psycopg2', 'pymongo',
         'PyQt5', 'PyQtChart',
-        'arrow',
-        'pandas',
+        'arrow', 'pandas',
         'diskcache',
         'schedule',
-        'requests', 'beautifulsoup4', 'urllib3', 'lxml', 'arch'
-        # 'PyCTP'
+        'requests', 'beautifulsoup4', 'urllib3', 'lxml',
     ],
-    dependency_links=[
-        # 'https://github.com/ppaanngggg/PyCTP/master#egg=PyCTP-0.1'
-    ]
+    extras_require={
+        'CTP': ['PyCTP'],
+        'TSA': ['TorchTSA'],
+    },
 )
