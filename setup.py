@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='ParadoxTrading',
-    version='0.0.2',
+    version='0.0.3',
     author='hantian.pang',
     packages=[
         'ParadoxTrading',
@@ -19,6 +19,7 @@ setup(
         'ParadoxTrading/Indicator/Bar',
         'ParadoxTrading/Indicator/General',
         'ParadoxTrading/Indicator/Stop',
+        'ParadoxTrading/Indicator/TSA',
         'ParadoxTrading/Performance',
         'ParadoxTrading/Utils',
         'ParadoxTrading/Utils/CTP',

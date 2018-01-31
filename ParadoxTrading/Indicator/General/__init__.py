@@ -11,7 +11,6 @@ from .FastBBands import FastBBands
 from .FastMA import FastMA
 from .FastSTD import FastSTD
 from .FastVolatility import FastVolatility
-from .GARCH import GARCH
 from .KDJ import KDJ
 from .Kalman import Kalman
 from .LogReturn import LogReturn
