@@ -76,7 +76,7 @@ class GARCH(IndicatorAbstract):
                 predict = math.sqrt(self.latent)
                 predict *= self.factor
                 if self.smooth_period > 1 and len(self.data):  # smooth
-                    last_value = self.data[self.ret_key[1]][-1]
+                    last_value = self.data[self.ret_key][-1]
                     predict = (predict - last_value) / \
                         self.smooth_period + last_value
                 self.data.addDict({
