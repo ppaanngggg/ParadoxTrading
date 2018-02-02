@@ -1,7 +1,7 @@
 import time
 
 import numpy as np
-from TorchTSA.model import IGARCHModel
+from TorchTSA.model import IGARCHModel, ARMAGARCHModel
 from arch import arch_model
 
 from ParadoxTrading.Chart import Wizard
@@ -30,6 +30,14 @@ print(
     igarch_model.getAlphas(),
     igarch_model.getBetas(),
     igarch_model.getConst(),
+)
+
+arma_garch_model = ARMAGARCHModel()
+arma_garch_model.fit(return_arr)
+print(
+    arma_garch_model.getPhis(), arma_garch_model.getThetas(),
+    arma_garch_model.getAlphas(), arma_garch_model.getBetas(),
+    arma_garch_model.getConst(), arma_garch_model.getMu()
 )
 
 start_time = time.time()
