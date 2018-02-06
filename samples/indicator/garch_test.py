@@ -11,7 +11,7 @@ from ParadoxTrading.Indicator.TSA import GARCH
 
 fetcher = FetchDominantIndex()
 
-market = fetcher.fetchDayData('20100701', '20171201', 'cu')
+market = fetcher.fetchDayData('20100701', '20180101', 'cu')
 
 returns = LogReturn().addMany(market).getAllData()
 return_arr = np.array(returns['logreturn'])
