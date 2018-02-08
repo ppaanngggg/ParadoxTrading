@@ -4,7 +4,7 @@ import typing
 from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE, \
     InterDayPortfolio, InstrumentMgr
 from ParadoxTrading.Fetch.ChineseFutures.FetchBase import FetchBase
-from ParadoxTrading.Indicator.TSA import GARCH
+from ParadoxTrading.Indicator import GARCH
 from ParadoxTrading.Utils import DataStruct
 
 

@@ -32,6 +32,7 @@ setup(
         'diskcache',
         'schedule',
         'requests', 'beautifulsoup4', 'urllib3', 'lxml',
+        'arch'
     ],
     extras_require={
         'CTP': ['PyCTP'],
