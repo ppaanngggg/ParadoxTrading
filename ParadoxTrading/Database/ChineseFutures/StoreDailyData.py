@@ -38,7 +38,15 @@ class StoreDailyData:
         )
         self.dominant_index_cur = self.dominant_index_con.cursor()
 
-    def _get_last_delivery(self, _product, _tradingday):
+    def _get_last_delivery(self, _product, _tradingday) -> typing.Tuple[str, str]:
+        """
+        get the dominant's delivery and sub-dominant's delivery of
+        last tradingday
+
+        :param _product: which product
+        :param _tradingday: which tradingday
+        :return: (str, str)
+        """
         last_product_info = self.product_db[_product].find_one(
             {'TradingDay': {'$lt': _tradingday}},
             sort=[('TradingDay', pymongo.DESCENDING)]
@@ -60,7 +68,14 @@ class StoreDailyData:
         return last_dominant_delivery, last_sub_dominant_delivery
 
     @staticmethod
-    def _get_cur_dominant(_last_delivery, _sorted_list):
+    def _get_cur_dominant(_last_delivery, _sorted_list) -> typing.Tuple[str, str]:
+        """
+        get cur dominant instrument
+
+        :param _last_delivery: last delivery from _get_last_delivery(...)
+        :param _sorted_list: the sorted instrument list
+        :return: cur dominant and cur dominant's delivery
+        """
         if _last_delivery is None:
             cur_dominant = _sorted_list[0][0]
             cur_dominant_delivery = _sorted_list[0][1]
@@ -79,6 +94,14 @@ class StoreDailyData:
     def _get_cur_sub_dominant(
             _dominant_delivery, _last_delivery, _sorted_list
     ):
+        """
+        get cur sub-dominant instrument
+
+        :param _dominant_delivery: cur dominant's delivery
+        :param _last_delivery: sub-dominant's delivery of last tradingday
+        :param _sorted_list: the sorted instrument list
+        :return: cur sub-dominant
+        """
         if _last_delivery is None:
             for d in _sorted_list:
                 if d[1] > _dominant_delivery:
@@ -100,6 +123,15 @@ class StoreDailyData:
             self, _tradingday, _data_dict,
             _instrument_dict, _product_dict
     ):
+        """
+        update dominant and sub-dominant instrument
+
+        :param _tradingday: which tradingday
+        :param _data_dict:
+        :param _instrument_dict:
+        :param _product_dict:
+        :return:
+        """
         for k, v in _product_dict.items():
             tmp_list = [(
                 d, _instrument_dict[d]['DeliveryMonth'],
@@ -107,7 +139,7 @@ class StoreDailyData:
             ) for d in v['InstrumentList']]
             tmp_list = sorted(
                 tmp_list, key=lambda x: x[2], reverse=True
-            )
+            )  # sorted by openinterest
 
             last_dominant_delivery, last_sub_dominant_delivery = \
                 self._get_last_delivery(k, _tradingday)
@@ -138,7 +170,12 @@ class StoreDailyData:
             "ClosePrice = EXCLUDED.ClosePrice,"
             "SettlementPrice = EXCLUDED.SettlementPrice,"
             "PriceDiff_1 = EXCLUDED.PriceDiff_1,"
-            "PriceDiff_2 = EXCLUDED.PriceDiff_2".format(_instrument),
+            "PriceDiff_2 = EXCLUDED.PriceDiff_2,"
+            "Volume = EXCLUDED.Volume,"
+            "OpenInterest = EXCLUDED.OpenInterest,"
+            "OpenInterestDiff = EXCLUDED.OpenInterestDiff,"
+            "PreSettlementPrice = EXCLUDED.PreSettlementPrice".format(
+                _instrument),
             [_data[k] for k in INSTRUMENT_STORE_KEYS]
         )
         self.instrument_day_data_con.commit()
@@ -193,7 +230,9 @@ class StoreDailyData:
             "OpenPrice = EXCLUDED.OpenPrice,"
             "HighPrice = EXCLUDED.HighPrice,"
             "LowPrice = EXCLUDED.LowPrice,"
-            "ClosePrice = EXCLUDED.ClosePrice".format(_product),
+            "ClosePrice = EXCLUDED.ClosePrice,"
+            "Volume = EXCLUDED.Volume,"
+            "OpenInterest = EXCLUDED.OpenInterest".format(_product),
             [_data[k] for k in INDEX_KEYS]
         )
         self.product_index_con.commit()
@@ -219,6 +258,7 @@ class StoreDailyData:
 
     def storeProductIndex(self, _product_dict: typing.Dict):
         for product, v in _product_dict.items():
+            # for each product, compute index of product
             tmp_data_list = []
             for instrument in v['InstrumentList']:
                 self.instrument_day_data_cur.execute(
@@ -261,7 +301,7 @@ class StoreDailyData:
                     'Volume': int(volume_arr.sum()),
                     'OpenInterest': total_openinterest
                 }
-
+            # true store part
             try:
                 self._store_product_index(product, index_dict)
             except psycopg2.DatabaseError as e:
@@ -312,8 +352,9 @@ class StoreDailyData:
 
     def storeDominantIndex(self, _product_dict: typing.Dict):
         for product, v in _product_dict.items():
+            # for each product, compute index of dominant
             dominant = v['Dominant']
-            self.instrument_day_data_cur.execute(
+            self.instrument_day_data_cur.execute(  # get the dominant data
                 "SELECT openprice, highprice, lowprice, closeprice, "
                 "volume, openinterest FROM {} WHERE tradingday='{}'".format(
                     dominant, v['TradingDay']
@@ -321,7 +362,7 @@ class StoreDailyData:
             )
             values = self.instrument_day_data_cur.fetchone()
             cur_data = dict(zip(INDEX_KEYS[1:], values))
-            self.instrument_day_data_cur.execute(
+            self.instrument_day_data_cur.execute(  # get the closeprice of last data
                 "SELECT closeprice FROM {} WHERE tradingday<'{}' "
                 "ORDER BY tradingday DESC LIMIT 1".format(
                     dominant, v['TradingDay']
@@ -351,7 +392,10 @@ class StoreDailyData:
                 "OpenPrice = EXCLUDED.OpenPrice,"
                 "HighPrice = EXCLUDED.HighPrice,"
                 "LowPrice = EXCLUDED.LowPrice,"
-                "ClosePrice = EXCLUDED.ClosePrice".format(product),
+                "ClosePrice = EXCLUDED.ClosePrice,"
+                "Volume = EXCLUDED.Volume,"
+                "OpenInterest = EXCLUDED.OpenInterest"
+                "".format(product),
                 [
                     v['TradingDay'],
                     new_openprice, new_highprice,

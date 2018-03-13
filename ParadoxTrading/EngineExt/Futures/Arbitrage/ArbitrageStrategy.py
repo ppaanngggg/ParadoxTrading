@@ -2,12 +2,19 @@ import typing
 
 from ParadoxTrading.Engine import StrategyAbstract, MarketEvent, \
     SettlementEvent
-from ParadoxTrading.Fetch import FetchAbstract
+from ParadoxTrading.Fetch.ChineseFutures.FetchBase import FetchBase
 
 
 class MarketEventMgr:
-    def __init__(self, _fetcher, *args):
-        assert isinstance(_fetcher, FetchAbstract)
+    def __init__(self, _fetcher: FetchBase, *args):
+        """
+        manage market event, send data_dict when all
+        available product data arrived at the same time
+
+        :param _fetcher: the fetcher to get data
+        :param args: product list
+        """
+        assert isinstance(_fetcher, FetchBase)
         self.fetcher = _fetcher
         self.product_set = set(args)
 
@@ -40,10 +47,23 @@ class MarketEventMgr:
 
     def resetTradingDayInfo(self):
         self.available_product = None
+        self.product_index = None
+        self.product_dict = {}
 
 
 class ArbitrageStrategy(StrategyAbstract):
-    def __init__(self, _name: str, _fetcher: str, *args):
+    def __init__(self, _name: str, _fetcher: FetchBase, *args):
+        """
+        Strategy base class for chinese futures arbitrage.
+        it will merge all available data of the same time,
+        and resend to itself. The true deal logic should be
+        dealt in do_deal(...) function. And the true settlement
+        logic is in do_settlement(...)
+
+        :param _name: strategy name
+        :param _fetcher: the data fetcher, to get some instrument info
+        :param args: product list
+        """
         super().__init__(_name)
 
         self.market_event_mgr = MarketEventMgr(
