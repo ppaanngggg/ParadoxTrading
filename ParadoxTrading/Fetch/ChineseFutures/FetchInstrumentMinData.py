@@ -16,15 +16,14 @@ class FetchInstrumentMinData(FetchBase):
         self.psql_dbname: str = 'ChineseFuturesInstrumentMinData'
         self.market_key: str = 'ChineseFuturesInstrumentMinData_{}_{}'
         self.columns = [
-            'tradingday',
+            'tradingday', 'datetime',
             'openprice', 'highprice', 'lowprice', 'closeprice',
-            'volume', 'turnover', 'openinterest',
-            'bartime', 'barendtime'
+            'volume', 'openinterest',
         ]
 
     def fetchData(
             self, _tradingday: str, _symbol: str,
-            _cache=True, _index='barendtime'
+            _cache=True, _index='datetime'
     ) -> typing.Union[None, DataStruct]:
         return super().fetchData(
             _tradingday, _symbol, _cache, _index
@@ -32,7 +31,7 @@ class FetchInstrumentMinData(FetchBase):
 
     def fetchDayData(
             self, _begin_day: str, _end_day: str = None,
-            _symbol: str = None, _index: str = 'barendtime'
+            _symbol: str = None, _index: str = 'datetime'
     ) -> DataStruct:
         return super().fetchDayData(
             _begin_day, _end_day, _symbol, _index

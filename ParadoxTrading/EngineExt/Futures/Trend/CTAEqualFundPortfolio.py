@@ -1,7 +1,7 @@
 import math
 
 from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE, \
-    InterDayPortfolio, InstrumentMgr
+    InstrumentMgr, InterDayPortfolio
 from ParadoxTrading.Fetch.ChineseFutures.FetchBase import FetchBase
 
 
@@ -49,7 +49,7 @@ class CTAEqualFundPortfolio(InterDayPortfolio):
             'price': price,
             'real_q': real_q,
             'floor_q': math.floor(real_q),
-            'ceil_q': math.floor(real_q),
+            'ceil_q': math.ceil(real_q),
             'per_fund': per_fund,
         }
 

@@ -10,7 +10,7 @@ fetcher = FetchInstrumentTickData()
 print(fetcher.fetchData('20171016', 'rb1801'))
 print(fetcher.fetchDayData('20171016', '20171018', 'rb1801'))
 
-print('-- instrument tick data --')
+print('-- instrument min data --')
 fetcher = FetchInstrumentMinData()
 
 print(fetcher.fetchData('20171016', 'rb1801'))
