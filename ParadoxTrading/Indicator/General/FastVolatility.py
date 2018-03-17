@@ -51,9 +51,8 @@ class FastVolatility(IndicatorAbstract):
                 self.sum_of_pow += chg_rate ** 2
                 self.mean = (self.mean * n + chg_rate) / len(self.buf)
 
-            std_value = math.sqrt(
-                self.sum_of_pow / len(self.buf) - self.mean ** 2
-            ) * self.factor
+            var = self.sum_of_pow / len(self.buf) - self.mean ** 2
+            std_value = math.sqrt(max(0.0, var)) * self.factor
             if self.smooth > 1 and len(self.data):
                 last_std_value = self.data[self.ret_key][-1]
                 std_value = (
