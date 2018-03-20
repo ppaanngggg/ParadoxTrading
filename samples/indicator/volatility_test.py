@@ -4,7 +4,7 @@ from ParadoxTrading.Indicator import FastVolatility
 
 fetcher = FetchDominantIndex()
 
-market = fetcher.fetchDayData('20100101', '20150101', 'fu')
+market = fetcher.fetchDayData('20100101', '20170101', 'rb')
 
 fast_vol_1 = FastVolatility(30, _smooth=1).addMany(market).getAllData()
 fast_vol_12 = FastVolatility(30, _smooth=12).addMany(market).getAllData()

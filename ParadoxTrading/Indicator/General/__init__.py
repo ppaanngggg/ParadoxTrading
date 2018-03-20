@@ -14,6 +14,7 @@ from .FastVolatility import FastVolatility
 from .GARCH import GARCH
 from .Kalman import Kalman
 from .KDJ import KDJ
+from .Kurtosis import Kurtosis
 from .LogReturn import LogReturn
 from .MA import MA
 from .MACD import MACD
@@ -22,6 +23,7 @@ from .MIN import MIN
 from .Plunge import Plunge
 from .ReturnRate import ReturnRate
 from .RSI import RSI
+from .RSRS import RSRS
 from .SAR import SAR
 from .SharpRate import SharpRate
 from .SimMA import SimMA
