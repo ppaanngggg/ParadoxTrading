@@ -1,8 +1,8 @@
 import math
-import typing
 
+import typing
 from ParadoxTrading.EngineExt.Futures.InterDayPortfolio import POINT_VALUE, \
-    InterDayPortfolio, InstrumentMgr
+    InstrumentMgr, InterDayPortfolio
 from ParadoxTrading.Fetch.ChineseFutures.FetchBase import FetchBase
 from ParadoxTrading.Indicator import FastVolatility
 from ParadoxTrading.Utils import DataStruct
@@ -18,7 +18,7 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
             _adjust_period: int = 5,
             _volatility_period: int = 30,
             _volatility_smooth: int = 12,
-            _leverage_limit: int = 3,
+            _leverage_limit: int = 1,
             _simulate_product_index: bool = False,
             _settlement_price_index: str = 'closeprice'
     ):
@@ -54,8 +54,7 @@ class CTAEqualRiskVolatilityPortfolio(InterDayPortfolio):
             _tradingday, instrument
         )
         max_quantity = int(
-            self.portfolio_mgr.getStaticFund()
-            * self.leverage_limit / price / point_value
+            self.portfolio_mgr.getStaticFund() * self.leverage_limit / price / point_value
         )
 
         # get volatility value

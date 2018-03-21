@@ -25,11 +25,10 @@ setup(
         'ParadoxTrading/Utils/CTP',
     ],
     install_requires=[
-        'numpy', 'tabulate',
-        'psycopg2', 'pymongo',
+        'numpy', 'scipy', 'pandas',
+        'tabulate', 'arrow',
+        'psycopg2', 'pymongo', 'diskcache',
         'PyQt5', 'PyQtChart',
-        'arrow', 'pandas',
-        'diskcache',
         'schedule',
         'requests', 'beautifulsoup4', 'urllib3', 'lxml',
         'arch'
