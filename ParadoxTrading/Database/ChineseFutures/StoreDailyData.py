@@ -5,14 +5,14 @@ import typing
 import numpy as np
 import psycopg2
 import pymongo
+import pymongo.errors
 from pymongo import MongoClient
 
-INSTRUMENT_STORE_KEYS = [
+INSTRUMENT_TABLE_KEYS = [
     'TradingDay', 'OpenPrice', 'HighPrice', 'LowPrice', 'ClosePrice',
-    'SettlementPrice', 'PriceDiff_1', 'PriceDiff_2', 'Volume',
-    'OpenInterest', 'OpenInterestDiff', 'PreSettlementPrice'
+    'SettlementPrice', 'Volume', 'OpenInterest', 'PreSettlementPrice',
 ]
-INDEX_KEYS = [
+INDEX_TABLE_KEYS = [
     'TradingDay', 'OpenPrice', 'HighPrice', 'LowPrice', 'ClosePrice',
     'Volume', 'OpenInterest'
 ]
@@ -21,9 +21,7 @@ INDEX_KEYS = [
 class StoreDailyData:
     def __init__(self):
         self.mongo_client = MongoClient()
-        self.instrument_db = self.mongo_client['ChineseFuturesInstrument']
-        self.product_db = self.mongo_client['ChineseFuturesProduct']
-        self.tradingday_db = self.mongo_client['ChineseFuturesTradingDay']
+        self.mongo_db = self.mongo_client['ChineseFutures']
 
         self.instrument_day_data_con = psycopg2.connect(
             dbname='ChineseFuturesInstrumentDayData'
@@ -47,23 +45,21 @@ class StoreDailyData:
         :param _tradingday: which tradingday
         :return: (str, str)
         """
-        last_product_info = self.product_db[_product].find_one(
-            {'TradingDay': {'$lt': _tradingday}},
+        last_product_info = self.mongo_db.product.find_one(
+            {'TradingDay': {'$lt': _tradingday}, 'Product': _product},
             sort=[('TradingDay', pymongo.DESCENDING)]
         )
         last_dominant_delivery = None
         last_sub_dominant_delivery = None
         if last_product_info is not None:
-            last_dominant_delivery = self.instrument_db[
-                last_product_info['Dominant']
-            ].find_one({
-                'TradingDay': last_product_info['TradingDay']
+            last_dominant_delivery = self.mongo_db.instrument.find_one({
+                'TradingDay': last_product_info['TradingDay'],
+                'Instrument': last_product_info['Dominant'],
             })['DeliveryMonth']
             if last_product_info['SubDominant'] is not None:
-                last_sub_dominant_delivery = self.instrument_db[
-                    last_product_info['SubDominant']
-                ].find_one({
-                    'TradingDay': last_product_info['TradingDay']
+                last_sub_dominant_delivery = self.mongo_db.instrument.find_one({
+                    'TradingDay': last_product_info['TradingDay'],
+                    'Instrument': last_product_info['SubDominant'],
                 })['DeliveryMonth']
         return last_dominant_delivery, last_sub_dominant_delivery
 
@@ -162,21 +158,18 @@ class StoreDailyData:
     def _store_instrument_day_data(self, _instrument, _data):
         self.instrument_day_data_cur.execute(
             "INSERT INTO {} VALUES "
-            "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            "(%s, %s, %s, %s, %s, %s, %s, %s, %s) "
             "ON CONFLICT (TradingDay) DO UPDATE SET "
             "OpenPrice = EXCLUDED.OpenPrice,"
             "HighPrice = EXCLUDED.HighPrice,"
             "LowPrice = EXCLUDED.LowPrice,"
             "ClosePrice = EXCLUDED.ClosePrice,"
             "SettlementPrice = EXCLUDED.SettlementPrice,"
-            "PriceDiff_1 = EXCLUDED.PriceDiff_1,"
-            "PriceDiff_2 = EXCLUDED.PriceDiff_2,"
             "Volume = EXCLUDED.Volume,"
             "OpenInterest = EXCLUDED.OpenInterest,"
-            "OpenInterestDiff = EXCLUDED.OpenInterestDiff,"
             "PreSettlementPrice = EXCLUDED.PreSettlementPrice".format(
-                _instrument),
-            [_data[k] for k in INSTRUMENT_STORE_KEYS]
+                _instrument
+            ), [_data[k] for k in INSTRUMENT_TABLE_KEYS]
         )
         self.instrument_day_data_con.commit()
 
@@ -191,11 +184,8 @@ class StoreDailyData:
                 "LowPrice double precision,"
                 "ClosePrice double precision,"
                 "SettlementPrice double precision,"
-                "PriceDiff_1 double precision,"
-                "PriceDiff_2 double precision,"
                 "Volume integer,"
                 "OpenInterest double precision,"
-                "OpenInterestDiff double precision,"
                 "PreSettlementPrice double precision"
                 ")".format(_instrument))
             self.instrument_day_data_con.commit()
@@ -233,7 +223,7 @@ class StoreDailyData:
             "ClosePrice = EXCLUDED.ClosePrice,"
             "Volume = EXCLUDED.Volume,"
             "OpenInterest = EXCLUDED.OpenInterest".format(_product),
-            [_data[k] for k in INDEX_KEYS]
+            [_data[k] for k in INDEX_TABLE_KEYS]
         )
         self.product_index_con.commit()
 
@@ -269,7 +259,7 @@ class StoreDailyData:
                 )
                 values = self.instrument_day_data_cur.fetchone()
                 tmp_data_list.append(dict(zip(
-                    INDEX_KEYS[1:], values
+                    INDEX_TABLE_KEYS[1:], values
                 )))
 
             openprice_arr = self._get_arr(tmp_data_list, 'OpenPrice')
@@ -361,7 +351,7 @@ class StoreDailyData:
                 )
             )
             values = self.instrument_day_data_cur.fetchone()
-            cur_data = dict(zip(INDEX_KEYS[1:], values))
+            cur_data = dict(zip(INDEX_TABLE_KEYS[1:], values))
             self.instrument_day_data_cur.execute(  # get the closeprice of last data
                 "SELECT closeprice FROM {} WHERE tradingday<'{}' "
                 "ORDER BY tradingday DESC LIMIT 1".format(
@@ -406,37 +396,38 @@ class StoreDailyData:
             self.dominant_index_con.commit()
 
     def storeInstrumentInfo(self, _instrument_dict):
-        coll_names = self.instrument_db.collection_names()
-        for k, v in _instrument_dict.items():
-            if k not in coll_names:
-                self.instrument_db[k].create_index([(
-                    'TradingDay', pymongo.ASCENDING
-                )], unique=True)
-            self.instrument_db[k].replace_one(
-                {'TradingDay': v['TradingDay']}, v, True
-            )
+        if 'instrument' not in self.mongo_db.collection_names():
+            self.mongo_db.instrument.create_index([
+                ('TradingDay', pymongo.ASCENDING),
+                ('Instrument', pymongo.ASCENDING)
+            ], unique=True)
+        for _, v in _instrument_dict.items():
+            self.mongo_db.instrument.replace_one({
+                'TradingDay': v['TradingDay'],
+                'Instrument': v['Instrument'],
+            }, v, True)
 
     def storeProductInfo(self, _product_dict):
-        coll_names = self.product_db.collection_names()
-        for k, v in _product_dict.items():
-            if k not in coll_names:
-                self.product_db[k].create_index([(
-                    'TradingDay', pymongo.ASCENDING
-                )], unique=True)
+        if 'product' not in self.mongo_db.collection_names():
+            self.mongo_db.product.create_index([
+                ('TradingDay', pymongo.ASCENDING),
+                ('Product', pymongo.ASCENDING)
+            ], unique=True)
+        for _, v in _product_dict.items():
             v['InstrumentList'] = list(v['InstrumentList'])
-            self.product_db[k].replace_one(
-                {'TradingDay': v['TradingDay']}, v, True
-            )
+            self.mongo_db.product.replace_one({
+                'TradingDay': v['TradingDay'],
+                'Product': v['Product'],
+            }, v, True)
 
     def storeTradingDayInfo(self, _tradingday, _product_dict):
-        coll = self.tradingday_db['TradingDay']
-        if 'TradingDay' in self.tradingday_db.collection_names():
-            coll.create_index([(
+        if 'tradingday' in self.mongo_db.collection_names():
+            self.mongo_db.tradingday.create_index([(
                 'TradingDay', pymongo.ASCENDING
             )], unique=True)
         product_list = list(_product_dict.keys())
         if product_list:
-            coll.replace_one(
+            self.mongo_db.tradingday.replace_one(
                 {'TradingDay': _tradingday},
                 {
                     'TradingDay': _tradingday,
@@ -471,7 +462,7 @@ class StoreDailyData:
         self.storeTradingDayInfo(_tradingday, _product_dict)
 
     def lastTradingDay(self):
-        ret = self.tradingday_db.TradingDay.find_one(sort=[(
+        ret = self.mongo_db.tradingday.find_one(sort=[(
             'TradingDay', -1
         )])
         if ret:

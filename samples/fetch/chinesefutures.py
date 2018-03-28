@@ -4,11 +4,11 @@ from ParadoxTrading.Fetch.ChineseFutures import FetchInstrumentDayData, \
 
 import diskcache
 
-print('-- instrument tick data --')
-fetcher = FetchInstrumentTickData()
-
-print(fetcher.fetchData('20171016', 'rb1801'))
-print(fetcher.fetchDayData('20171016', '20171018', 'rb1801'))
+# print('-- instrument tick data --')
+# fetcher = FetchInstrumentTickData()
+#
+# print(fetcher.fetchData('20171016', 'rb1801'))
+# print(fetcher.fetchDayData('20171016', '20171018', 'rb1801'))
 
 print('-- instrument min data --')
 fetcher = FetchInstrumentMinData()

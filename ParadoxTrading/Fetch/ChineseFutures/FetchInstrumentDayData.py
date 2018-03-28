@@ -18,9 +18,7 @@ class FetchInstrumentDayData(FetchBase):
         self.columns = [
             'tradingday',
             'openprice', 'highprice', 'lowprice', 'closeprice',
-            'settlementprice',
-            'pricediff_1', 'pricediff_2',
-            'volume', 'openinterest', 'openinterestdiff',
+            'settlementprice', 'volume', 'openinterest',
             'presettlementprice',
         ]
 

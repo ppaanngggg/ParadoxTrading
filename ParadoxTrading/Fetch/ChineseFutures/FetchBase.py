@@ -113,12 +113,10 @@ class FetchBase(FetchAbstract):
             _psql_user='', _psql_password='', _cache_path='cache'
     ):
         super().__init__()
-        self.register_type: RegisterAbstract = RegisterInstrument
+        self.register_type = RegisterInstrument
 
         self.mongo_host: str = _mongo_host
-        self.mongo_prod_db: str = 'ChineseFuturesProduct'
-        self.mongo_inst_db: str = 'ChineseFuturesInstrument'
-        self.mongo_tradingday_db: str = 'ChineseFuturesTradingDay'
+        self.mongo_dbname: str = 'ChineseFutures'
 
         self.psql_host: str = _psql_host
         self.psql_dbname: str = None
@@ -132,43 +130,21 @@ class FetchBase(FetchAbstract):
         self.inst_key: str = 'ChineseFuturesInstrument_{}_{}'
 
         self._mongo_client: MongoClient = None
-        self._mongo_prod: pymongo.database.Database = None
-        self._mongo_inst: pymongo.database.Database = None
-        self._mongo_tradingday: pymongo.database.Database = None
+        self._mongo_db: pymongo.database.Database = None
         self._psql_con: psycopg2.extensions.connection = None
         self._psql_cur: psycopg2.extensions.cursor = None
 
         self.columns: typing.List = []
 
-    def _get_mongo_prod(self) -> pymongo.database.Database:
-        if not self._mongo_prod:
+    def _get_mongo_db(self) -> pymongo.database.Database:
+        if not self._mongo_db:
             if not self._mongo_client:
                 self._mongo_client: MongoClient = MongoClient(
                     host=self.mongo_host
                 )
-            self._mongo_prod: pymongo.database.Database = \
-                self._mongo_client[self.mongo_prod_db]
-        return self._mongo_prod
-
-    def _get_mongo_inst(self) -> pymongo.database.Database:
-        if not self._mongo_inst:
-            if not self._mongo_client:
-                self._mongo_client: MongoClient = MongoClient(
-                    host=self.mongo_host
-                )
-            self._mongo_inst: pymongo.database.Database = \
-                self._mongo_client[self.mongo_inst_db]
-        return self._mongo_inst
-
-    def _get_mongo_tradingday(self) -> pymongo.database.Database:
-        if not self._mongo_tradingday:
-            if not self._mongo_client:
-                self._mongo_client: MongoClient = MongoClient(
-                    host=self.mongo_host
-                )
-            self._mongo_tradingday: pymongo.database.Database = \
-                self._mongo_client[self.mongo_tradingday_db]
-        return self._mongo_tradingday
+            self._mongo_db: pymongo.database.Database = \
+                self._mongo_client[self.mongo_dbname]
+        return self._mongo_db
 
     def _get_psql_con_cur(self) -> typing.Tuple[
         psycopg2.extensions.connection, psycopg2.extensions.cursor
@@ -219,30 +195,19 @@ class FetchBase(FetchAbstract):
             _product, _tradingday
         ) is not None
 
-    def productFirstTradingDay(
-            self, _product: str,
-    ) -> typing.Union[None, str]:
-        """
-        get the first tradingday of this product
-        """
-        db = self._get_mongo_prod()
-        coll = db[_product.lower()]
-        d = coll.find_one(
-            sort=[('TradingDay', pymongo.ASCENDING)]
-        )
-
-        return d['TradingDay'] if d is not None else None
-
     def productLastTradingDay(
             self, _product: str, _tradingday: str
     ) -> typing.Union[None, str]:
         """
         get the first day less then _tradingday of _product
         """
-        db = self._get_mongo_prod()
-        coll = db[_product.lower()]
+        db = self._get_mongo_db()
+        coll = db.product
         d = coll.find_one(
-            {'TradingDay': {'$lt': _tradingday}},
+            filter={
+                'TradingDay': {'$lt': _tradingday},
+                'Product': _product,
+            },
             sort=[('TradingDay', pymongo.DESCENDING)]
         )
 
@@ -254,10 +219,13 @@ class FetchBase(FetchAbstract):
         """
         get the first day greater then _tradingday of _product
         """
-        db = self._get_mongo_prod()
-        coll = db[_product.lower()]
+        db = self._get_mongo_db()
+        coll = db.product
         d = coll.find_one(
-            {'TradingDay': {'$gt': _tradingday}},
+            filter={
+                'TradingDay': {'$gt': _tradingday},
+                'Product': _product,
+            },
             sort=[('TradingDay', pymongo.ASCENDING)]
         )
 
@@ -319,30 +287,19 @@ class FetchBase(FetchAbstract):
             return data['DeliveryMonth']
         return None
 
-    def instrumentFirstTradingDay(
-            self, _instrument: str
-    ) -> typing.Union[None, str]:
-        """
-        get the first tradingday of this instrument
-        """
-        db = self._get_mongo_inst()
-        coll = db[_instrument.lower()]
-        d = coll.find_one(
-            sort=[('TradingDay', pymongo.ASCENDING)]
-        )
-
-        return d['TradingDay'] if d is not None else None
-
     def instrumentLastTradingDay(
             self, _instrument: str, _tradingday: str
     ) -> typing.Union[None, str]:
         """
         get the first day less then _tradingday of _instrument
         """
-        db = self._get_mongo_inst()
-        coll = db[_instrument.lower()]
+        db = self._get_mongo_db()
+        coll = db.instrument
         d = coll.find_one(
-            {'TradingDay': {'$lt': _tradingday}},
+            filter={
+                'TradingDay': {'$lt': _tradingday},
+                'Instrument': _instrument,
+            },
             sort=[('TradingDay', pymongo.DESCENDING)]
         )
 
@@ -354,10 +311,13 @@ class FetchBase(FetchAbstract):
         """
         get the first day greater then _tradingday of _instrument
         """
-        db = self._get_mongo_inst()
-        coll = db[_instrument.lower()]
+        db = self._get_mongo_db()
+        coll = db.instrument
         d = coll.find_one(
-            {'TradingDay': {'$gt': _tradingday}},
+            filter={
+                'TradingDay': {'$gt': _tradingday},
+                'Instrument': _instrument,
+            },
             sort=[('TradingDay', pymongo.ASCENDING)]
         )
 
@@ -373,8 +333,8 @@ class FetchBase(FetchAbstract):
         try:
             return self.cache[key]
         except KeyError:
-            db = self._get_mongo_tradingday()
-            coll = db.TradingDay
+            db = self._get_mongo_db()
+            coll = db.tradingday
             data = coll.find_one({'TradingDay': _tradingday})
             self.cache[key] = data
             return data
@@ -390,9 +350,12 @@ class FetchBase(FetchAbstract):
         try:
             return self.cache[key]
         except KeyError:
-            db = self._get_mongo_prod()
-            coll = db[product]
-            data = coll.find_one({'TradingDay': _tradingday})
+            db = self._get_mongo_db()
+            coll = db.product
+            data = coll.find_one({
+                'TradingDay': _tradingday,
+                'Product': _product,
+            })
             self.cache[key] = data
             return data
 
@@ -407,9 +370,12 @@ class FetchBase(FetchAbstract):
         try:
             return self.cache[key]
         except KeyError:
-            db = self._get_mongo_inst()
-            coll = db[instrument]
-            data = coll.find_one({'TradingDay': _tradingday})
+            db = self._get_mongo_db()
+            coll = db.instrument
+            data = coll.find_one({
+                'TradingDay': _tradingday,
+                'Instrument': _instrument,
+            })
             self.cache[key] = data
             return data
 

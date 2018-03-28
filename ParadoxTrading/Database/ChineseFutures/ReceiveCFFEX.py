@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from ParadoxTrading.Database.ChineseFutures.ReceiveDailyAbstract import ReceiveDailyAbstract
 
-SHFE_MARKET_URL = 'http://www.cffex.com.cn/sj/hqsj/rtj/{}/{}/index.xml'
+CFFEX_MARKET_URL = 'http://www.cffex.com.cn/sj/hqsj/rtj/{}/{}/index.xml'
 
 
 def element2str(_elem):
@@ -32,7 +32,7 @@ class ReceiveCFFEX(ReceiveDailyAbstract):
         date = arrow.get(_tradingday, 'YYYYMMDD')
 
         r = self.session.get(
-            SHFE_MARKET_URL.format(date.format('YYYYMM'), date.format('DD'))
+            CFFEX_MARKET_URL.format(date.format('YYYYMM'), date.format('DD'))
         )
         if 'error_page' in r.url:
             return
@@ -75,14 +75,16 @@ class ReceiveCFFEX(ReceiveDailyAbstract):
                 product_dict[product]['InstrumentList'].add(instrument)
             except KeyError:
                 product_dict[product] = {
+                    'TradingDay': _tradingday,
+                    'Product': product,
                     'InstrumentList': {instrument},
-                    'TradingDay': _tradingday
                 }
 
             instrument_dict[instrument] = {
+                'TradingDay': _tradingday,
+                'Instrument': instrument,
                 'ProductID': product,
                 'DeliveryMonth': delivery_month,
-                'TradingDay': _tradingday,
             }
 
             if not d['OpenPrice']:
@@ -91,11 +93,18 @@ class ReceiveCFFEX(ReceiveDailyAbstract):
                 d['HighPrice'] = d['ClosePrice']
             if not d['LowPrice']:
                 d['LowPrice'] = d['ClosePrice']
-            d['PriceDiff_1'] = float(d['ClosePrice']) - \
-                               float(d['PreSettlementPrice'])
-            d['PriceDiff_2'] = float(d['SettlementPrice']) - \
-                               float(d['PreSettlementPrice'])
-            d['OpenInterestDiff'] = 0
             data_dict[instrument] = d
 
         return data_dict, instrument_dict, product_dict
+
+    def iterFetchAndStore(self, _begin_date='20100415'):
+        super().iterFetchAndStore(_begin_date)
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    receiver = ReceiveCFFEX()
+    logging.info('last tradingday: {}'.format(
+        receiver.lastTradingDay()
+    ))
+    receiver.iterFetchAndStore()

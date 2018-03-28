@@ -12,11 +12,6 @@ from ParadoxTrading.Database.ChineseFutures.ReceiveDailyAbstract import ReceiveD
 
 CZCE_MARKET_URL = 'http://www.czce.com.cn/cms/cmsface/czce/exchangefront/calendarnewquery.jsp'
 
-KEYS = [
-    'PreSettlementPrice', 'OpenPrice', 'HighPrice', 'LowPrice', 'ClosePrice',
-    'SettlementPrice', 'PriceDiff_2', 'Volume', 'OpenInterest', 'OpenInterestDiff'
-]
-
 
 def inst2prod(_inst):
     return re.findall(r"[a-zA-Z]+", _inst)[0]
@@ -124,20 +119,29 @@ class ReceiveCZCE(ReceiveDailyAbstract):
                 product_dict[product]['InstrumentList'].add(instrument)
             except KeyError:
                 product_dict[product] = {
+                    'TradingDay': _tradingday,
+                    'Product': product,
                     'InstrumentList': {instrument},
-                    'TradingDay': _tradingday
                 }
 
             instrument_dict[instrument] = {
+                'TradingDay': _tradingday,
+                'Instrument': instrument,
                 'ProductID': product,
                 'DeliveryMonth': delivery_month,
-                'TradingDay': _tradingday,
             }
 
-            tmp_dict = {'TradingDay': _tradingday}
-            tmp_dict.update(dict(zip(
-                KEYS, d[1:-2]
-            )))
+            tmp_dict = {
+                'TradingDay': _tradingday,
+                'OpenPrice': d[2],
+                'HighPrice': d[3],
+                'LowPrice': d[4],
+                'ClosePrice': d[5],
+                'SettlementPrice': d[6],
+                'Volume': d[8],
+                'OpenInterest': d[9],
+                'PreSettlementPrice': d[1],
+            }
             if float(tmp_dict['OpenPrice']) == 0:
                 tmp_dict['OpenPrice'] = tmp_dict['PreSettlementPrice']
             if float(tmp_dict['HighPrice']) == 0:
@@ -147,9 +151,26 @@ class ReceiveCZCE(ReceiveDailyAbstract):
             if float(tmp_dict['ClosePrice']) == 0:
                 tmp_dict['ClosePrice'] = tmp_dict['PreSettlementPrice']
             tmp_dict['Volume'] = int(float(tmp_dict['Volume']))
-            tmp_dict['PriceDiff_1'] = float(tmp_dict['ClosePrice']) - \
-                                      float(tmp_dict['PreSettlementPrice'])
 
             data_dict[instrument] = tmp_dict
 
         return data_dict, instrument_dict, product_dict
+
+    def iterFetchAndStore(self, _begin_date='20060101'):
+        super().iterFetchAndStore(_begin_date)
+
+
+if __name__ == '__main__':
+    from pprint import pprint
+
+    logging.basicConfig(level=logging.INFO)
+    receiver = ReceiveCZCE()
+    # logging.info('last tradingday: {}'.format(
+    #     receiver.lastTradingDay()
+    # ))
+    # receiver.iterFetchAndStore(receiver.lastTradingDay())
+
+    raw = receiver.loadRaw('20180326')
+    data_dict, instrument_dict, product_dict = receiver.rawToDicts(
+        '20180326', raw)
+    pprint(data_dict)

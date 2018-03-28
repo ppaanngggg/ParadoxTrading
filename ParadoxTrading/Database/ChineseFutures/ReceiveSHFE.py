@@ -57,14 +57,16 @@ class ReceiveSHFE(ReceiveDailyAbstract):
                 product_dict[product]['InstrumentList'].add(instrument)
             except KeyError:
                 product_dict[product] = {
+                    'TradingDay': _tradingday,
+                    'Product': product,
                     'InstrumentList': {instrument},
-                    'TradingDay': _tradingday
                 }
 
             instrument_dict[instrument] = {
+                'TradingDay': _tradingday,
+                'Instrument': instrument,
                 'ProductID': product,
                 'DeliveryMonth': delivery_month,
-                'TradingDay': _tradingday,
             }
 
             data = {
@@ -74,11 +76,8 @@ class ReceiveSHFE(ReceiveDailyAbstract):
                 'LowPrice': d['LOWESTPRICE'],
                 'ClosePrice': d['CLOSEPRICE'],
                 'SettlementPrice': d['SETTLEMENTPRICE'],
-                'PriceDiff_1': d['ZD1_CHG'],
-                'PriceDiff_2': d['ZD2_CHG'],
                 'Volume': d['VOLUME'],
                 'OpenInterest': d['OPENINTEREST'],
-                'OpenInterestDiff': d['OPENINTERESTCHG'],
                 'PreSettlementPrice': d['PRESETTLEMENTPRICE'],
             }
             if not data['OpenPrice']:
@@ -87,10 +86,25 @@ class ReceiveSHFE(ReceiveDailyAbstract):
                 data['HighPrice'] = data['ClosePrice']
             if not data['LowPrice']:
                 data['LowPrice'] = data['ClosePrice']
-            if not data['PriceDiff_1']:
-                data['PriceDiff_1'] = 0
-            if not data['PriceDiff_2']:
-                data['PriceDiff_2'] = 0
             data_dict[instrument] = data
 
         return data_dict, instrument_dict, product_dict
+
+    def iterFetchAndStore(self, _begin_date='20020101'):
+        super().iterFetchAndStore(_begin_date)
+
+
+if __name__ == '__main__':
+    from pprint import pprint
+
+    logging.basicConfig(level=logging.INFO)
+    receiver = ReceiveSHFE()
+    # logging.info('last tradingday: {}'.format(
+    #     receiver.lastTradingDay()
+    # ))
+    # receiver.iterFetchAndStore()
+
+    raw = receiver.loadRaw('20180326')
+    data_dict, instrument_dict, product_dict = receiver.rawToDicts(
+        '20180326', raw)
+    pprint(product_dict)

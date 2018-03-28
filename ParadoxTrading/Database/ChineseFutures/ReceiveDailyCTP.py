@@ -53,14 +53,16 @@ class ReceiveDailyCTP(ReceiveDailyAbstract):
                 product_dict[product]['InstrumentList'].add(instrument)
             except KeyError:
                 product_dict[product] = {
+                    'TradingDay': _tradingday,
+                    'Product': product,
                     'InstrumentList': {instrument},
-                    'TradingDay': _tradingday
                 }
 
             instrument_dict[instrument] = {
+                'TradingDay': _tradingday,
+                'Instrument': instrument,
                 'ProductID': product,
                 'DeliveryMonth': delivery_month,
-                'TradingDay': _tradingday,
             }
 
             data = {
@@ -72,7 +74,6 @@ class ReceiveDailyCTP(ReceiveDailyAbstract):
                 'SettlementPrice': v['SettlementPrice'],
                 'Volume': v['Volume'],
                 'OpenInterest': v['OpenInterest'],
-                'OpenInterestDiff': v['OpenInterest'] - v['PreOpenInterest'],
                 'PreSettlementPrice': v['PreSettlementPrice'],
             }
 
@@ -95,10 +96,6 @@ class ReceiveDailyCTP(ReceiveDailyAbstract):
             if data['ClosePrice'] == sys.float_info.max \
                     or data['ClosePrice'] == 0:
                 data['ClosePrice'] = base_price
-            data['PriceDiff_1'] = data['ClosePrice'] - \
-                data['PreSettlementPrice']
-            data['PriceDiff_2'] = data['SettlementPrice'] - \
-                data['PreSettlementPrice']
             data_dict[instrument] = data
 
         return data_dict, instrument_dict, product_dict

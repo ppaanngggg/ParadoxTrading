@@ -123,3 +123,7 @@ class ReceiveDailyAbstract:
         if ret:
             return ret['TradingDay']
         return None
+
+    def iterFetchAndStore(self, _begin_date):
+        for tradingday in self.iterTradingDay(_begin_date):
+            self.storeRaw(tradingday, self.fetchRaw(tradingday))
