@@ -176,6 +176,48 @@ class SplitIntoYear(SplitAbstract):
         )
 
 
+class SplitVolumeBars(SplitAbstract):
+    def __init__(
+            self, _use_key='volume', _volume_size: int = 1,
+    ):
+        """
+
+        :param _use_key: use which index to split volume
+        :param _volume_size: split ticks
+        """
+        super().__init__()
+
+        self.use_key = _use_key
+        self.volume_size = _volume_size
+
+        self.total_volume = 0
+
+    def _get_begin_end_time(
+            self, _cur_time: DATETIME_TYPE
+    ) -> (DATETIME_TYPE, DATETIME_TYPE):
+        return _cur_time, _cur_time
+
+    def addOne(self, _data: DataStruct):
+        assert len(_data) == 1
+        cur_time = _data.index()[0]
+        cur_volume = _data[self.use_key][0]
+        if self.cur_bar is None:  # the first tick
+            self._create_new_bar(_data, cur_time)
+            self.total_volume = cur_volume
+            return True
+
+        if self.total_volume > self.volume_size:
+            self._create_new_bar(_data, cur_time)
+            self.total_volume = cur_volume
+            return True
+
+        self.cur_bar.addDict(_data.toDict())
+        self.cur_bar_end_time = cur_time  # override end time
+        self.bar_end_time_list[-1] = cur_time
+        self.total_volume += cur_volume
+        return False
+
+
 class SplitTickImbalance(SplitAbstract):
     def __init__(
             self, _use_key='lastprice',
