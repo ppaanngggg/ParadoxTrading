@@ -1,3 +1,4 @@
+import pickle
 from bisect import bisect_left, bisect_right
 from datetime import datetime, timedelta
 
@@ -299,6 +300,13 @@ class DataStruct:
         for column in df:
             datastruct.data[column] = df[column].tolist()
         return datastruct
+
+    def save(self, _path: str):
+        pickle.dump(self, open(_path, 'wb'))
+
+    @staticmethod
+    def load(_path: str) -> 'DataStruct':
+        return pickle.load(open(_path, 'rb'))
 
     def index(self) -> list:
         """

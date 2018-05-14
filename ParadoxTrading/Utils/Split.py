@@ -43,7 +43,7 @@ class SplitAbstract:
         return self.bar_end_time_list
 
     def _get_begin_end_time(
-        self, _cur_time: DATETIME_TYPE
+            self, _cur_time: DATETIME_TYPE
     ) -> (DATETIME_TYPE, DATETIME_TYPE):
         raise NotImplementedError('You need to implement _get_begin_end_time!')
 
@@ -89,9 +89,11 @@ class SplitAbstract:
         for d in _data:
             self.addOne(d)
 
+        return self
+
 
 class SplitIntoSecond(SplitAbstract):
-    def __init__(self, _second: int):
+    def __init__(self, _second: int = 1):
         super().__init__()
         self.skip_s = _second
 
@@ -105,7 +107,7 @@ class SplitIntoSecond(SplitAbstract):
 
 
 class SplitIntoMinute(SplitAbstract):
-    def __init__(self, _minute: int):
+    def __init__(self, _minute: int = 1):
         super().__init__()
         self.skip_m = _minute
 
@@ -120,7 +122,7 @@ class SplitIntoMinute(SplitAbstract):
 
 
 class SplitIntoHour(SplitAbstract):
-    def __init__(self, _hour: int):
+    def __init__(self, _hour: int = 1):
         super().__init__()
         self.skip_h = _hour
 
@@ -172,3 +174,95 @@ class SplitIntoYear(SplitAbstract):
             begin_datetime.format('YYYYMMDD'),
             end_datetime.format('YYYYMMDD')
         )
+
+
+class SplitTickImbalance(SplitAbstract):
+    def __init__(
+            self, _use_key='lastprice',
+            _period=7, _init_T=1000
+    ):
+        """
+        <Advances in Financial Machine Learning> - 2.3.2.1
+
+        _use_key: use which index to calc bt
+        _init_T: the length of first bar
+        _period: period of EMA
+        """
+        super().__init__()
+
+        self.use_key = _use_key
+        self.last_value = None
+
+        self.last_b = 1
+        self.sum_b = 0  # sum of b
+        self.num_b = 0  # total number of b
+
+        self.T = _init_T  # len of Bar
+        self.P = None  # probability of b == 1
+        self.period = _period
+        self.threshold = None
+
+    def _get_begin_end_time(
+            self, _cur_time: DATETIME_TYPE
+    ) -> (DATETIME_TYPE, DATETIME_TYPE):
+        return _cur_time, _cur_time
+
+    def _update_b(self, _value):
+        # update value, b and total_b
+        if _value > self.last_value:
+            self.last_b = 1
+        elif _value < self.last_value:
+            self.last_b = -1
+        else:
+            pass
+        self.last_value = _value
+        self.sum_b += self.last_b
+        self.num_b += 1
+
+    def _reset_b(self):
+        self.sum_b = 0
+        self.num_b = 0
+
+    def _update_threshold(self):
+        new_T = self.num_b
+        new_P = (self.sum_b + self.num_b) / 2. / self.num_b
+        self.T += (new_T - self.T) / self.period
+        if self.P is None:  # init p
+            self.P = new_P
+        else:
+            self.P += (new_P - self.P) / self.period
+        self.threshold = self.T * abs(2 * self.P - 1)
+
+    def addOne(self, _data: DataStruct) -> bool:
+        # check data
+        assert len(_data) == 1
+        value = _data[self.use_key][0]
+        cur_time = _data.index()[0]
+
+        if self.cur_bar is None:  # init the first bar
+            self.last_value = value
+            self._create_new_bar(_data, cur_time)
+            return True
+
+        self._update_b(value)
+        print(value, self.last_b, self.sum_b, self.num_b)
+
+        flag = False
+        if self.P is None:  # current is the first bar
+            if self.num_b >= self.T:  # finish the first bar
+                flag = True
+        elif abs(self.sum_b) >= self.threshold:  # create new bar
+            flag = True
+
+        if flag:
+            self._update_threshold()
+            print(self.T, self.P, self.threshold)
+            input()
+            self._reset_b()
+            self._create_new_bar(_data, cur_time)
+            return True
+        else:
+            self.cur_bar.addDict(_data.toDict())
+            self.cur_bar_end_time = cur_time  # override end time
+            self.bar_end_time_list[-1] = cur_time
+            return False
