@@ -2,15 +2,14 @@ import logging
 import sys
 import typing
 
+import ParadoxTrading.Engine
 import pymongo
 import tabulate
-from pymongo import MongoClient
-from pymongo.collection import Collection
-
-import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import ActionType, DirectionType, EventType, \
     FillEvent, OrderEvent, OrderType, SignalEvent, SignalType
 from ParadoxTrading.Utils import DataStruct, Serializable
+from pymongo import MongoClient
+from pymongo.collection import Collection
 
 
 class PositionMgr:
@@ -39,7 +38,7 @@ class PositionMgr:
         if cur_margin_count > self.margin_count:
             # if margin inc, add margin according to price and margin rate
             self.margin += _margin_rate * _price * (
-                cur_margin_count - self.margin_count)
+                    cur_margin_count - self.margin_count)
         elif cur_margin_count < self.margin_count:
             # if margin dec, sub margin as dec rate
             self.margin *= cur_margin_count / self.margin_count

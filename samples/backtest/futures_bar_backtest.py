@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from ParadoxTrading.Chart import Wizard
 from ParadoxTrading.Engine import StrategyAbstract, MarketEvent, \
     SettlementEvent, SignalType
-from ParadoxTrading.EngineExt.Futures import BacktestEngine, \
-    BacktestMarketSupply, BarBacktestExecution, BarPortfolio
+from ParadoxTrading.EngineExt.Futures import BarBacktestExecution, BarPortfolio
+from ParadoxTrading.EngineExt import BacktestEngine, BacktestMarketSupply
 from ParadoxTrading.Fetch.ChineseFutures import RegisterInstrument, \
     FetchInstrumentMinData, FetchInstrumentDayData
 from ParadoxTrading.Indicator import EMA

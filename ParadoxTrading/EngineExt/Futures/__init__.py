@@ -1,7 +1,5 @@
 from .Arbitrage import ArbitrageEqualFundSimplePortfolio, \
     ArbitrageEqualFundVolatilityPortfolio, ArbitrageStrategy
-from .BacktestEngine import BacktestEngine
-from .BacktestMarketSupply import BacktestMarketSupply
 from .BarBacktestExecution import BarBacktestExecution
 from .BarPortfolio import BarPortfolio
 from .InterDayBacktestExecution import InterDayBacktestExecution

@@ -1,5 +1,6 @@
 import logging
 import typing
+from collections import Hashable
 
 import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import MarketEvent, SettlementEvent, \
@@ -80,7 +81,7 @@ class StrategyAbstract(Serializable):
         :param _strength: defined by user
         :return:
         """
-        assert isinstance(_symbol, str)
+        assert isinstance(_symbol, Hashable)
 
         if _strength > 0:
             signal_type = SignalType.LONG

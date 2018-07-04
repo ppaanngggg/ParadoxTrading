@@ -16,14 +16,14 @@ class TickBacktestExecution(ExecutionAbstract):
         self.bidprice_idx: str = _bidprice_idx
 
     def dealOrderEvent(
-        self, _order_event: OrderEvent
+            self, _order_event: OrderEvent
     ):
         assert _order_event.index not in self.order_dict.keys()
         self.order_dict[_order_event.index] = _order_event
 
     def _gen_event(
-        self, _price: float,
-        _order_event: OrderEvent
+            self, _price: float,
+            _order_event: OrderEvent
     ) -> FillEvent:
         return FillEvent(
             _index=_order_event.index,
@@ -38,6 +38,9 @@ class TickBacktestExecution(ExecutionAbstract):
         )
 
     def matchMarket(self, _symbol: str, _data: DataStruct):
+        if not self.order_dict:  # skip if no order
+            return
+
         assert len(_data) == 1
 
         askprice: float = _data[self.askprice_idx][0]
@@ -49,12 +52,12 @@ class TickBacktestExecution(ExecutionAbstract):
                 continue
             if order.direction == DirectionType.BUY:
                 if (order.order_type == OrderType.MARKET or
-                        askprice <= order.price) and askprice > 0:
+                    askprice <= order.price) and askprice > 0:
                     self.addEvent(self._gen_event(askprice, order))
                     del self.order_dict[index]
             elif order.direction == DirectionType.SELL:
                 if (order.order_type == OrderType.MARKET or
-                        bidprice >= order.price) and bidprice > 0:
+                    bidprice >= order.price) and bidprice > 0:
                     self.addEvent(self._gen_event(bidprice, order))
                     del self.order_dict[index]
             else:
