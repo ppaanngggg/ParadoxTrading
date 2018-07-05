@@ -40,6 +40,8 @@ class MAStrategy(StrategyAbstract):
         self.ma_5 = FastMA(5, _use_key='askprice0')
         self.ma_10 = FastMA(10, _use_key='askprice0')
 
+        self.status = SignalType.EMPTY
+
     def deal(self, _market_event: MarketEvent):
         symbol = _market_event.symbol
         data = _market_event.data
@@ -48,11 +50,17 @@ class MAStrategy(StrategyAbstract):
         ma_10_value = self.ma_10.addOne(data).getLastData()['ma'][0]
 
         if ma_5_value > ma_10_value:
-            self.addEvent(symbol, 1)
+            if self.status != SignalType.LONG:
+                self.addEvent(symbol, 1)
+                self.status = SignalType.LONG
         elif ma_5_value < ma_10_value:
-            self.addEvent(symbol, -1)
+            if self.status != SignalType.SHORT:
+                self.addEvent(symbol, -1)
+                self.status = SignalType.SHORT
         else:
-            self.addEvent(symbol, 0)
+            if self.status != SignalType.EMPTY:
+                self.addEvent(symbol, 0)
+                self.status = SignalType.EMPTY
 
     def settlement(self, _settlement_event: SettlementEvent):
         pass
@@ -73,3 +81,13 @@ engine = BacktestEngine(
     _portfolio=portfolio,
     _strategy=MAStrategy()
 )
+engine.run()
+
+print(portfolio)
+
+print(portfolio.getSignalData())
+print(portfolio.getOrderData())
+print(portfolio.getFillData())
+print(portfolio.getSettlementData())
+
+# you can save DataStruct by toPandas() and then save as you want

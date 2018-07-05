@@ -1,10 +1,9 @@
 import pickle
+import typing
 from bisect import bisect_left, bisect_right
-from datetime import datetime, timedelta
 
 import pandas as pd
 import tabulate
-import typing
 
 
 class DataStruct:
@@ -232,7 +231,7 @@ class DataStruct:
         self.addRows(*_struct.toRows())
 
     def expand(
-        self, _struct: "DataStruct", _type: str = 'strict'
+            self, _struct: "DataStruct", _type: str = 'strict'
     ) -> 'DataStruct':
         """
         expand columns by another datastruct
@@ -269,13 +268,13 @@ class DataStruct:
             tmp_dict = {self.index_name: i}
             self_dict = self.loc[i]
             if self_dict is None:
-                self_dict = dict(self_names, [None] * len(self_names))
+                self_dict = dict([(d, None) for d in self_names])
             else:
                 self_dict = self_dict.toDict()
             tmp_dict.update(self_dict)
             struct_dict = _struct.loc[i]
             if struct_dict is None:
-                struct_dict = dict(struct_names, [None] * len(struct_names))
+                struct_dict = dict([(d, None) for d in struct_names])
             else:
                 struct_dict = struct_dict.toDict()
             tmp_dict.update(struct_dict)
@@ -318,7 +317,7 @@ class DataStruct:
 
     def getColumnNames(
             self, _include_index_name: bool = True
-    ) -> typing.Sequence[str]:
+    ) -> typing.List[str]:
         """
         return sorted keys, if _include_index_name is False,
         return sorted keys but index_name
@@ -327,10 +326,10 @@ class DataStruct:
         :return:
         """
         if _include_index_name:
-            return sorted(self.data.keys())
+            return list(self.data.keys())
         else:
             tmp = {self.index_name}
-            return sorted(self.data.keys() - tmp)
+            return list(self.data.keys() - tmp)
 
     def changeIndex(self, _new_index: str) -> 'DataStruct':
         """
@@ -389,7 +388,7 @@ class DataStruct:
         """
         assert _key not in self.data.keys()
         assert len(_column) == len(self)
-        self.data[_key] = _column
+        self.data[_key] = list(_column)
 
 
 class Loc:

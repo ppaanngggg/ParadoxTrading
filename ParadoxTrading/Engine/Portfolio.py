@@ -2,14 +2,15 @@ import logging
 import sys
 import typing
 
-import ParadoxTrading.Engine
 import pymongo
 import tabulate
+from pymongo import MongoClient
+from pymongo.collection import Collection
+
+import ParadoxTrading.Engine
 from ParadoxTrading.Engine.Event import ActionType, DirectionType, EventType, \
     FillEvent, OrderEvent, OrderType, SignalEvent, SignalType
 from ParadoxTrading.Utils import DataStruct, Serializable
-from pymongo import MongoClient
-from pymongo.collection import Collection
 
 
 class PositionMgr:
@@ -277,6 +278,15 @@ class PortfolioMgr:
         """
         self.signal_record.append(_signal_event.toDict())
 
+    def getSignalData(self):
+        tmp = DataStruct([
+            'strategy', 'tradingday', 'datetime', 'symbol', 'strength'
+        ], 'datetime')
+        for d in self.signal_record:
+            tmp.addDict(d)
+
+        return tmp
+
     def dealOrder(self, _strategy: str, _order_event: OrderEvent):
         """
         deal order event to set inner state
@@ -292,6 +302,19 @@ class PortfolioMgr:
         self.order_record.append(order_dict)
         # add to unfilled table
         self.unfilled_order[_order_event.index] = _order_event
+
+    def getOrderData(self):
+        tmp = DataStruct([
+            'strategy', 'tradingday', 'datetime', 'symbol', 'index',
+            'order_type', 'action', 'direction', 'quantity', 'price'
+        ], 'datetime')
+        for d in self.order_record:
+            d['order_type'] = OrderType.toStr(d['order_type'])
+            d['action'] = ActionType.toStr(d['action'])
+            d['direction'] = DirectionType.toStr(d['direction'])
+            tmp.addDict(d)
+
+        return tmp
 
     def dealFill(self, _strategy: str, _fill_event: FillEvent):
         """
@@ -362,6 +385,18 @@ class PortfolioMgr:
         # add commission
         self.fund_mgr.incCommission(_fill_event.commission)
 
+    def getFillData(self):
+        tmp = DataStruct([
+            'strategy', 'tradingday', 'datetime', 'symbol', 'index',
+            'action', 'direction', 'price', 'quantity', 'commission'
+        ], 'datetime')
+        for d in self.fill_record:
+            d['action'] = ActionType.toStr(d['action'])
+            d['direction'] = DirectionType.toStr(d['direction'])
+            tmp.addDict(d)
+
+        return tmp
+
     def dealSettlement(
             self, _tradingday: str,
             _symbol_price_dict: typing.Dict[str, float]
@@ -386,6 +421,15 @@ class PortfolioMgr:
         self.fund_mgr.dealSettlement(profit_loss)
         for k, v in self.position_mgr.items():
             v.dealSettlement(_symbol_price_dict[k], self.margin_rate)
+
+    def getSettlementData(self):
+        tmp = DataStruct([
+            'tradingday', 'fund', 'commission', 'margin'
+        ], 'tradingday')
+        for d in self.settlement_record:
+            tmp.addDict(d)
+
+        return tmp
 
     def storeRecords(self, _coll: Collection):
         """
@@ -558,6 +602,12 @@ class PortfolioAbstract(Serializable):
         """
         raise NotImplementedError('dealSignal not implemented')
 
+    def getSignalData(self):
+        return self.portfolio_mgr.getSignalData()
+
+    def getOrderData(self):
+        return self.portfolio_mgr.getOrderData()
+
     def dealFill(self, _event: FillEvent):
         """
         deal fill event from execute
@@ -567,8 +617,14 @@ class PortfolioAbstract(Serializable):
         """
         raise NotImplementedError('dealFill not implemented')
 
+    def getFillData(self):
+        return self.portfolio_mgr.getFillData()
+
     def dealSettlement(self, _tradingday: str):
         raise NotImplementedError('dealSettlement not implemented')
+
+    def getSettlementData(self):
+        return self.portfolio_mgr.getSettlementData()
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         raise NotImplementedError('dealMarket not implemented')
