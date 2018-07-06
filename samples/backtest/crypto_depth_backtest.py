@@ -69,7 +69,7 @@ class MAStrategy(StrategyAbstract):
 fetcher = FetchDepth(
     _psql_host='psql.local', _psql_dbname='cube_data', _psql_user='postgres'
 )
-portfolio = DepthPortfolio()
+portfolio = DepthPortfolio(_store_every_day=True)
 
 engine = BacktestEngine(
     _market_supply=BacktestMarketSupply(

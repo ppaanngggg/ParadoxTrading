@@ -137,7 +137,7 @@ class MarketEvent(EventAbstract):
             self,
             _market_register_key: str,
             _strategy: str,
-            _symbol: str,
+            _symbol: typing.Hashable,
             _data: typing.Union[None, DataStruct] = None
     ):
         super().__init__()

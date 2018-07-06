@@ -9,7 +9,7 @@ from ParadoxTrading.Utils import DataStruct, Serializable
 
 
 class ReturnMarket:
-    def __init__(self, _symbol: str, _data: DataStruct):
+    def __init__(self, _symbol: typing.Hashable, _data: DataStruct):
         self.symbol = _symbol
         self.data = _data
 
@@ -28,7 +28,7 @@ class ReturnSettlement:
 
 
 class MarketSupplyAbstract(Serializable):
-    def __init__(self, _fetcher: FetchAbstract):
+    def __init__(self, _fetcher: FetchAbstract = None):
         """
         base class market supply
 
@@ -37,9 +37,12 @@ class MarketSupplyAbstract(Serializable):
 
         self.fetcher: FetchAbstract = _fetcher
 
-        # map market register's key to its object
+        # map market register's key to its object,
+        # it will be assigned by addStrategy, record all register
+        # info of strategies
         self.register_dict: typing.Dict[str, RegisterAbstract] = {}
-        # map symbol to set of market register
+        # map symbol to set of market register,
+        # one symbol may map to multi register key,
         self.symbol_dict: typing.Dict[str, typing.Set[str]] = {}
 
         self.engine: ParadoxTrading.Engine.EngineAbstract = None
@@ -72,7 +75,7 @@ class MarketSupplyAbstract(Serializable):
         return ReturnSettlement(_tradingday)
 
     def addMarketEvent(
-            self, _symbol: str, _data: DataStruct
+            self, _symbol: typing.Hashable, _data: DataStruct
     ) -> ReturnMarket:
         """
         add new tick data into market register, and add event
@@ -106,11 +109,9 @@ class MarketSupplyAbstract(Serializable):
         raise NotImplementedError('updateData not implemented')
 
     def __repr__(self):
-        ret = '### MARKET REGISTER ###'
-        for k, v in self.register_dict.items():
-            ret += '\n' + k
-        ret += '\n### SYMBOL ###'
-        for k, v in self.symbol_dict.items():
-            ret += '\n' + k + ': ' + str(v)
+        ret = '### MARKET REGISTER ###\n'
+        ret += '\n'.join([str(v) for v in self.register_dict.values()])
+        ret += '\n### SYMBOL ###\n'
+        ret += '\n'.join(['{}: {}'.format(k, v) for k, v in self.symbol_dict.items()])
 
         return ret

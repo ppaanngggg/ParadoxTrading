@@ -9,8 +9,13 @@ class DepthPortfolio(PortfolioAbstract):
 
     def __init__(
             self, _init_fund: float = 0.0,
+            _store_every_day=False,
+            _store_path='./records'
     ):
         super().__init__(_init_fund)
+
+        self.store_every_day = _store_every_day
+        self.store_path = _store_path
 
         self.index_strategy_table: typing.Dict[int, str] = {}
         self.symbol_price_dict = {}
@@ -95,6 +100,21 @@ class DepthPortfolio(PortfolioAbstract):
         )
         # reset if necessary ?
         self.symbol_price_dict = {}
+
+        if self.store_every_day:
+            self.portfolio_mgr.getSignalData().toPandas().to_csv(
+                '{}/{}_signal.csv'.format(self.store_path, _tradingday, )
+            )
+            self.portfolio_mgr.getOrderData().toPandas().to_csv(
+                '{}/{}_order.csv'.format(self.store_path, _tradingday, )
+            )
+            self.portfolio_mgr.getFillData().toPandas().to_csv(
+                '{}/{}_fill.csv'.format(self.store_path, _tradingday, )
+            )
+            self.portfolio_mgr.getSettlementData().toPandas().to_csv(
+                '{}/{}_settlement.csv'.format(self.store_path, _tradingday, )
+            )
+            self.portfolio_mgr.resetRecords()
 
     def dealMarket(self, _symbol: str, _data: DataStruct):
         tmp = _data.toDict()
