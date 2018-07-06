@@ -1,6 +1,7 @@
 import logging
 import sys
 import typing
+from copy import copy
 
 import pymongo
 import tabulate
@@ -309,6 +310,7 @@ class PortfolioMgr:
             'order_type', 'action', 'direction', 'quantity', 'price'
         ], 'datetime')
         for d in self.order_record:
+            d = copy(d)
             d['order_type'] = OrderType.toStr(d['order_type'])
             d['action'] = ActionType.toStr(d['action'])
             d['direction'] = DirectionType.toStr(d['direction'])
@@ -391,6 +393,7 @@ class PortfolioMgr:
             'action', 'direction', 'price', 'quantity', 'commission'
         ], 'datetime')
         for d in self.fill_record:
+            d = copy(d)
             d['action'] = ActionType.toStr(d['action'])
             d['direction'] = DirectionType.toStr(d['direction'])
             tmp.addDict(d)
