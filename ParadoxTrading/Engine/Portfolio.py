@@ -435,10 +435,10 @@ class PortfolioMgr:
         return tmp
 
     def resetRecords(self):
-        self.signal_record = {}
-        self.order_record = {}
-        self.fill_record = {}
-        self.settlement_record = {}
+        self.signal_record = []
+        self.order_record = []
+        self.fill_record = []
+        self.settlement_record = []
 
     def storeRecords(self, _coll: Collection):
         """
