@@ -1,3 +1,7 @@
 from .DepthBacktestExecution import DepthBacktestExecution
 from .DepthMarketSupply import DepthMarketSupply
 from .DepthPortfolio import DepthPortfolio
+from .OnlineMinBarStrategy import OnlineMinBarStrategy
+from .TickerBacktestExecution import TickerBacktestExecution
+from .TickerMarketSupply import TickerMarketSupply
+from .TickerPortfolio import TickerPortfolio

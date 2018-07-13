@@ -22,6 +22,11 @@ class SplitAbstract:
         return len(self.getBarList())
 
     def getLastData(self) -> DataStruct:
+        """
+        get last
+
+        :return:
+        """
         return self.cur_bar.iloc[-1]
 
     def getCurBar(self) -> DataStruct:

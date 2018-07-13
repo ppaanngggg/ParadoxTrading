@@ -4,17 +4,15 @@ from datetime import datetime
 from time import time
 
 from TdServer.utilPool.dataFetcher import DataSub
-from TdServer.utilPool.dataProcessor import clip_depth
 
 from ParadoxTrading.Engine import MarketSupplyAbstract, ReturnMarket, ReturnSettlement
 from ParadoxTrading.Fetch.Crypto.FetchBase import FetchBase
 from ParadoxTrading.Utils import DataStruct
 
-LEVEL = 10
 TIMEOUT = 1000
 
 
-class DepthMarketSupply(MarketSupplyAbstract):
+class TickerMarketSupply(MarketSupplyAbstract):
     def __init__(self):
         super().__init__(FetchBase())
 
@@ -22,15 +20,7 @@ class DepthMarketSupply(MarketSupplyAbstract):
         self.cur_datetime = datetime.utcnow()
         self.tradingday = self.cur_datetime.date().strftime('%Y%m%d')
 
-        self.column_list = []  # datastruct columns
-        for i in range(LEVEL):
-            self.column_list.append('askprice{}'.format(i))
-            self.column_list.append('askamount{}'.format(i))
-        for i in range(LEVEL):
-            self.column_list.append('bidprice{}'.format(i))
-            self.column_list.append('bidamount{}'.format(i))
-        self.column_list.append('datetime')
-        self.last_data_dict = {}  # map symbol to data tuple
+        self.column_list = ['price', 'amount', 'datetime']
 
     def getTradingDay(self) -> str:
         return self.tradingday
@@ -53,7 +43,7 @@ class DepthMarketSupply(MarketSupplyAbstract):
         tmp_list = []
         for k in self.symbol_dict.keys():
             exname, symbol = k
-            tmp_list.append(('rs', 'depth', exname, symbol))
+            tmp_list.append(('rs', 'ticker', exname, symbol))
         self.data_sub.sub(tmp_list)
 
     def updateData(self) -> typing.Union[
@@ -81,21 +71,13 @@ class DepthMarketSupply(MarketSupplyAbstract):
                 continue
 
             symbol = (raw_data['exname'], raw_data['symbol'])
-            tuple_data = clip_depth(raw_data['data'], LEVEL)
             try:
-                last_data = self.last_data_dict[symbol]
-                if last_data != tuple_data:
-                    return self.addMarketEvent(symbol, DataStruct(
-                        self.column_list, 'datetime',
-                        [tuple_data + (self.cur_datetime,)]
-                    ))
-                else:
-                    continue
-            except KeyError:
+                tickers = raw_data['data']['tickers']
+                for d in tickers:
+                    d['datetime'] = datetime.utcfromtimestamp(d['time'] / 1000)
                 datastruct = DataStruct(
-                    self.column_list, 'datetime',
-                    [tuple_data + (self.cur_datetime,)]
+                    self.column_list, 'datetime', _dicts=raw_data['data']['tickers']
                 )
                 return self.addMarketEvent(symbol, datastruct)
-            finally:
-                self.last_data_dict[symbol] = tuple_data
+            except Exception as e:
+                logging.error('get datastruct error: {}'.format(e))
